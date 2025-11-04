@@ -1,0 +1,505 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+
+:root {
+   --background: oklch(1 0 0);
+   --foreground: oklch(0.145 0 0);
+   --card: oklch(1 0 0);
+   --card-foreground: oklch(0.145 0 0);
+   --popover: oklch(1 0 0);
+   --popover-foreground: oklch(0.145 0 0);
+
+   /* Anime theme colors from Figma */
+   --primary: oklch(0.488 0.243 264.376); /* Blue #0A84FF */
+   --primary-foreground: oklch(0.985 0 0);
+   --secondary: oklch(0.645 0.179 77.89); /* Gold #E6A540 */
+   --secondary-foreground: oklch(0.145 0 0);
+   --accent: oklch(0.488 0.243 264.376); /* Blue accent */
+   --accent-foreground: oklch(0.985 0 0);
+
+   --muted: oklch(0.97 0 0);
+   --muted-foreground: oklch(0.556 0 0);
+   --destructive: oklch(0.577 0.245 27.325);
+   --destructive-foreground: oklch(1 0 0);
+   --border: oklch(0.922 0 0);
+   --input: oklch(0.922 0 0);
+   --ring: oklch(0.708 0 0);
+   --chart-1: oklch(0.81 0.1 252);
+   --chart-2: oklch(0.62 0.19 260);
+   --chart-3: oklch(0.55 0.22 263);
+   --chart-4: oklch(0.49 0.22 264);
+   --chart-5: oklch(0.42 0.18 266);
+   --sidebar: oklch(0.985 0 0);
+   --sidebar-foreground: oklch(0.145 0 0);
+   --sidebar-primary: oklch(0.205 0 0);
+   --sidebar-primary-foreground: oklch(0.985 0 0);
+   --sidebar-accent: oklch(0.97 0 0);
+   --sidebar-accent-foreground: oklch(0.205 0 0);
+   --sidebar-border: oklch(0.922 0 0);
+   --sidebar-ring: oklch(0.708 0 0);
+
+   /* Custom anime fonts */
+   --font-heading: 'Luckiest Guy', ui-sans-serif, system-ui, sans-serif;
+   --font-anime: 'Fredoka', ui-sans-serif, system-ui, sans-serif;
+   --font-sans: 'Noto Sans JP', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+      'Noto Color Emoji';
+   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+   --radius: 0.625rem;
+   --shadow-x: 0;
+   --shadow-y: 1px;
+   --shadow-blur: 3px;
+   --shadow-spread: 0px;
+   --shadow-opacity: 0.1;
+   --shadow-color: oklch(0 0 0);
+   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+   --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+   --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+   /* Anime-specific shadows from Figma */
+   --shadow-anime-glow: 0px 4px 18px 0px rgba(10, 132, 255, 0.18);
+   --shadow-anime-card: 0px 4px 24px 0px rgba(0, 0, 0, 0.18);
+   --shadow-anime-button: 0px 4px 22px 0px rgba(0, 0, 0, 0.35);
+
+   --tracking-normal: 0em;
+   --spacing: 0.25rem;
+}
+
+.dark {
+   --background: oklch(0.145 0 0);
+   --foreground: oklch(0.985 0 0);
+   --card: oklch(0.205 0 0);
+   --card-foreground: oklch(0.985 0 0);
+   --popover: oklch(0.269 0 0);
+   --popover-foreground: oklch(0.985 0 0);
+
+   /* Dark theme anime colors */
+   --primary: oklch(0.588 0.243 264.376); /* Brighter blue for dark */
+   --primary-foreground: oklch(0.985 0 0);
+   --secondary: oklch(0.745 0.179 77.89); /* Brighter gold for dark */
+   --secondary-foreground: oklch(0.145 0 0);
+   --accent: oklch(0.371 0 0);
+   --accent-foreground: oklch(0.985 0 0);
+
+   --muted: oklch(0.269 0 0);
+   --muted-foreground: oklch(0.708 0 0);
+   --destructive: oklch(0.704 0.191 22.216);
+   --destructive-foreground: oklch(0.985 0 0);
+   --border: oklch(0.275 0 0);
+   --input: oklch(0.325 0 0);
+   --ring: oklch(0.556 0 0);
+   --chart-1: oklch(0.81 0.1 252);
+   --chart-2: oklch(0.62 0.19 260);
+   --chart-3: oklch(0.55 0.22 263);
+   --chart-4: oklch(0.49 0.22 264);
+   --chart-5: oklch(0.42 0.18 266);
+   --sidebar: oklch(0.205 0 0);
+   --sidebar-foreground: oklch(0.985 0 0);
+   --sidebar-primary: oklch(0.488 0.243 264.376);
+   --sidebar-primary-foreground: oklch(0.985 0 0);
+   --sidebar-accent: oklch(0.269 0 0);
+   --sidebar-accent-foreground: oklch(0.985 0 0);
+   --sidebar-border: oklch(0.275 0 0);
+   --sidebar-ring: oklch(0.439 0 0);
+
+   /* Dark anime shadows with glow */
+   --shadow-anime-glow: 0px 4px 18px 0px rgba(10, 132, 255, 0.35);
+   --shadow-anime-card: 0px 4px 24px 0px rgba(0, 0, 0, 0.5);
+   --shadow-anime-button: 0px 4px 22px 0px rgba(10, 132, 255, 0.25);
+}
+
+/* Anime-style animations and effects with Figma design inspiration */
+
+/* Custom typography from Figma */
+.font-heading {
+   font-family: var(--font-heading);
+}
+
+.font-anime {
+   font-family: var(--font-anime);
+}
+
+/* Japanese font integration */
+body {
+   font-family: var(--font-anime), 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Figma-inspired shadow utilities */
+.shadow-anime-glow {
+   box-shadow: var(--shadow-anime-glow);
+}
+
+.shadow-anime-card {
+   box-shadow: var(--shadow-anime-card);
+}
+
+.shadow-anime-button {
+   box-shadow: var(--shadow-anime-button);
+}
+
+/* Stats counter animation from Figma */
+@keyframes countUp {
+   0% {
+      transform: translateY(20px);
+      opacity: 0;
+   }
+   100% {
+      transform: translateY(0);
+      opacity: 1;
+   }
+}
+
+.animate-count-up {
+   animation: countUp 0.6s ease-out;
+}
+
+/* Gradient text like Figma design */
+.text-gradient-anime {
+   background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+   background-clip: text;
+}
+
+/* Button styles inspired by Figma */
+.btn-anime-primary {
+   background: hsl(var(--primary));
+   color: hsl(var(--primary-foreground));
+   border-radius: 10px;
+   padding: 12px 24px;
+   font-family: var(--font-anime);
+   font-weight: 500;
+   font-size: 20px;
+   line-height: 1.5;
+   box-shadow: var(--shadow-anime-button);
+   transition: all 0.3s ease;
+}
+
+.btn-anime-primary:hover {
+   transform: translateY(-2px);
+   box-shadow: 0px 6px 25px 0px rgba(10, 132, 255, 0.4);
+}
+
+.btn-anime-secondary {
+   background: transparent;
+   color: hsl(var(--foreground));
+   border: 2px solid hsl(var(--foreground));
+   border-radius: 10px;
+   padding: 10px 22px;
+   font-family: var(--font-anime);
+   font-weight: 500;
+   font-size: 20px;
+   line-height: 1.5;
+   transition: all 0.3s ease;
+}
+
+.btn-anime-secondary:hover {
+   background: hsl(var(--foreground));
+   color: hsl(var(--background));
+   transform: translateY(-2px);
+}
+
+/* Promotional badge like "50% Off" in Figma */
+.badge-anime-promo {
+   background: hsl(var(--secondary));
+   color: hsl(var(--background));
+   font-family: var(--font-anime);
+   font-weight: 600;
+   font-size: 40px;
+   line-height: 1.675;
+   padding: 8px 16px;
+   border-radius: 12px;
+   transform: rotate(-5deg);
+   box-shadow: var(--shadow-anime-button);
+}
+
+/* Card styles inspired by Figma design */
+.card-anime {
+   background: hsl(var(--card));
+   border-radius: 22px;
+   padding: 24px;
+   box-shadow: var(--shadow-anime-card);
+   transition: all 0.3s ease;
+   position: relative;
+   overflow: hidden;
+}
+
+.card-anime::before {
+   content: '';
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   height: 2px;
+   background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)));
+   opacity: 0.6;
+}
+
+.card-anime:hover {
+   transform: translateY(-4px);
+   box-shadow: 0px 8px 32px 0px rgba(0, 0, 0, 0.25);
+}
+
+/* Enhanced auth page styles */
+.auth-bg-pattern {
+   background-image: radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, hsl(var(--secondary) / 0.1) 0%, transparent 50%);
+}
+
+/* Floating animation with stagger */
+.anime-float-delayed {
+   animation: animeFloat 4s ease-in-out infinite;
+   animation-delay: 1s;
+}
+
+/* Premium glow effect */
+.glow-anime {
+   position: relative;
+}
+
+.glow-anime::after {
+   content: '';
+   position: absolute;
+   inset: -2px;
+   border-radius: inherit;
+   background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--primary)));
+   background-size: 200% 200%;
+   animation: gradientShift 3s ease infinite;
+   filter: blur(8px);
+   z-index: -1;
+   opacity: 0.7;
+}
+
+@keyframes gradientShift {
+   0%,
+   100% {
+      background-position: 0% 50%;
+   }
+   50% {
+      background-position: 100% 50%;
+   }
+}
+
+/* Interactive hover states for auth inputs */
+.anime-input:focus {
+   box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+   border-color: hsl(var(--primary));
+}
+
+/* Success state animations */
+.anime-success {
+   animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes successPop {
+   0% {
+      transform: scale(0.8) rotate(-5deg);
+      opacity: 0;
+   }
+   50% {
+      transform: scale(1.05) rotate(2deg);
+   }
+   100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+   }
+}
+
+/* Anime bounce animation */
+@keyframes animeBounce {
+   0%,
+   100% {
+      transform: translateY(0px) scale(1);
+   }
+   50% {
+      transform: translateY(-8px) scale(1.05);
+   }
+}
+
+.anime-bounce {
+   animation: animeBounce 2s ease-in-out infinite;
+}
+
+/* Anime float animation */
+@keyframes animeFloat {
+   0%,
+   100% {
+      transform: translateY(0px) rotate(0deg);
+   }
+   50% {
+      transform: translateY(-10px) rotate(2deg);
+   }
+}
+
+.anime-float {
+   animation: animeFloat 3s ease-in-out infinite;
+}
+
+/* Anime pulse for notifications */
+@keyframes animePulse {
+   0% {
+      transform: scale(1);
+      opacity: 1;
+   }
+   50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+   }
+   100% {
+      transform: scale(1);
+      opacity: 1;
+   }
+}
+
+.anime-pulse {
+   animation: animePulse 2s ease-in-out infinite;
+}
+
+/* Anime shake for errors */
+@keyframes animeShake {
+   0%,
+   100% {
+      transform: translateX(0);
+   }
+   10%,
+   30%,
+   50%,
+   70%,
+   90% {
+      transform: translateX(-3px);
+   }
+   20%,
+   40%,
+   60%,
+   80% {
+      transform: translateX(3px);
+   }
+}
+
+.anime-shake {
+   animation: animeShake 0.5s ease-in-out;
+}
+
+/* Anime slide in from sides */
+@keyframes animeSlideInLeft {
+   0% {
+      transform: translateX(-100px);
+      opacity: 0;
+   }
+   100% {
+      transform: translateX(0);
+      opacity: 1;
+   }
+}
+
+@keyframes animeSlideInRight {
+   0% {
+      transform: translateX(100px);
+      opacity: 0;
+   }
+   100% {
+      transform: translateX(0);
+      opacity: 1;
+   }
+}
+
+.anime-slide-in-left {
+   animation: animeSlideInLeft 0.6s ease-out;
+}
+
+.anime-slide-in-right {
+   animation: animeSlideInRight 0.6s ease-out;
+}
+
+/* Anime sparkle effect */
+@keyframes animeSparkle {
+   0%,
+   100% {
+      opacity: 0;
+      transform: scale(0) rotate(0deg);
+   }
+   50% {
+      opacity: 1;
+      transform: scale(1) rotate(180deg);
+   }
+}
+
+.anime-sparkle::before {
+   content: '✨';
+   position: absolute;
+   top: -10px;
+   right: -10px;
+   animation: animeSparkle 2s ease-in-out infinite;
+   pointer-events: none;
+   font-size: 12px;
+}
+
+/* Hover effects for interactive elements */
+.anime-hover-lift:hover {
+   transform: translateY(-3px);
+   transition: transform 0.3s ease;
+}
+
+.anime-hover-scale:hover {
+   transform: scale(1.05);
+   transition: transform 0.3s ease;
+}
+
+.anime-hover-glow:hover {
+   box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+   transition: box-shadow 0.3s ease;
+}
+
+/* Loading spinner with anime style */
+@keyframes animeSpinner {
+   0% {
+      transform: rotate(0deg);
+   }
+   100% {
+      transform: rotate(360deg);
+   }
+}
+
+.anime-spinner {
+   border: 3px solid #f3f3f3;
+   border-top: 3px solid #333;
+   border-radius: 50%;
+   width: 30px;
+   height: 30px;
+   animation: animeSpinner 1s linear infinite;
+}
+
+/* Anime-style button press effect */
+.anime-button-press:active {
+   transform: scale(0.95);
+   transition: transform 0.1s ease;
+}
+
+/* Custom scrollbar with subtle anime styling */
+::-webkit-scrollbar {
+   width: 8px;
+}
+
+::-webkit-scrollbar-track {
+   background: #f1f1f1;
+   border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+   background: #888;
+   border-radius: 4px;
+   transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+   background: #555;
+}
