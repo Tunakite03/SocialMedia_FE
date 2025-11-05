@@ -193,10 +193,7 @@ const LoginPage = () => {
                                  Signing in...
                               </div>
                            ) : (
-                              <div className='flex items-center justify-center gap-2'>
-                                 <LogIn className='w-4 h-4' />
-                                 Sign in
-                              </div>
+                              <div className='flex items-center justify-center gap-2'>Sign in</div>
                            )}
                         </button>
 
