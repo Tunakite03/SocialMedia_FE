@@ -1,37 +1,12 @@
-[build][build][build]
+[build]
+  command = "npm run build"
+  publish = "dist"
 
-  command = "npm ci && npm run build"
+[build.environment]
+  NODE_VERSION = "22.12.0"   # hoặc "20.19.0"
 
-  publish = "dist"  command = "npm ci && npm run build"  command = "npm run build"
-
-
-
-[build.environment]  publish = "dist"  publish = "dist"
-
-  NODE_VERSION = "22.12.0"
-
-  NPM_FLAGS = "--legacy-peer-deps"
-
-
-
-[[redirects]][build.environment][build.environment]
-
+[[redirects]]
   from = "/*"
-
-  to = "/index.html"  NODE_VERSION = "22.12.0"  NODE_VERSION = "22.12.0"   # hoặc "20.19.0"
-
+  to = "/index.html"
   status = 200
-
-  force = true  NPM_FLAGS = "--legacy-peer-deps"  NPM_FLAGS = "--legacy-peer-deps=false"
-
-
-
-[[redirects]][[redirects]]
-
-  from = "/*"  from = "/*"
-
-  to = "/index.html"  to = "/index.html"
-
-  status = 200  status = 200
-
-  force = true  force = true
+  force = true
