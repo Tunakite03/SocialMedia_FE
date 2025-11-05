@@ -1,10 +1,22 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, PlusSquare, Bell, User, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '@/store';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
+import DropdownMenu from '@/components/ui/dropdown-menu';
 
 const DesktopSidebar = () => {
    const location = useLocation();
-   const { user } = useAuthStore();
+   const { user, logout } = useAuthStore();
+   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+   const handleLogout = () => {
+      setShowLogoutConfirm(true);
+   };
+
+   const confirmLogout = () => {
+      logout();
+   };
 
    const navItems = [
       {
@@ -21,7 +33,7 @@ const DesktopSidebar = () => {
       },
       {
          icon: PlusSquare,
-         label: 'Create',
+         label: 'Posts',
          path: '/create',
          activeKey: '/create',
       },
@@ -46,17 +58,22 @@ const DesktopSidebar = () => {
    ];
 
    return (
-      <aside className='hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full lg:bg-white lg:border-r lg:border-gray-200 lg:p-4'>
+      <aside className='hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-4'>
          {/* Logo */}
          <div className='mb-8 pt-4'>
             <Link
                to='/feed'
-               className='text-2xl font-bold text-black tracking-tight'
+               className='text-2xl flex flex-col font-bold text-foreground tracking-tight'
             >
                <img
                   src='/logov2_128.png'
                   alt='Otakomi Logo'
-                  className='h-20 w-auto object-fit'
+                  className='h-15 object-contain'
+               />
+               <img
+                  src='/logo_text.png'
+                  alt='Otakomi Logo'
+                  className='h-10 w-auto object-contain'
                />
             </Link>
          </div>
@@ -75,15 +92,17 @@ const DesktopSidebar = () => {
                      <li key={item.path}>
                         <Link
                            to={item.path}
-                           className={`flex items-center space-x-4 px-3 py-3 rounded-lg transition-colors hover:bg-gray-100 ${
-                              isActive ? 'font-bold bg-gray-100' : ''
+                           className={`flex items-center space-x-4 px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
+                              isActive ? 'font-bold bg-muted' : ''
                            }`}
                         >
                            <IconComponent
                               size={24}
-                              className={`${isActive ? 'text-black' : 'text-black'}`}
+                              className={`${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                            />
-                           <span className={`text-base ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                           <span className={`text-base ${isActive ? 'font-bold text-foreground' : 'text-foreground'}`}>
+                              {item.label}
+                           </span>
                         </Link>
                      </li>
                   );
@@ -93,12 +112,15 @@ const DesktopSidebar = () => {
 
          {/* User Profile */}
          {user && user.username && (
-            <div className='mt-auto pt-4 border-t border-gray-200'>
+            <div className='mt-auto pt-4 border-t border-border'>
+               {/* More Button with Dropdown */}
+               <DropdownMenu onLogout={handleLogout} />
+
                <Link
                   to='/profile'
-                  className='flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors'
+                  className='flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors mt-2'
                >
-                  <div className='w-8 h-8 rounded-full bg-gray-200 overflow-hidden'>
+                  <div className='w-8 h-8 rounded-full bg-muted overflow-hidden'>
                      {user.avatar ? (
                         <img
                            src={user.avatar}
@@ -106,18 +128,30 @@ const DesktopSidebar = () => {
                            className='w-full h-full object-cover'
                         />
                      ) : (
-                        <div className='w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm'>
+                        <div className='w-full h-full bg-muted flex items-center justify-center text-muted-foreground font-semibold text-sm'>
                            {(user.displayName || user.username || 'U').charAt(0).toUpperCase()}
                         </div>
                      )}
                   </div>
                   <div className='flex-1 min-w-0'>
-                     <p className='text-sm font-semibold text-black truncate'>{user.username}</p>
-                     <p className='text-xs text-gray-500 truncate'>{user.displayName || user.username}</p>
+                     <p className='text-sm font-semibold text-foreground truncate'>{user.username}</p>
+                     <p className='text-xs text-muted-foreground truncate'>{user.displayName || user.username}</p>
                   </div>
                </Link>
             </div>
          )}
+
+         {/* Logout Confirmation Modal */}
+         <ConfirmDialog
+            isOpen={showLogoutConfirm}
+            onClose={() => setShowLogoutConfirm(false)}
+            onConfirm={confirmLogout}
+            title='Xác nhận đăng xuất'
+            message='Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?'
+            confirmText='Đăng xuất'
+            cancelText='Hủy'
+            type='warning'
+         />
       </aside>
    );
 };

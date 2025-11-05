@@ -49,11 +49,11 @@ const PostCard = ({ post }: PostCardProps) => {
    }, []);
 
    return (
-      <article className='card-anime anime-slide-in-left bg-white border-b border-gray-200 relative overflow-hidden'>
+      <article className='card-liquid-glass card-liquid-glass-animate anime-slide-in-left border-0 relative overflow-hidden w-full'>
          {/* Header with enhanced styling */}
          <div className='flex items-center justify-between px-4 py-3'>
             <div className='flex items-center space-x-3'>
-               <div className='w-10 h-10 rounded-full bg-linear-to-r from-primary to-secondary p-0.5 anime-hover-scale'>
+               <div className='w-10 h-10 rounded-full  p-0.5 anime-hover-scale'>
                   <div className='w-full h-full rounded-full bg-white overflow-hidden'>
                      <img
                         src={post.user.avatar}
@@ -70,20 +70,20 @@ const PostCard = ({ post }: PostCardProps) => {
                   </div>
                </div>
                <div className='flex flex-col'>
-                  <span className='font-anime font-semibold text-sm text-black'>{post.user.username}</span>
-                  <span className='text-xs text-gray-500 font-anime'>{post.timestamp}</span>
+                  <span className='font-anime font-semibold text-sm text-foreground'>{post.user.username}</span>
+                  <span className='text-xs text-muted-foreground font-anime'>{post.timestamp}</span>
                </div>
             </div>
             <button className='p-2 hover:bg-gray-100 rounded-full transition-colors anime-hover-scale'>
                <MoreHorizontal
-                  size={16}
-                  className='text-black'
+                  size={20}
+                  className='text-muted-foreground'
                />
             </button>
          </div>
 
          {/* Image with hover effects */}
-         <div className='w-full aspect-square bg-gray-100 relative group overflow-hidden'>
+         <div className='w-full aspect-square bg-gray-100 relative group overflow-hidden rounded-2xl'>
             <img
                src={post.image}
                alt='Post'
@@ -161,7 +161,9 @@ const PostCard = ({ post }: PostCardProps) => {
                   <Heart
                      size={24}
                      className={`${
-                        isLiked ? 'text-red-500 fill-red-500 anime-pulse' : 'text-black group-hover:text-red-400'
+                        isLiked
+                           ? 'text-red-500 fill-red-500 anime-pulse'
+                           : 'text-muted-foreground group-hover:text-red-400'
                      } transition-colors`}
                   />
                   {isLiked && <span className='absolute -top-2 -right-2 text-xs animate-bounce'>💖</span>}
@@ -169,19 +171,19 @@ const PostCard = ({ post }: PostCardProps) => {
                <button className='anime-hover-scale anime-button-press group'>
                   <MessageCircle
                      size={24}
-                     className='text-black group-hover:text-blue-400 transition-colors'
+                     className='text-muted-foreground group-hover:text-blue-400 transition-colors'
                   />
                </button>
                <button className='anime-hover-scale anime-button-press group'>
                   <Send
                      size={24}
-                     className='text-black group-hover:text-green-400 transition-colors'
+                     className='text-muted-foreground group-hover:text-green-400 transition-colors'
                   />
                </button>
                <button className='anime-hover-scale anime-button-press group'>
                   <Share2
-                     size={20}
-                     className='text-black group-hover:text-purple-400 transition-colors'
+                     size={24}
+                     className='text-muted-foreground group-hover:text-purple-400 transition-colors'
                   />
                </button>
             </div>
@@ -194,7 +196,7 @@ const PostCard = ({ post }: PostCardProps) => {
                   className={`${
                      isBookmarked
                         ? 'text-yellow-500 fill-yellow-500 anime-pulse'
-                        : 'text-black group-hover:text-yellow-400'
+                        : 'text-muted-foreground group-hover:text-yellow-400'
                   } transition-colors`}
                />
                {isBookmarked && <span className='absolute -top-2 -right-2 text-xs animate-bounce'>⭐</span>}
@@ -204,14 +206,14 @@ const PostCard = ({ post }: PostCardProps) => {
          {/* Enhanced likes count with sparkle and animation */}
          <div className='px-4 pb-2 flex items-center gap-2'>
             <span className='text-lg animate-pulse'>✨</span>
-            <span className='font-anime font-semibold text-sm text-black'>
+            <span className='font-anime font-semibold text-sm text-foreground'>
                {formatCount(likesCount)} {likesCount === 1 ? 'like' : 'likes'}
             </span>
          </div>
 
          {/* Caption with better typography */}
          <div className='px-4 pb-2'>
-            <div className='text-sm text-black font-anime'>
+            <div className='text-sm text-foreground font-anime'>
                <span className='font-semibold mr-2 text-gradient-anime'>{post.user.username}</span>
                <span className='leading-relaxed'>{post.caption}</span>
             </div>
@@ -220,7 +222,7 @@ const PostCard = ({ post }: PostCardProps) => {
          {/* Comments */}
          {post.comments > 0 && (
             <div className='px-4 pb-2'>
-               <button className='text-gray-500 text-sm font-anime hover:text-primary transition-colors'>
+               <button className='text-muted-foreground text-sm font-anime hover:text-primary transition-colors'>
                   View all {formatCount(post.comments)} comments
                </button>
             </div>

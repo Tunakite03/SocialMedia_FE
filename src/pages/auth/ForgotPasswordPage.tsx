@@ -60,7 +60,7 @@ const ForgotPasswordPage = () => {
                   <img
                      src={animeCharacterImg}
                      alt='Anime Character'
-                     className='w-full h-full object-cover'
+                     className=' object-fit'
                   />
                </div>
 
@@ -114,12 +114,9 @@ const ForgotPasswordPage = () => {
                <img
                   src={animeCityImg}
                   alt='Anime City'
-                  className='w-full h-full object-cover'
+                  className='object-fit'
                />
             </div>
-
-            <div className='absolute top-16 right-16 w-6 h-6 bg-primary/20 rounded-full anime-bounce'></div>
-            <div className='absolute bottom-20 left-20 w-8 h-8 bg-secondary/15 rounded-full anime-pulse'></div>
 
             <Sparkles
                className='absolute top-32 right-1/3 w-5 h-5 text-secondary/40 anime-pulse'
@@ -135,7 +132,7 @@ const ForgotPasswordPage = () => {
             <div className='w-full max-w-md'>
                <div className='card-anime p-8 anime-slide-in-left'>
                   <div className='text-center mb-8'>
-                     <div className='mx-auto w-16 h-16 bg-linear-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-6 anime-pulse'>
+                     <div className='mx-auto w-16 h-16 bg-black rounded-full flex items-center justify-center mb-6 anime-pulse'>
                         <Mail className='w-8 h-8 text-white' />
                      </div>
 

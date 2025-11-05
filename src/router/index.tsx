@@ -14,6 +14,7 @@ const CreatePage = lazy(() => import('@/pages/create/CreatePage'));
 const ActivityPage = lazy(() => import('@/pages/activity/ActivityPage'));
 const ChatPage = lazy(() => import('@/pages/chat/ChatPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/error/NotFoundPage'));
 
 export const router = createBrowserRouter([
@@ -115,6 +116,14 @@ export const router = createBrowserRouter([
             <ErrorBoundary>
                <ProfilePage />
             </ErrorBoundary>
+         </ProtectedRoute>
+      ),
+   },
+   {
+      path: '/settings',
+      element: (
+         <ProtectedRoute>
+            <SettingsPage />
          </ProtectedRoute>
       ),
    },

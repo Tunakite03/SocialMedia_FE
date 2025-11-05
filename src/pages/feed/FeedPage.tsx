@@ -4,6 +4,7 @@ import { socketService } from '@/services/socketService';
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import Stories from '@/components/features/Stories';
 import PostCard from '@/components/features/PostCard';
+import { PlusCircle } from 'lucide-react';
 
 const FeedPage = () => {
    useEffect(() => {
@@ -85,69 +86,52 @@ const FeedPage = () => {
 
    return (
       <InstagramLayout>
-         <div className='space-y-0'>
-            {/* Hero Section inspired by Figma */}
-            <div className='bg-linear-to-br from-primary/5 to-secondary/5 py-8 px-4 mb-6 relative overflow-hidden'>
-               {/* Background decorative elements */}
-               <div className='absolute top-4 right-4 opacity-20'>
-                  <div className='w-16 h-16 rounded-full bg-primary/20 anime-float'></div>
-               </div>
-               <div className='absolute bottom-4 left-4 opacity-20'>
-                  <div className='w-12 h-12 rounded-full bg-secondary/20 anime-bounce'></div>
-               </div>
-
-               <div className='max-w-lg mx-auto text-center'>
-                  <h1 className='font-heading text-4xl md:text-5xl lg:text-6xl text-gradient-anime mb-4 anime-slide-in-left'>
-                     Bring Your Anime
-                     <br />
-                     Worlds to Life
-                  </h1>
-
-                  <p
-                     className='font-anime text-lg text-muted-foreground mb-6 leading-relaxed anime-slide-in-right'
-                     style={{ animationDelay: '0.3s' }}
-                  >
-                     Create, showcase, and sell your digital art and cartoon creations with ease.
-                  </p>
-
-                  {/* CTA Buttons from Figma */}
-                  <div
-                     className='flex flex-col sm:flex-row gap-4 justify-center items-center anime-slide-in-left'
-                     style={{ animationDelay: '0.6s' }}
-                  >
-                     <button className='btn-anime-primary anime-hover-lift'>Start now</button>
-                     <button className='btn-anime-secondary anime-hover-lift'>Enroll Now</button>
+         <div className='space-y-2 w-full pt-5'>
+            {/* Stories section with anime float */}
+            <div className='flex flex-row gap-4 '>
+               <div className='w-full space-y-2'>
+                  <Stories />
+                  {/* Posts feed with animations */}
+                  <div className='space-y-2'>
+                     {mockPosts.map((post, index) => (
+                        <div
+                           key={post.id}
+                           className={`anime-slide-in-${index % 2 === 0 ? 'left' : 'right'}`}
+                           style={{ animationDelay: `${index * 200}ms` }}
+                        >
+                           <PostCard post={post} />
+                        </div>
+                     ))}
                   </div>
+               </div>
 
-                  {/* Promotional badge */}
-                  <div
-                     className='mt-6 anime-bounce'
-                     style={{ animationDelay: '0.9s' }}
-                  >
-                     <div className='inline-block'>
-                        <span className='badge-anime-promo'>50% Off</span>
-                        <p className='font-anime text-sm text-muted-foreground mt-2'>Join our anime class</p>
+               {/* Right sidebar for desktop */}
+               <div className='hidden lg:block'>
+                  <div className='space-y-4'>
+                     <div className='bg-white rounded-4xl p-4 border border-gray-200'>
+                        <h3 className='font-semibold text-gray-900 mb-3 text-sm'>Suggestions for you</h3>
+                        <div className='space-y-3'>
+                           {Array.from({ length: 3 }, (_, i) => (
+                              <div
+                                 key={i}
+                                 className='flex items-start justify-between gap-x-3'
+                              >
+                                 <div className='flex items-center space-x-3'>
+                                    <div className='w-8 h-8 bg-gray-200 rounded-full'></div>
+                                    <div>
+                                       <p className='text-sm font-semibold'>suggested_{i + 1}</p>
+                                       <p className='text-xs text-gray-500'>Follows you</p>
+                                    </div>
+                                 </div>
+                                 <button className='text-blue-500 text-xs font-semibold hover:text-blue-700'>
+                                    <PlusCircle className='w-5 h-5 inline-block mr-1 text-black' />
+                                 </button>
+                              </div>
+                           ))}
+                        </div>
                      </div>
                   </div>
                </div>
-            </div>
-
-            {/* Stories section with anime float */}
-            <div className='anime-float'>
-               <Stories />
-            </div>
-
-            {/* Posts feed with animations */}
-            <div className='space-y-0'>
-               {mockPosts.map((post, index) => (
-                  <div
-                     key={post.id}
-                     className={`anime-slide-in-${index % 2 === 0 ? 'left' : 'right'}`}
-                     style={{ animationDelay: `${index * 200}ms` }}
-                  >
-                     <PostCard post={post} />
-                  </div>
-               ))}
             </div>
 
             {/* Loading indicator with anime style */}

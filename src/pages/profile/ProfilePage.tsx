@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import InstagramLayout from '@/components/layout/InstagramLayout';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Settings, Grid, Bookmark, Tag, LogOut } from 'lucide-react';
 
 const ProfilePage = () => {
@@ -9,12 +10,17 @@ const ProfilePage = () => {
    const navigate = useNavigate();
    const { user: currentUser, logout } = useAuthStore();
    const [activeTab, setActiveTab] = useState('posts');
+   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
    // For demo purposes, using current user. In real app, fetch user by userId
    const user = currentUser;
    const isOwnProfile = !userId || userId === currentUser?.id;
 
    const handleLogout = () => {
+      setShowLogoutConfirm(true);
+   };
+
+   const confirmLogout = () => {
       logout();
       navigate('/login');
    };
@@ -57,15 +63,15 @@ const ProfilePage = () => {
             <div className='p-4 border-b border-gray-200'>
                <div className='flex items-center justify-between mb-6'>
                   <h1 className='text-xl font-semibold anime-bounce'>{user.username}</h1>
-                  <div className='flex items-center space-x-2'>
-                     {isOwnProfile && (
+                  <div className='flex items-center space-x-2 lg:hidden'>
+                     <Link to='/settings'>
                         <button className='p-2 anime-hover-lift anime-button-press'>
                            <Settings
                               size={24}
                               className='text-black'
                            />
                         </button>
-                     )}
+                     </Link>
                      {isOwnProfile && (
                         <button
                            onClick={handleLogout}
@@ -245,6 +251,18 @@ const ProfilePage = () => {
                   </div>
                )}
             </div>
+
+            {/* Logout Confirmation Modal */}
+            <ConfirmDialog
+               isOpen={showLogoutConfirm}
+               onClose={() => setShowLogoutConfirm(false)}
+               onConfirm={confirmLogout}
+               title='Xác nhận đăng xuất'
+               message='Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?'
+               confirmText='Đăng xuất'
+               cancelText='Hủy'
+               type='warning'
+            />
          </div>
       </InstagramLayout>
    );

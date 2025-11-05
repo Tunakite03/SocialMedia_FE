@@ -6,6 +6,34 @@
   <link rel="icon" type="image/x-icon" href="/favicon2.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Otakomi</title>
+  <script>
+    // Prevent flash of incorrect theme
+    (function () {
+      try {
+        const savedTheme = localStorage.getItem('theme-storage');
+        if (savedTheme) {
+          const parsedData = JSON.parse(savedTheme);
+          const theme = parsedData?.state?.theme || 'light';
+
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } else {
+          // Default to light theme
+          document.documentElement.classList.add('light');
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (error) {
+        // Fallback to light theme
+        document.documentElement.classList.add('light');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 </head>
 
 <body>

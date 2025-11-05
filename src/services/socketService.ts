@@ -12,7 +12,7 @@ class SocketService {
          return this.socket;
       }
 
-      const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
       this.socket = io(serverUrl, {
          auth: {

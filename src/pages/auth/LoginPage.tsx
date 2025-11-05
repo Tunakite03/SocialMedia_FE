@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Github, LogIn, Stars, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/authService';
 import { socketService } from '@/services/socketService';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
+import { Button } from '@/components/ui/button';
 
 const loginSchema = z.object({
    email: z.string().email('Invalid email address'),
@@ -23,7 +23,6 @@ const LoginPage = () => {
    const [isLoading, setIsLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
    const [showPassword, setShowPassword] = useState(false);
-   const [rememberMe, setRememberMe] = useState(false);
    const navigate = useNavigate();
    const { login } = useAuthStore();
 
@@ -88,21 +87,16 @@ const LoginPage = () => {
             </div>
 
             {/* Floating decorative elements */}
-            <div className='absolute top-20 left-20 w-8 h-8 bg-primary/20 rounded-full anime-bounce'></div>
-            <div className='absolute top-40 right-32 w-6 h-6 bg-secondary/30 rounded-full anime-float'></div>
-            <div className='absolute bottom-32 right-20 w-10 h-10 bg-primary/15 rounded-full anime-pulse'></div>
-            <div
-               className='absolute bottom-20 left-32 w-4 h-4 bg-secondary/25 rounded-full anime-bounce'
-               style={{ animationDelay: '0.5s' }}
-            ></div>
+            <Sparkles className='absolute top-20 left-20 w-5 h-5   anime-bounce'></Sparkles>
+            <Sparkles className='absolute bottom-32 right-20 w-5 h-5  anime-pulse'></Sparkles>
 
             {/* Sparkle effects */}
             <Sparkles
-               className='absolute top-32 left-1/3 w-5 h-5 text-secondary/40 anime-pulse'
+               className='absolute top-25 left-1/3 w-5 h-5 text-black anime-pulse'
                style={{ animationDelay: '2s' }}
             />
             <Stars
-               className='absolute bottom-40 right-1/3 w-4 h-4 text-primary/40 anime-bounce'
+               className='absolute bottom-40 right-1/3 w-4 h-4 text-black anime-bounce'
                style={{ animationDelay: '1.5s' }}
             />
          </div>
@@ -113,7 +107,6 @@ const LoginPage = () => {
                {/* Enhanced header */}
                <div className='text-center anime-slide-in-left'>
                   <div className='mb-4 relative'>
-                     <h1 className='font-heading text-4xl md:text-5xl text-gradient-anime mb-2'>Welcome Back! ✨</h1>
                      <p className='font-anime text-lg text-muted-foreground'>Sign in to continue your anime journey</p>
                   </div>
                </div>
@@ -174,26 +167,15 @@ const LoginPage = () => {
                      </div>
 
                      <div
-                        className='flex items-center justify-between gap-4 anime-slide-in-left'
+                        className='flex items-center justify-end gap-4 anime-slide-in-left'
                         style={{ animationDelay: '0.8s' }}
                      >
-                        <div className='flex items-center gap-2'>
-                           <Checkbox
-                              checked={rememberMe}
-                              onChange={(e) => setRememberMe(e.target.checked)}
-                              label='Remember me'
-                              className='font-anime'
-                           />
-                        </div>
-
-                        <div>
-                           <Link
-                              to='/forgot-password'
-                              className='text-sm font-anime text-muted-foreground hover:text-primary transition-colors anime-hover-scale'
-                           >
-                              Forgot password?
-                           </Link>
-                        </div>
+                        <Link
+                           to='/forgot-password'
+                           className='text-sm font-anime text-muted-foreground hover:text-primary transition-colors anime-hover-scale'
+                        >
+                           Forgot password?
+                        </Link>
                      </div>
 
                      <div
@@ -225,26 +207,28 @@ const LoginPage = () => {
                         </div>
 
                         <div className='flex gap-3'>
-                           <button
+                           <Button
+                              variant='outline'
                               type='button'
-                              className='btn-anime-secondary flex-1 anime-hover-lift'
+                              className='flex-1 '
                               onClick={() => {
                                  /* TODO: social login */
                               }}
                            >
                               <Github className='w-4 h-4 mr-2' />
                               GitHub
-                           </button>
-                           <button
+                           </Button>
+                           <Button
+                              variant='outline'
                               type='button'
-                              className='btn-anime-secondary flex-1 anime-hover-lift'
+                              className='flex-1 '
                               onClick={() => {
                                  /* TODO: social login */
                               }}
                            >
                               <LogIn className='w-4 h-4 mr-2' />
                               Google
-                           </button>
+                           </Button>
                         </div>
                      </div>
                   </form>
@@ -259,7 +243,7 @@ const LoginPage = () => {
                      Don't have an account?{' '}
                      <Link
                         to='/register'
-                        className='font-medium text-gradient-anime hover:opacity-80 transition-opacity anime-hover-scale'
+                        className='font-medium text-black hover:opacity-80 transition-opacity anime-hover-scale'
                      >
                         Join our anime community! 🌸
                      </Link>

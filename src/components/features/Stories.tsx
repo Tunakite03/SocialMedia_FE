@@ -51,8 +51,8 @@ const Stories = ({ stories = [] }: StoriesProps) => {
    const displayStories = stories.length > 0 ? stories : mockStories;
 
    return (
-      <div className='bg-white border-b border-gray-200 px-4 py-4'>
-         <div className='flex space-x-4 scrollbar-hide'>
+      <div className='bg-card border-b border-border p-4 rounded-4xl overflow-hidden liquid-glass '>
+         <div className='flex space-x-4 overflow-x-auto scrollbar-hide'>
             {displayStories.map((story) => (
                <div
                   key={story.id}
@@ -63,13 +63,13 @@ const Stories = ({ stories = [] }: StoriesProps) => {
                         story.hasStory ? 'bg-linear-to-tr from-yellow-400 to-fuchsia-600 p-0.5 rounded-full' : ''
                      }`}
                   >
-                     <div className='bg-white p-0.5 rounded-full'>
+                     <div className='bg-background p-0.5 rounded-full'>
                         <div className='w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden'>
                            {story.isOwn ? (
                               <div className='w-full h-full bg-gray-100 flex items-center justify-center'>
                                  <Plus
                                     size={20}
-                                    className='text-gray-600'
+                                    className='text-muted-foreground'
                                  />
                               </div>
                            ) : (
@@ -89,7 +89,7 @@ const Stories = ({ stories = [] }: StoriesProps) => {
                         </div>
                      </div>
                   </div>
-                  <span className='text-xs text-gray-600 max-w-[60px] truncate'>
+                  <span className='text-xs text-muted-foreground max-w-[60px] truncate'>
                      {story.isOwn ? 'Your Story' : story.username}
                   </span>
                </div>

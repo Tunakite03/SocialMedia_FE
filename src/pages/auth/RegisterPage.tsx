@@ -11,6 +11,7 @@ import { PasswordStrength } from '@/components/ui/password-strength';
 import { Eye, EyeOff, Github, UserPlus, Heart, Stars, Sparkles } from 'lucide-react';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
+import { Button } from '@/components/ui/button';
 
 const registerSchema = z
    .object({
@@ -51,7 +52,9 @@ const RegisterPage = () => {
       setError(null);
 
       try {
-         const response = await authService.register(data);
+         // Remove confirmPassword from payload before sending to API
+         const { confirmPassword, ...registerData } = data;
+         const response = await authService.register(registerData);
 
          if (response.success) {
             // Update auth store
@@ -65,8 +68,8 @@ const RegisterPage = () => {
          } else {
             setError(response.error || 'Registration failed');
          }
-      } catch (err) {
-         setError('Network error. Please try again.');
+      } catch (err: any) {
+         setError(err?.response?.data?.error ?? err?.message ?? 'Network error. Please try again.');
          console.error('Registration error:', err);
       } finally {
          setIsLoading(false);
@@ -82,7 +85,7 @@ const RegisterPage = () => {
                <img
                   src={animeCharacterImg}
                   alt='Anime Character'
-                  className='w-full h-full object-cover object-left'
+                  className=' object-fit object-left'
                />
             </div>
 
@@ -94,18 +97,13 @@ const RegisterPage = () => {
                <img
                   src={animeCityImg}
                   alt='Anime City'
-                  className='w-full h-full object-cover object-right'
+                  className='object-fit object-right'
                />
             </div>
 
             {/* Floating decorative elements */}
-            <div className='absolute top-16 right-20 w-8 h-8 bg-secondary/20 rounded-full anime-bounce'></div>
-            <div className='absolute top-32 left-32 w-6 h-6 bg-primary/30 rounded-full anime-float'></div>
-            <div className='absolute bottom-40 left-20 w-10 h-10 bg-secondary/15 rounded-full anime-pulse'></div>
-            <div
-               className='absolute bottom-16 right-32 w-4 h-4 bg-primary/25 rounded-full anime-bounce'
-               style={{ animationDelay: '0.5s' }}
-            ></div>
+            <Sparkles className='absolute top-16 right-20 w-8 h-8  anime-bounce'></Sparkles>
+            <Sparkles className='absolute top-32 left-32 w-6 h-6  anime-float'></Sparkles>
 
             {/* Sparkle effects */}
             <Sparkles
@@ -128,12 +126,7 @@ const RegisterPage = () => {
                {/* Enhanced header */}
                <div className='text-center anime-slide-in-left'>
                   <div className='mb-4 relative'>
-                     <h1 className='font-heading text-4xl md:text-5xl text-gradient-anime mb-2'>
-                        Join the Adventure! 🌸
-                     </h1>
-                     <p className='font-anime text-lg text-muted-foreground'>
-                        Create your account and discover amazing anime content
-                     </p>
+                     <h1 className='font-heading text-4xl md:text-5xl text-gradient-anime mb-2'>Join with Us! 🌸</h1>
                   </div>
                </div>
 
@@ -277,26 +270,28 @@ const RegisterPage = () => {
                         </div>
 
                         <div className='flex gap-3'>
-                           <button
+                           <Button
+                              variant='outline'
                               type='button'
-                              className='btn-anime-secondary flex-1 anime-hover-lift'
+                              className='flex-1 anime-hover-lift'
                               onClick={() => {
                                  /* TODO: social signup */
                               }}
                            >
                               <Github className='w-4 h-4 mr-2' />
                               GitHub
-                           </button>
-                           <button
+                           </Button>
+                           <Button
+                              variant='outline'
                               type='button'
-                              className='btn-anime-secondary flex-1 anime-hover-lift'
+                              className='flex-1 anime-hover-lift'
                               onClick={() => {
                                  /* TODO: social signup */
                               }}
                            >
                               <UserPlus className='w-4 h-4 mr-2' />
                               Google
-                           </button>
+                           </Button>
                         </div>
                      </div>
                   </form>

@@ -11,6 +11,9 @@ interface RegisterResponse {
    token: string;
 }
 
+// API payload type without confirmPassword
+type RegisterApiData = Omit<RegisterFormData, 'confirmPassword'>;
+
 class AuthService {
    private readonly endpoint = '/auth';
 
@@ -18,7 +21,7 @@ class AuthService {
       return apiService.post<LoginResponse>(`${this.endpoint}/login`, credentials);
    }
 
-   async register(userData: RegisterFormData): Promise<ApiResponse<RegisterResponse>> {
+   async register(userData: RegisterApiData): Promise<ApiResponse<RegisterResponse>> {
       return apiService.post<RegisterResponse>(`${this.endpoint}/register`, userData);
    }
 

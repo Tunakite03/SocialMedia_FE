@@ -8,6 +8,13 @@ const cardVariants = cva('rounded-xl border bg-card text-card-foreground shadow'
          default: 'border-border',
          outline: 'border-2',
          ghost: 'border-transparent shadow-none',
+         liquidGlass: 'card-liquid-glass',
+         liquidGlassAccent: 'card-liquid-glass-accent',
+         liquidGlassBlue: 'card-liquid-glass-blue',
+         liquidGlassPurple: 'card-liquid-glass-purple',
+         liquidGlassPink: 'card-liquid-glass-pink',
+         liquidGlassLight: 'card-liquid-glass-light',
+         liquidGlassStrong: 'card-liquid-glass-strong',
       },
       size: {
          default: 'p-6',
