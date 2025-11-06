@@ -4,11 +4,16 @@ export * from './useAuth';
 // User hooks
 export * from './useUsers';
 
-// Post hooks
+// Post hooks (legacy - will be deprecated)
 export * from './usePosts';
 
-// Comment hooks (legacy - can be removed later)
-export * from './useComments';
+// Post hooks with Zustand store (new approach)
+export {
+   useFeed as useFeedStore,
+   usePost as usePostStore,
+   usePostReactions as usePostReactionsStore,
+   useCreatePost as useCreatePostStore,
+} from './usePostStore';
 
 // Comment hooks with Zustand store
 export {

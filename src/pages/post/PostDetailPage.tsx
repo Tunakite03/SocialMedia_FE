@@ -145,7 +145,7 @@ const PostDetailPage = () => {
                   </div>
 
                   {/* Comments List - Scrollable */}
-                  <div className='flex-1 overflow-y-auto p-2 min-h-0 rounded-2xl liquid-glass'>
+                  <div className='flex-1 overflow-y-auto scrollbar-hide p-2 min-h-0 rounded-2xl liquid-glass'>
                      <div className='space-y-1'>
                         {commentsLoading && comments.length === 0 ? (
                            <div className='flex justify-center py-8'>

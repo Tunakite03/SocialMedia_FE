@@ -5,3 +5,4 @@ export { useCallStore } from './callStore';
 export { useNotificationStore } from './notificationStore';
 export { useThemeStore } from './themeStore';
 export { useCommentStore } from './commentStore';
+export { usePostStore } from './postStore';

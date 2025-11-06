@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '@/store';
+import { useFeedStore } from '@/hooks';
 import { socketService } from '@/services/socketService';
-import { useFeed } from '@/hooks/usePosts';
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import Stories from '@/components/features/Stories';
 import PostCard from '@/components/features/PostCard';
@@ -32,7 +32,19 @@ const transformPostForCard = (post: Post) => {
 };
 
 const FeedPage = () => {
-   const { posts: rawPosts, loading, error, hasMore, loadMore, refetch } = useFeed();
+   // Use the wrapper hook for cleaner code
+   const {
+      posts: rawPosts,
+      loading,
+      error,
+      hasMore,
+      loadMore,
+      refetch,
+      addPost,
+      updatePost,
+      removePost,
+   } = useFeedStore();
+
    const loadMoreRef = useRef<HTMLDivElement>(null);
 
    // Ensure posts is always an array
@@ -48,6 +60,12 @@ const FeedPage = () => {
       },
       [hasMore, loading, loadMore]
    );
+
+   // Initialize feed data
+   useEffect(() => {
+      // The hook will auto-fetch feed data on mount
+      // No need to manually call fetchFeed here since useFeedStore handles it
+   }, []);
 
    useEffect(() => {
       const option = {
@@ -75,27 +93,23 @@ const FeedPage = () => {
          socketService.connect(token);
       }
 
-      // Listen for new posts
+      // Socket event handlers with store integration
       const handleNewPost = (newPost: Post) => {
-         // Add new post to the top of the feed
-         // This will be handled by the useFeed hook in the future
          console.log('New post received:', newPost);
-         // For now, just refetch to get the latest posts
-         refetch();
+         // Add new post to the store
+         addPost(newPost);
       };
 
-      // Listen for post updates
       const handlePostUpdated = (updatedPost: Post) => {
          console.log('Post updated:', updatedPost);
-         // Refetch to ensure consistency
-         refetch();
+         // Update post in the store
+         updatePost(updatedPost.id, updatedPost);
       };
 
-      // Listen for post deletions
       const handlePostDeleted = (postId: string) => {
          console.log('Post deleted:', postId);
-         // Refetch to ensure consistency
-         refetch();
+         // Remove post from the store
+         removePost(postId);
       };
 
       // Subscribe to socket events
@@ -113,16 +127,16 @@ const FeedPage = () => {
             socketService.off('post:deleted', handlePostDeleted);
          }
       };
-   }, [refetch]);
+   }, [addPost, updatePost, removePost]);
 
-   const handleLoadMore = () => {
+   const handleLoadMore = async () => {
       if (hasMore && !loading) {
-         loadMore();
+         await loadMore();
       }
    };
 
-   const handleRefresh = () => {
-      refetch();
+   const handleRefresh = async () => {
+      await refetch();
    };
 
    // Error state
@@ -173,7 +187,7 @@ const FeedPage = () => {
 
                   {/* Posts feed with animations */}
                   <div className='space-y-2'>
-                     {posts.map((post, index) => (
+                     {posts.map((post: Post, index: number) => (
                         <div
                            key={post.id}
                            className={`anime-slide-in-${index % 2 === 0 ? 'left' : 'right'}`}

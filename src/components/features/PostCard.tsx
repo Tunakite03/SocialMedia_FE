@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Star, Laugh, Angry, Meh } from 'lucide-react';
-import { usePostReactions } from '@/hooks/usePosts';
+import { usePostReactionsStore } from '@/hooks';
 import type { Post } from '@/types';
 import PostMedia from './PostMedia';
 
@@ -54,14 +54,15 @@ const PostCard = ({ post }: PostCardProps) => {
       ),
    };
 
-   const [currentReaction, setCurrentReaction] = useState<'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW' | null>(
-      post.userReaction ? post.userReaction : null
-   );
+   // Use store data instead of local state
+   const { userReaction, reactionCount, addReaction } = usePostReactionsStore(post.id);
    const [isBookmarked, setIsBookmarked] = useState(false);
-   const [likesCount, setLikesCount] = useState(post._count.reactions);
    const [showReactionPopup, setShowReactionPopup] = useState(false);
-   const { addReaction } = usePostReactions(post.id);
    const reactionPopupRef = useRef<HTMLDivElement>(null);
+
+   // Use store data or fallback to post data
+   const currentReaction = userReaction || post.userReaction;
+   const likesCount = reactionCount || post._count.reactions;
 
    // Close reaction popup when clicking outside on mobile
    useEffect(() => {
@@ -89,23 +90,11 @@ const PostCard = ({ post }: PostCardProps) => {
 
    const handleReaction = async (type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW') => {
       try {
-         const response = await addReaction(type);
-
-         // Xử lý response từ API
-         if (response && response.action === 'removed') {
-            // Reaction đã được remove
-            setCurrentReaction(null);
-            setLikesCount((prev) => prev - 1);
-         } else if (response) {
-            // Reaction đã được add hoặc thay đổi
-            const wasReacted = currentReaction !== null;
-            setCurrentReaction(type);
-            setLikesCount((prev) => (wasReacted ? prev : prev + 1));
-         }
+         // Store handles the reaction logic internally, including optimistic updates
+         await addReaction(type);
       } catch (error) {
          console.error('Error handling reaction:', error);
-         // Rollback UI state nếu có lỗi
-         // UI đã được update optimistically, cần rollback
+         // Store handles error states, but you can add additional UI feedback here if needed
       }
 
       setShowReactionPopup(false);
