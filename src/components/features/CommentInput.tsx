@@ -122,9 +122,7 @@ const CommentInput = ({
             <button
                type='submit'
                disabled={
-                  loading || 
-                  !content.trim() || 
-                  (replyingTo ? content.trim() === `@${replyingTo.username} ` : false)
+                  loading || !content.trim() || (replyingTo ? content.trim() === `@${replyingTo.username} ` : false)
                }
                className='bg-transparent hover:bg-transparent text-blue-500 hover:text-blue-600 disabled:text-gray-400'
             >

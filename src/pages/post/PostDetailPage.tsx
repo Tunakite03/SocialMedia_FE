@@ -181,7 +181,10 @@ const PostDetailPage = () => {
                   </div>
 
                   {/* Comment Input - Fixed at bottom */}
-                  <div className='p-4  shrink-0  liquid-glass rounded-2xl' ref={commentInputRef}>
+                  <div
+                     className='p-4  shrink-0  liquid-glass rounded-2xl'
+                     ref={commentInputRef}
+                  >
                      <CommentInput
                         onSubmit={handleSubmitComment}
                         loading={createLoading}
