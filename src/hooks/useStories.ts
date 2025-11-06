@@ -18,7 +18,7 @@ export const useStories = () => {
             throw new Error(response.error || 'Failed to fetch stories');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch stories';
+         const errorMessage = err.error || err.message || 'Failed to fetch stories';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -61,7 +61,7 @@ export const useMyStories = () => {
             throw new Error(response.error || 'Failed to fetch my stories');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch my stories';
+         const errorMessage = err.error || err.message || 'Failed to fetch my stories';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -84,7 +84,7 @@ export const useMyStories = () => {
             throw new Error(response.error || 'Failed to create story');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to create story';
+         const errorMessage = err.error || err.message || 'Failed to create story';
          setError(errorMessage);
          throw err;
       } finally {
@@ -104,7 +104,7 @@ export const useMyStories = () => {
             throw new Error(response.error || 'Failed to delete story');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to delete story';
+         const errorMessage = err.error || err.message || 'Failed to delete story';
          setError(errorMessage);
          throw err;
       } finally {

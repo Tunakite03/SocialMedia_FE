@@ -35,7 +35,7 @@ export const useLogin = () => {
             throw new Error(response.error || 'Login failed');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Login failed';
+         const errorMessage = err.error || err.message || 'Login failed';
          setError(errorMessage);
          throw err;
       } finally {
@@ -72,7 +72,7 @@ export const useRegister = () => {
             throw new Error(response.error || 'Registration failed');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Registration failed';
+         const errorMessage = err.error || err.message || 'Registration failed';
          setError(errorMessage);
          throw err;
       } finally {
@@ -120,7 +120,7 @@ export const useProfile = () => {
             throw new Error(response.error || 'Failed to fetch profile');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch profile';
+         const errorMessage = err.error || err.message || 'Failed to fetch profile';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -146,7 +146,7 @@ export const useProfile = () => {
             throw new Error(response.error || 'Failed to update profile');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to update profile';
+         const errorMessage = err.error || err.message || 'Failed to update profile';
          setError(errorMessage);
          throw err;
       } finally {
@@ -173,7 +173,7 @@ export const useChangePassword = () => {
             throw new Error(response.error || 'Failed to change password');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to change password';
+         const errorMessage = err.error || err.message || 'Failed to change password';
          setError(errorMessage);
          throw err;
       } finally {
@@ -240,7 +240,7 @@ export const useForgotPassword = () => {
             throw new Error(response.error || 'Failed to send reset email');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to send reset email';
+         const errorMessage = err.error || err.message || 'Failed to send reset email';
          setError(errorMessage);
          throw err;
       } finally {
@@ -267,7 +267,7 @@ export const useResetPassword = () => {
             throw new Error(response.error || 'Failed to reset password');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to reset password';
+         const errorMessage = err.error || err.message || 'Failed to reset password';
          setError(errorMessage);
          throw err;
       } finally {

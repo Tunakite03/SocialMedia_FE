@@ -25,7 +25,7 @@ export const usePostComments = (postId: string, page: number = 1, limit: number 
             throw new Error(response.error || 'Failed to fetch comments');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch comments';
+         const errorMessage = err.error || err.message || 'Failed to fetch comments';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -82,7 +82,7 @@ export const useCreateComment = () => {
             throw new Error(response.error || 'Failed to create comment');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to create comment';
+         const errorMessage = err.error || err.message || 'Failed to create comment';
          setError(errorMessage);
          throw err;
       } finally {
@@ -109,7 +109,7 @@ export const useComment = (commentId: string) => {
             throw new Error(response.error || 'Failed to update comment');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to update comment';
+         const errorMessage = err.error || err.message || 'Failed to update comment';
          setError(errorMessage);
          throw err;
       } finally {
@@ -128,7 +128,7 @@ export const useComment = (commentId: string) => {
             throw new Error(response.error || 'Failed to delete comment');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to delete comment';
+         const errorMessage = err.error || err.message || 'Failed to delete comment';
          setError(errorMessage);
          throw err;
       } finally {
@@ -172,7 +172,7 @@ export const useCommentReplies = (commentId: string) => {
             status: err.response?.status,
             url: err.config?.url,
          });
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch replies';
+         const errorMessage = err.error || err.message || 'Failed to fetch replies';
          setError(errorMessage);
          setReplies([]);
       } finally {
@@ -206,7 +206,7 @@ export const useCommentReactions = (commentId: string) => {
             throw new Error(response.error || 'Failed to fetch reactions');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch reactions';
+         const errorMessage = err.error || err.message || 'Failed to fetch reactions';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -224,7 +224,7 @@ export const useCommentReactions = (commentId: string) => {
             throw new Error(response.error || 'Failed to add reaction');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to add reaction';
+         const errorMessage = err.error || err.message || 'Failed to add reaction';
          setError(errorMessage);
          throw err;
       } finally {

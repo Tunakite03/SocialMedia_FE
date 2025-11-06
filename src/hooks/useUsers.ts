@@ -24,7 +24,7 @@ export const useUserSearch = () => {
             throw new Error(response.error || 'Failed to search users');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to search users';
+         const errorMessage = err.error || err.message || 'Failed to search users';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -51,7 +51,7 @@ export const useUser = (userId: string) => {
             throw new Error(response.error || 'Failed to fetch user');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch user';
+         const errorMessage = err.error || err.message || 'Failed to fetch user';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -84,7 +84,7 @@ export const useUserFollowers = (userId: string) => {
             throw new Error(response.error || 'Failed to fetch followers');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch followers';
+         const errorMessage = err.error || err.message || 'Failed to fetch followers';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -117,7 +117,7 @@ export const useUserFollowing = (userId: string) => {
             throw new Error(response.error || 'Failed to fetch following');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch following';
+         const errorMessage = err.error || err.message || 'Failed to fetch following';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -149,7 +149,7 @@ export const useFollow = () => {
             throw new Error(response.error || 'Failed to follow user');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to follow user';
+         const errorMessage = err.error || err.message || 'Failed to follow user';
          setError(errorMessage);
          throw err;
       } finally {
@@ -168,7 +168,7 @@ export const useFollow = () => {
             throw new Error(response.error || 'Failed to unfollow user');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to unfollow user';
+         const errorMessage = err.error || err.message || 'Failed to unfollow user';
          setError(errorMessage);
          throw err;
       } finally {

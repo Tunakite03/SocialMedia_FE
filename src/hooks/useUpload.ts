@@ -24,7 +24,7 @@ export const useImageUpload = () => {
             throw new Error(response.error || 'Failed to upload image');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to upload image';
+         const errorMessage = err.error || err.message || 'Failed to upload image';
          setError(errorMessage);
          throw err;
       } finally {
@@ -58,7 +58,7 @@ export const useMultipleImageUpload = () => {
             throw new Error(response.error || 'Failed to upload images');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to upload images';
+         const errorMessage = err.error || err.message || 'Failed to upload images';
          setError(errorMessage);
          throw err;
       } finally {

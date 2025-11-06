@@ -29,7 +29,7 @@ export const useFeed = (limit: number = 10) => {
          }
       } catch (err: any) {
          console.error('Feed fetch error:', err); // Debug log
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch feed';
+         const errorMessage = err.error || err.message || 'Failed to fetch feed';
          setError(errorMessage);
          // Ensure posts is always an array, don't reset to empty if appending
          if (!append) {
@@ -84,7 +84,7 @@ export const useUserPosts = (userId: string, page: number = 1, limit: number = 1
             throw new Error(response.error || 'Failed to fetch user posts');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch user posts';
+         const errorMessage = err.error || err.message || 'Failed to fetch user posts';
          setError(errorMessage);
          // Ensure posts is always an array, don't reset to empty if appending
          if (!append) {
@@ -126,7 +126,7 @@ export const useCreatePost = () => {
             throw new Error(response.error || 'Failed to create post');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to create post';
+         const errorMessage = err.error || err.message || 'Failed to create post';
          setError(errorMessage);
          throw err;
       } finally {
@@ -154,7 +154,7 @@ export const usePost = (postId: string) => {
             throw new Error(response.error || 'Failed to fetch post');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch post';
+         const errorMessage = err.error || err.message || 'Failed to fetch post';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -179,7 +179,7 @@ export const usePost = (postId: string) => {
             throw new Error(response.error || 'Failed to update post');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to update post';
+         const errorMessage = err.error || err.message || 'Failed to update post';
          setError(errorMessage);
          throw err;
       } finally {
@@ -198,7 +198,7 @@ export const usePost = (postId: string) => {
             throw new Error(response.error || 'Failed to delete post');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to delete post';
+         const errorMessage = err.error || err.message || 'Failed to delete post';
          setError(errorMessage);
          throw err;
       } finally {
@@ -226,7 +226,7 @@ export const usePostReactions = (postId: string) => {
             throw new Error(response.error || 'Failed to fetch reactions');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch reactions';
+         const errorMessage = err.error || err.message || 'Failed to fetch reactions';
          setError(errorMessage);
       } finally {
          setLoading(false);
@@ -245,7 +245,7 @@ export const usePostReactions = (postId: string) => {
             throw new Error(response.error || 'Failed to add reaction');
          }
       } catch (err: any) {
-         const errorMessage = err.response?.data?.error || err.message || 'Failed to add reaction';
+         const errorMessage = err.error || err.message || 'Failed to add reaction';
          setError(errorMessage);
          throw err;
       } finally {
