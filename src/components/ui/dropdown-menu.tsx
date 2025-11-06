@@ -36,20 +36,20 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ onLogout }) => {
       >
          <button
             onClick={() => setIsOpen(!isOpen)}
-            className='flex items-center space-x-4 px-3 py-3 rounded-lg transition-colors hover:bg-muted w-full'
+            className='flex items-center text-center justify-center xl:justify-start lg:space-x-0 xl:space-x-4 lg:px-2 xl:px-3 py-3 rounded-lg transition-colors hover:bg-muted w-full'
          >
             <MoreHorizontal
                size={24}
                className='text-muted-foreground'
             />
-            <span className='text-base text-foreground'>More</span>
+            <span className='text-base text-foreground hidden xl:inline'>More</span>
          </button>
 
          {isOpen && (
             <div className='absolute bottom-full left-0 mb-2 w-48 bg-background border border-border rounded-lg shadow-lg py-2 z-50'>
                <Link
                   to='/settings'
-                  className={`flex items-center space-x-3 px-4 py-2 hover:bg-muted transition-colors ${
+                  className={`flex items-center space-x-3 px-4 py-2 hover:bg-muted transition-colors text-foreground ${
                      location.pathname === '/settings' ? 'bg-muted font-medium' : ''
                   }`}
                   onClick={() => setIsOpen(false)}

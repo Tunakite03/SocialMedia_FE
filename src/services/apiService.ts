@@ -46,7 +46,7 @@ const createApiClient = (): AxiosInstance => {
             localStorage.removeItem('auth-storage');
             window.location.href = '/login';
          }
-         return Promise.reject(error);
+         return Promise.reject(error.response.data || 'An unexpected error occurred');
       }
    );
 
@@ -89,7 +89,33 @@ class ApiService {
    // File upload method
    async uploadFile<T>(url: string, file: File, onProgress?: (progress: number) => void): Promise<ApiResponse<T>> {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('image', file);
+
+      const response = await this.api.post(url, formData, {
+         headers: {
+            'Content-Type': 'multipart/form-data',
+         },
+         onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+               const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+               onProgress(progress);
+            }
+         },
+      });
+
+      return response.data;
+   }
+
+   // Multiple files upload method
+   async uploadMultipleFiles<T>(
+      url: string,
+      files: File[],
+      onProgress?: (progress: number) => void
+   ): Promise<ApiResponse<T>> {
+      const formData = new FormData();
+      files.forEach((file) => {
+         formData.append('images', file);
+      });
 
       const response = await this.api.post(url, formData, {
          headers: {

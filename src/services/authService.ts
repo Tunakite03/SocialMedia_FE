@@ -1,5 +1,13 @@
 import { apiService } from './apiService';
-import type { User, LoginFormData, RegisterFormData, ApiResponse } from '@/types';
+import type {
+   User,
+   UserProfile,
+   LoginFormData,
+   RegisterFormData,
+   ProfileFormData,
+   PasswordChangeFormData,
+   ApiResponse,
+} from '@/types';
 
 interface LoginResponse {
    user: User;
@@ -29,8 +37,20 @@ class AuthService {
       return apiService.post<null>(`${this.endpoint}/logout`);
    }
 
-   async refreshToken(): Promise<ApiResponse<{ token: string }>> {
-      return apiService.post<{ token: string }>(`${this.endpoint}/refresh`);
+   async getProfile(): Promise<ApiResponse<{ user: UserProfile }>> {
+      return apiService.get<{ user: UserProfile }>(`${this.endpoint}/profile`);
+   }
+
+   async updateProfile(userData: ProfileFormData): Promise<ApiResponse<{ user: User }>> {
+      return apiService.put<{ user: User }>(`${this.endpoint}/profile`, userData);
+   }
+
+   async changePassword(passwordData: PasswordChangeFormData): Promise<ApiResponse<null>> {
+      return apiService.put<null>(`${this.endpoint}/password`, passwordData);
+   }
+
+   async verifyToken(): Promise<ApiResponse<{ user: User }>> {
+      return apiService.get<{ user: User }>(`${this.endpoint}/verify`);
    }
 
    async forgotPassword(email: string): Promise<ApiResponse<null>> {
@@ -38,41 +58,7 @@ class AuthService {
    }
 
    async resetPassword(token: string, newPassword: string): Promise<ApiResponse<null>> {
-      return apiService.post<null>(`${this.endpoint}/reset-password`, {
-         token,
-         password: newPassword,
-      });
-   }
-
-   async verifyEmail(token: string): Promise<ApiResponse<null>> {
-      return apiService.post<null>(`${this.endpoint}/verify-email`, { token });
-   }
-
-   async resendVerificationEmail(): Promise<ApiResponse<null>> {
-      return apiService.post<null>(`${this.endpoint}/resend-verification`);
-   }
-
-   async changePassword(oldPassword: string, newPassword: string): Promise<ApiResponse<null>> {
-      return apiService.post<null>(`${this.endpoint}/change-password`, {
-         oldPassword,
-         newPassword,
-      });
-   }
-
-   async getProfile(): Promise<ApiResponse<User>> {
-      return apiService.get<User>(`${this.endpoint}/profile`);
-   }
-
-   async updateProfile(userData: Partial<User>): Promise<ApiResponse<User>> {
-      return apiService.patch<User>(`${this.endpoint}/profile`, userData);
-   }
-
-   async uploadAvatar(file: File): Promise<ApiResponse<{ avatarUrl: string }>> {
-      return apiService.uploadFile<{ avatarUrl: string }>(`${this.endpoint}/avatar`, file);
-   }
-
-   async deleteAccount(): Promise<ApiResponse<null>> {
-      return apiService.delete<null>(`${this.endpoint}/account`);
+      return apiService.post<null>(`${this.endpoint}/reset-password`, { token, newPassword });
    }
 }
 

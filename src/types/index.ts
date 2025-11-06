@@ -6,9 +6,21 @@ export interface User {
    username: string;
    displayName: string;
    avatar?: string;
+   bio?: string;
+   dateOfBirth?: string;
+   role: 'USER' | 'ADMIN' | 'MODERATOR';
    isOnline: boolean;
-   lastSeen?: Date;
-   createdAt: Date;
+   lastSeen?: string;
+   emailVerified: boolean;
+   createdAt: string;
+}
+
+export interface UserProfile extends User {
+   _count: {
+      posts: number;
+      followers: number;
+      following: number;
+   };
 }
 
 export interface AuthState {
@@ -41,24 +53,61 @@ export interface ChatRoom {
 export interface Post {
    id: string;
    content: string;
+   type: 'TEXT' | 'IMAGE' | 'VIDEO';
+   isPublic: boolean;
+   author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatar: string | null;
+   };
    authorId: string;
-   author: User;
-   images?: string[];
-   likes: string[];
-   comments: Comment[];
-   createdAt: Date;
-   updatedAt: Date;
+   mediaUrl?: string;
+   _count: {
+      comments: number;
+      reactions: number;
+   };
+   createdAt: string;
+   updatedAt: string;
+   userReaction?: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
 }
 
 export interface Comment {
    id: string;
    content: string;
-   authorId: string;
-   author: User;
    postId: string;
-   parentId?: string;
+   authorId: string;
+   parentId?: string | null;
+   createdAt: string;
+   updatedAt: string;
+   author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatar: string | null;
+   };
    replies?: Comment[];
-   createdAt: Date;
+   _count: {
+      replies: number;
+      reactions: number;
+   };
+   userReaction?: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW' | null;
+}
+
+export interface Reaction {
+   id: string;
+   type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
+   user: User;
+   createdAt: string;
+}
+
+export interface Pagination {
+   page: number;
+   limit: number;
+   total: number;
+   totalPages: number;
+   hasNext: boolean;
+   hasPrev: boolean;
 }
 
 export interface Notification {
@@ -117,17 +166,29 @@ export interface CallRecord {
 // API Response types
 export interface ApiResponse<T = any> {
    success: boolean;
-   data: T;
+   data?: T;
    message?: string;
    error?: string;
+   details?: Array<{
+      field: string;
+      message: string;
+   }>;
+}
+
+export interface ErrorResponse {
+   success: false;
+   error: string;
+   code: string;
+   details?: Array<{
+      field: string;
+      message: string;
+   }>;
 }
 
 export interface PaginatedResponse<T> {
-   items: T[];
-   total: number;
-   page: number;
-   limit: number;
-   totalPages: number;
+   success: boolean;
+   data: T[];
+   pagination: Pagination;
 }
 
 // Socket.IO event types
@@ -178,20 +239,47 @@ export interface RegisterFormData {
    displayName: string;
    password: string;
    confirmPassword: string;
+   dateOfBirth?: string;
+   bio?: string;
 }
 
 export interface PostFormData {
    content: string;
-   images?: FileList;
+   type?: 'TEXT' | 'IMAGE' | 'VIDEO';
+   isPublic?: boolean;
 }
 
 export interface CommentFormData {
    content: string;
+   parentId?: string;
 }
 
 export interface ProfileFormData {
-   displayName: string;
-   username: string;
+   displayName?: string;
    bio?: string;
-   avatar?: File;
+   dateOfBirth?: string;
+}
+
+export interface PasswordChangeFormData {
+   currentPassword: string;
+   newPassword: string;
+}
+
+export interface ResetPasswordFormData {
+   newPassword: string;
+   confirmPassword: string;
+}
+
+export interface ReactionFormData {
+   type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
+}
+
+export interface UploadResponse {
+   url: string;
+   publicId: string;
+   size: number;
+}
+
+export interface MultipleUploadResponse {
+   images: UploadResponse[];
 }

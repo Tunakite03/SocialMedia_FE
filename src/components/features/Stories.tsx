@@ -1,99 +1,140 @@
-import { Plus } from 'lucide-react';
-
-interface Story {
-   id: string;
-   username: string;
-   avatar: string;
-   hasStory: boolean;
-   isOwn?: boolean;
-}
+import { Plus, AlertCircle } from 'lucide-react';
+import { useStories } from '@/hooks';
+import { useAuthStore } from '@/store';
 
 interface StoriesProps {
-   stories?: Story[];
+   // Props for future customization
 }
 
-const Stories = ({ stories = [] }: StoriesProps) => {
-   // Mock data for demonstration
-   const mockStories: Story[] = [
-      {
-         id: 'own',
-         username: 'Your Story',
-         avatar: '/api/placeholder/60/60',
-         hasStory: false,
-         isOwn: true,
-      },
-      {
-         id: '1',
-         username: 'john_doe',
-         avatar: '/api/placeholder/60/60',
-         hasStory: true,
-      },
-      {
-         id: '2',
-         username: 'jane_smith',
-         avatar: '/api/placeholder/60/60',
-         hasStory: true,
-      },
-      {
-         id: '3',
-         username: 'travel_guy',
-         avatar: '/api/placeholder/60/60',
-         hasStory: true,
-      },
-      {
-         id: '4',
-         username: 'foodie_life',
-         avatar: '/api/placeholder/60/60',
-         hasStory: true,
-      },
-   ];
+const Stories = ({}: StoriesProps) => {
+   const { stories, loading, error, markAsViewed } = useStories();
+   const { user } = useAuthStore();
 
-   const displayStories = stories.length > 0 ? stories : mockStories;
+   const handleStoryClick = (storyId: string) => {
+      markAsViewed(storyId);
+      // TODO: Open story viewer modal
+      console.log('Open story:', storyId);
+   };
+
+   const handleCreateStory = () => {
+      // TODO: Open create story modal
+      console.log('Create new story');
+   };
+
+   if (loading) {
+      return (
+         <div className='bg-card border-b border-border p-4 rounded-4xl overflow-hidden liquid-glass'>
+            <div className='flex space-x-4 overflow-x-auto scrollbar-hide'>
+               {Array.from({ length: 5 }, (_, i) => (
+                  <div
+                     key={i}
+                     className='flex flex-col items-center space-y-1 shrink-0'
+                  >
+                     <div className='w-14 h-14 rounded-full bg-gray-200 animate-pulse'></div>
+                     <div className='w-12 h-3 bg-gray-200 rounded animate-pulse'></div>
+                  </div>
+               ))}
+            </div>
+         </div>
+      );
+   }
+
+   if (error) {
+      return (
+         <div className='bg-card border-b border-border p-4 rounded-4xl overflow-hidden liquid-glass'>
+            <div className='flex items-center justify-center py-8'>
+               <AlertCircle className='w-5 h-5 text-red-500 mr-2' />
+               <span className='text-red-600 text-sm'>Failed to load stories</span>
+            </div>
+         </div>
+      );
+   }
 
    return (
-      <div className='bg-card border-b border-border p-4 rounded-4xl overflow-hidden liquid-glass '>
+      <div className='bg-card border-b border-border p-4 rounded-4xl overflow-hidden liquid-glass'>
          <div className='flex space-x-4 overflow-x-auto scrollbar-hide'>
-            {displayStories.map((story) => (
+            {/* Your Story / Create Story */}
+            {user && (
                <div
-                  key={story.id}
                   className='flex flex-col items-center space-y-1 shrink-0 cursor-pointer'
+                  onClick={handleCreateStory}
                >
-                  <div
-                     className={`relative ${
-                        story.hasStory ? 'bg-linear-to-tr from-yellow-400 to-fuchsia-600 p-0.5 rounded-full' : ''
-                     }`}
-                  >
+                  <div className='relative'>
                      <div className='bg-background p-0.5 rounded-full'>
-                        <div className='w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden'>
-                           {story.isOwn ? (
-                              <div className='w-full h-full bg-gray-100 flex items-center justify-center'>
-                                 <Plus
-                                    size={20}
-                                    className='text-muted-foreground'
-                                 />
-                              </div>
-                           ) : (
+                        <div className='w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden relative'>
+                           {user.avatar ? (
                               <img
-                                 src={story.avatar}
-                                 alt={story.username}
+                                 src={user.avatar}
+                                 alt={user.username}
                                  className='w-full h-full object-cover'
                                  onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
-                                    target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${story.username
+                                    target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${user.username
                                        .charAt(0)
                                        .toUpperCase()}</div>`;
                                  }}
                               />
+                           ) : (
+                              <div className='w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm'>
+                                 {user.username.charAt(0).toUpperCase()}
+                              </div>
                            )}
+                           <div className='absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white'>
+                              <Plus
+                                 size={12}
+                                 className='text-white'
+                              />
+                           </div>
                         </div>
                      </div>
                   </div>
-                  <span className='text-xs text-muted-foreground max-w-[60px] truncate'>
-                     {story.isOwn ? 'Your Story' : story.username}
-                  </span>
+                  <span className='text-xs text-muted-foreground max-w-[60px] truncate'>Your Story</span>
+               </div>
+            )}
+
+            {/* Stories from API */}
+            {stories.map((story) => (
+               <div
+                  key={story.id}
+                  className='flex flex-col items-center space-y-1 shrink-0 cursor-pointer'
+                  onClick={() => handleStoryClick(story.id)}
+               >
+                  <div
+                     className={`relative ${
+                        !story.isViewed ? 'bg-linear-to-tr from-yellow-400 to-fuchsia-600 p-0.5 rounded-full' : ''
+                     }`}
+                  >
+                     <div className='bg-background p-0.5 rounded-full'>
+                        <div className='w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden'>
+                           <img
+                              src={
+                                 story.user.avatar ||
+                                 `/api/placeholder/60/60?text=${story.user.username.charAt(0).toUpperCase()}`
+                              }
+                              alt={story.user.username}
+                              className='w-full h-full object-cover'
+                              onError={(e) => {
+                                 const target = e.target as HTMLImageElement;
+                                 target.style.display = 'none';
+                                 target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${story.user.username
+                                    .charAt(0)
+                                    .toUpperCase()}</div>`;
+                              }}
+                           />
+                        </div>
+                     </div>
+                  </div>
+                  <span className='text-xs text-muted-foreground max-w-[60px] truncate'>{story.user.username}</span>
                </div>
             ))}
+
+            {/* Empty state if no stories */}
+            {stories.length === 0 && (
+               <div className='flex items-center justify-center py-8 text-gray-500 text-sm'>
+                  No stories yet. Be the first to share!
+               </div>
+            )}
          </div>
       </div>
    );

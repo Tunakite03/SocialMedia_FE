@@ -11,7 +11,7 @@ interface InstagramLayoutProps {
 
 const InstagramLayout = ({ children, showTopNav = true, showBottomNav = true }: InstagramLayoutProps) => {
    return (
-      <div className='min-h-screen bg-background overflow-hidden w-full'>
+      <div className='min-h-screen bg-background overflow-hidden w-full '>
          {/* Desktop Sidebar */}
          <DesktopSidebar />
 
@@ -22,10 +22,14 @@ const InstagramLayout = ({ children, showTopNav = true, showBottomNav = true }: 
             </div>
          )}
 
-         <main className={`lg:ml-64 ${showTopNav ? 'pt-16 lg:pt-0' : ''} ${showBottomNav ? 'pb-16 lg:pb-0' : ''}`}>
-            <div className='w-full max-w-lg mx-auto lg:max-w-3xl xl:max-w-4xl flex-1 justify-center px-4 lg:gap-8 lg:py-8'>
+         <main
+            className={`lg:ml-16 xl:ml-64 ${showTopNav ? 'pt-[70px] lg:pt-0' : ''} ${
+               showBottomNav ? 'pb-16 lg:pb-0' : ''
+            }`}
+         >
+            <div className='w-full max-w-6xl mx-auto px-4 lg:gap-8 lg:py-8'>
                {/* Main content */}
-               <div className=''>{children}</div>
+               {children}
             </div>
          </main>
 

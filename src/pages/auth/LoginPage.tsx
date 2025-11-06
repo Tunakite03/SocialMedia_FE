@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Github, LogIn, Stars, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store';
-import { authService } from '@/services/authService';
+import { useLogin } from '@/hooks';
 import { socketService } from '@/services/socketService';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
@@ -20,11 +20,10 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
-   const [isLoading, setIsLoading] = useState(false);
-   const [error, setError] = useState<string | null>(null);
    const [showPassword, setShowPassword] = useState(false);
    const navigate = useNavigate();
    const { login } = useAuthStore();
+   const { login: loginUser, loading: isLoading, error } = useLogin();
 
    const {
       register,
@@ -35,29 +34,19 @@ const LoginPage = () => {
    });
 
    const onSubmit = async (data: LoginFormData) => {
-      setIsLoading(true);
-      setError(null);
-
       try {
-         const response = await authService.login(data);
+         const result = await loginUser(data);
 
-         if (response.success) {
-            // Update auth store
-            login(response.data.user, response.data.token);
+         // Update auth store
+         login(result.user, result.token);
 
-            // Connect to socket
-            socketService.connect(response.data.token);
+         // Connect to socket
+         socketService.connect(result.token);
 
-            // Navigate to dashboard
-            navigate('/');
-         } else {
-            setError(response.error || 'Login failed');
-         }
-      } catch (err) {
-         setError('Network error. Please try again.');
+         // Navigate to dashboard
+         navigate('/');
+      } catch (err: any) {
          console.error('Login error:', err);
-      } finally {
-         setIsLoading(false);
       }
    };
 

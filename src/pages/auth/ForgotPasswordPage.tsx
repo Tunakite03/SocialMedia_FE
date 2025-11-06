@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, CheckCircle, Sparkles, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { authService } from '@/services/authService';
+import { useForgotPassword } from '@/hooks';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
 
@@ -16,42 +16,29 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPasswordPage = () => {
-   const [isLoading, setIsLoading] = useState(false);
-   const [error, setError] = useState<string | null>(null);
-   const [isSuccess, setIsSuccess] = useState(false);
+   const [showForm, setShowForm] = useState(true);
+   const { forgotPassword, loading: isLoading, error, isSuccess } = useForgotPassword();
+   const [email, setEmail] = useState('');
 
    const {
       register,
       handleSubmit,
       formState: { errors },
-      watch,
    } = useForm<ForgotPasswordFormData>({
       resolver: zodResolver(forgotPasswordSchema),
    });
 
-   const email = watch('email');
-
    const onSubmit = async (data: ForgotPasswordFormData) => {
-      setIsLoading(true);
-      setError(null);
-
       try {
-         const response = await authService.forgotPassword(data.email);
-
-         if (response.success) {
-            setIsSuccess(true);
-         } else {
-            setError(response.error || 'Failed to send reset email');
-         }
+         await forgotPassword(data.email);
+         setEmail(data.email);
+         setShowForm(false);
       } catch (err) {
-         setError('Network error. Please try again.');
          console.error('Forgot password error:', err);
-      } finally {
-         setIsLoading(false);
       }
    };
 
-   if (isSuccess) {
+   if (isSuccess && !showForm) {
       return (
          <div className='min-h-screen flex bg-linear-to-br from-primary/5 via-background to-secondary/5 relative overflow-hidden'>
             {/* Animated background elements */}
@@ -85,7 +72,7 @@ const ForgotPasswordPage = () => {
                         <p className='text-sm font-anime text-muted-foreground'>
                            Didn't receive the email? Check your spam folder or{' '}
                            <button
-                              onClick={() => setIsSuccess(false)}
+                              onClick={() => setShowForm(true)}
                               className='text-primary hover:opacity-80 font-medium anime-hover-scale'
                            >
                               try again

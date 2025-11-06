@@ -58,8 +58,7 @@ const DesktopSidebar = () => {
    ];
 
    return (
-      <aside className='hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-4'>
-         {/* Logo */}
+      <aside className='hidden lg:flex lg:flex-col lg:w-16 xl:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-2 xl:p-4'>
          <div className='mb-8 pt-4'>
             <Link
                to='/feed'
@@ -73,7 +72,7 @@ const DesktopSidebar = () => {
                <img
                   src='/logo_text.png'
                   alt='Otakomi Logo'
-                  className='h-10 w-auto object-contain'
+                  className='h-10 w-auto object-contain hidden xl:block'
                />
             </Link>
          </div>
@@ -92,7 +91,7 @@ const DesktopSidebar = () => {
                      <li key={item.path}>
                         <Link
                            to={item.path}
-                           className={`flex items-center space-x-4 px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
+                           className={`flex items-center lg:space-x-0 xl:space-x-4 lg:px-2 xl:px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
                               isActive ? 'font-bold bg-muted' : ''
                            }`}
                         >
@@ -100,7 +99,11 @@ const DesktopSidebar = () => {
                               size={24}
                               className={`${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                            />
-                           <span className={`text-base ${isActive ? 'font-bold text-foreground' : 'text-foreground'}`}>
+                           <span
+                              className={`text-base hidden xl:inline ${
+                                 isActive ? 'font-bold text-foreground' : 'text-foreground'
+                              }`}
+                           >
                               {item.label}
                            </span>
                         </Link>
@@ -118,7 +121,7 @@ const DesktopSidebar = () => {
 
                <Link
                   to='/profile'
-                  className='flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors mt-2'
+                  className='flex items-center  lg:space-x-0 xl:space-x-3 lg:px-2 xl:px-3 py-2 rounded-lg hover:bg-muted transition-colors mt-2'
                >
                   <div className='w-8 h-8 rounded-full bg-muted overflow-hidden'>
                      {user.avatar ? (
@@ -133,7 +136,7 @@ const DesktopSidebar = () => {
                         </div>
                      )}
                   </div>
-                  <div className='flex-1 min-w-0'>
+                  <div className='flex-1 min-w-0 hidden xl:block'>
                      <p className='text-sm font-semibold text-foreground truncate'>{user.username}</p>
                      <p className='text-xs text-muted-foreground truncate'>{user.displayName || user.username}</p>
                   </div>

@@ -13,7 +13,7 @@ function App() {
                <div className='min-h-screen flex items-center justify-center bg-background'>
                   <div className='text-center'>
                      <img
-                        src='./logov2_128.png'
+                        src='/logov2_128.png'
                         alt='Logo'
                         className='w-20 h-20 object-contain mb-4 mx-auto'
                      />

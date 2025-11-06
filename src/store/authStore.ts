@@ -7,8 +7,6 @@ interface AuthStore extends AuthState {
    logout: () => void;
    updateUser: (user: Partial<User>) => void;
    setLoading: (loading: boolean) => void;
-   // Development utility
-   setDemoUser: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -26,10 +24,12 @@ export const useAuthStore = create<AuthStore>()(
                email: user.email || '',
                username: user.username || '',
                displayName: user.displayName || user.username || 'User',
+               role: user.role || 'USER',
+               emailVerified: user.emailVerified || false,
                avatar: user.avatar,
                isOnline: user.isOnline ?? true,
                lastSeen: user.lastSeen,
-               createdAt: user.createdAt || new Date(),
+               createdAt: user.createdAt || new Date().getDate().toString(),
             };
 
             set({
@@ -60,26 +60,6 @@ export const useAuthStore = create<AuthStore>()(
 
          setLoading: (loading: boolean) => {
             set({ isLoading: loading });
-         },
-
-         setDemoUser: () => {
-            const demoUser: User = {
-               id: 'demo-user-1',
-               email: 'demo@Otakomi.com',
-               username: 'demouser',
-               displayName: 'Demo User',
-               avatar: undefined,
-               isOnline: true,
-               lastSeen: new Date(),
-               createdAt: new Date(),
-            };
-
-            set({
-               user: demoUser,
-               token: 'demo-token',
-               isAuthenticated: true,
-               isLoading: false,
-            });
          },
       }),
       {

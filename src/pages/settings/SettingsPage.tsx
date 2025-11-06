@@ -32,7 +32,7 @@ const SettingsPage = () => {
                            className='text-muted-foreground'
                         />
                      </div>
-                     <h1 className='text-2xl font-bold text-foreground'>Cài đặt</h1>
+                     <h1 className='text-2xl font-bold text-foreground'>Settings</h1>
                   </div>
                </div>
             </div>

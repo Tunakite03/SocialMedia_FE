@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store';
-import { authService } from '@/services/authService';
+import { useRegister } from '@/hooks';
 import { socketService } from '@/services/socketService';
 import { Input } from '@/components/ui/input';
 import { PasswordStrength } from '@/components/ui/password-strength';
@@ -29,12 +29,11 @@ const registerSchema = z
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
-   const [isLoading, setIsLoading] = useState(false);
-   const [error, setError] = useState<string | null>(null);
    const [showPassword, setShowPassword] = useState(false);
    const [showConfirm, setShowConfirm] = useState(false);
    const navigate = useNavigate();
    const { login } = useAuthStore();
+   const { register: registerUser, loading: isLoading, error } = useRegister();
 
    const {
       register,
@@ -48,34 +47,23 @@ const RegisterPage = () => {
    const passwordVal = watch('password');
 
    const onSubmit = async (data: RegisterFormData) => {
-      setIsLoading(true);
-      setError(null);
-
       try {
          // Remove confirmPassword from payload before sending to API
          const { confirmPassword, ...registerData } = data;
-         const response = await authService.register(registerData);
+         const result = await registerUser(registerData);
 
-         if (response.success) {
-            // Update auth store
-            login(response.data.user, response.data.token);
+         // Update auth store
+         login(result.user, result.token);
 
-            // Connect to socket
-            socketService.connect(response.data.token);
+         // Connect to socket
+         socketService.connect(result.token);
 
-            // Navigate to dashboard
-            navigate('/');
-         } else {
-            setError(response.error || 'Registration failed');
-         }
+         // Navigate to dashboard
+         navigate('/');
       } catch (err: any) {
-         setError(err?.response?.data?.error ?? err?.message ?? 'Network error. Please try again.');
          console.error('Registration error:', err);
-      } finally {
-         setIsLoading(false);
       }
    };
-
    return (
       <div className='min-h-screen flex bg-linear-to-br from-secondary/5 via-background to-primary/5 relative overflow-hidden'>
          {/* Animated background elements */}

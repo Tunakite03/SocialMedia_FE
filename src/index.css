@@ -1,8 +1,9 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 :root {
    --background: oklch(1 0 0);
@@ -601,6 +602,69 @@ body {
    border: 1px solid rgba(255, 255, 255, 0.24);
    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.dark .liquid-glass {
+   background: rgba(15, 15, 15, 0.85);
+   border-bottom-color: rgba(255, 255, 255, 0.15);
+   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+/* ============================================
+   NAVIGATION SCROLL EFFECTS WITH LIQUID GLASS
+   ============================================ */
+
+/* Scrolled state - smaller and more glass-like */
+.nav-scrolled {
+   background: rgba(255, 255, 255, 0.32);
+   backdrop-filter: blur(14px) saturate(120%);
+   border-radius: 24px;
+   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+   border: 1px solid rgba(255, 255, 255, 0.24);
+   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   scale: calc(0.9);
+}
+
+.dark.nav-scrolled {
+   background: rgba(15, 15, 15, 0.85);
+   border-bottom-color: rgba(255, 255, 255, 0.15);
+   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Logo scaling on scroll */
+.logo-img {
+   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-scrolled .logo-img {
+   height: 1.75rem; /* h-7 equivalent */
+   transform: scale(0.9);
+}
+
+@media (min-width: 768px) {
+   .nav-scrolled .logo-img {
+      height: 2rem; /* h-8 equivalent for md and up */
+   }
+}
+
+/* Navigation icons scaling */
+.nav-icon {
+   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-scrolled .nav-icon {
+   padding: 0.375rem; /* p-1.5 equivalent */
+}
+
+.nav-scrolled .nav-icon svg {
+   width: 20px;
+   height: 20px;
+}
+
+/* Search bar in tablet view scaling */
+.nav-scrolled .nav-search {
+   transform: scale(0.95);
+   opacity: 0.9;
+}
+
 /* Base liquid glass style */
 .card-liquid-glass {
    padding: 20px;
@@ -811,4 +875,20 @@ body {
    animation: liquidGlassShimmer 3s infinite;
    backdrop-filter: blur(10px);
    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Anime slide-in-bottom animation */
+@keyframes animeSlideInBottom {
+   0% {
+      transform: translateY(100px);
+      opacity: 0;
+   }
+   100% {
+      transform: translateY(0);
+      opacity: 1;
+   }
+}
+
+.anime-slide-in-bottom {
+   animation: animeSlideInBottom 0.4s ease-out;
 }

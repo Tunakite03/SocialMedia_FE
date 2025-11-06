@@ -8,6 +8,7 @@ import { lazy } from 'react';
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const FeedPage = lazy(() => import('@/pages/feed/FeedPage'));
 const SearchPage = lazy(() => import('@/pages/search/SearchPage'));
 const CreatePage = lazy(() => import('@/pages/create/CreatePage'));
@@ -15,6 +16,7 @@ const ActivityPage = lazy(() => import('@/pages/activity/ActivityPage'));
 const ChatPage = lazy(() => import('@/pages/chat/ChatPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const PostDetailPage = lazy(() => import('@/pages/post/PostDetailPage'));
 const NotFoundPage = lazy(() => import('@/pages/error/NotFoundPage'));
 
 export const router = createBrowserRouter([
@@ -48,6 +50,14 @@ export const router = createBrowserRouter([
       element: (
          <PublicRoute>
             <ForgotPasswordPage />
+         </PublicRoute>
+      ),
+   },
+   {
+      path: '/reset-password',
+      element: (
+         <PublicRoute>
+            <ResetPasswordPage />
          </PublicRoute>
       ),
    },
@@ -115,6 +125,16 @@ export const router = createBrowserRouter([
          <ProtectedRoute>
             <ErrorBoundary>
                <ProfilePage />
+            </ErrorBoundary>
+         </ProtectedRoute>
+      ),
+   },
+   {
+      path: '/post/:postId',
+      element: (
+         <ProtectedRoute>
+            <ErrorBoundary>
+               <PostDetailPage />
             </ErrorBoundary>
          </ProtectedRoute>
       ),
