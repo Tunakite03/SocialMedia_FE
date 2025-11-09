@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { authService } from '@/services';
+import { TokenManager } from '@/utils/tokenManager';
 import type {
    User,
    UserProfile,
@@ -20,11 +21,12 @@ export const useLogin = () => {
       try {
          const response = await authService.login(credentials);
          if (response.success && response.data) {
-            // Store token in localStorage
+            // Store tokens in localStorage
             const authData = {
                state: {
                   user: response.data.user,
-                  token: response.data.token,
+                  token: response.data.accessToken,
+                  refreshToken: response.data.refreshToken,
                   isAuthenticated: true,
                   isLoading: false,
                },
@@ -57,11 +59,12 @@ export const useRegister = () => {
       try {
          const response = await authService.register(userData);
          if (response.success && response.data) {
-            // Store token in localStorage
+            // Store tokens in localStorage
             const authData = {
                state: {
                   user: response.data.user,
-                  token: response.data.token,
+                  token: response.data.accessToken,
+                  refreshToken: response.data.refreshToken,
                   isAuthenticated: true,
                   isLoading: false,
                },
@@ -94,9 +97,10 @@ export const useLogout = () => {
       } catch (err) {
          console.error('Logout error:', err);
       } finally {
-         localStorage.removeItem('auth-storage');
+         // Use TokenManager for centralized logout
+         TokenManager.logout();
          setLoading(false);
-         window.location.href = '/login';
+         // React Router will handle redirect via ProtectedRoute
       }
    };
 
@@ -210,7 +214,7 @@ export const useVerifyToken = () => {
    };
 
    useEffect(() => {
-      const token = localStorage.getItem('auth-storage');
+      const token = TokenManager.getAccessToken();
       if (token) {
          verifyToken();
       } else {

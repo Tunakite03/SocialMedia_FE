@@ -38,10 +38,10 @@ const LoginPage = () => {
          const result = await loginUser(data);
 
          // Update auth store
-         login(result.user, result.token);
+         login(result.user, result.accessToken, result.refreshToken);
 
          // Connect to socket
-         socketService.connect(result.token);
+         socketService.connect(result.accessToken);
 
          // Navigate to dashboard
          navigate('/');

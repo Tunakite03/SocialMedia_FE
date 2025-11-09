@@ -471,6 +471,35 @@ body {
    animation: animeShake 0.5s ease-in-out;
 }
 
+/* Bell ring animation for notifications */
+@keyframes bellRing {
+   0%,
+   100% {
+      transform: rotate(0deg);
+   }
+   10%,
+   30%,
+   50%,
+   70%,
+   90% {
+      transform: rotate(-10deg);
+   }
+   20%,
+   40%,
+   60%,
+   80% {
+      transform: rotate(10deg);
+   }
+}
+
+.animate-bell-ring {
+   animation: bellRing 0.8s ease-in-out;
+}
+
+.animate-bell-ring:hover {
+   animation: bellRing 0.8s ease-in-out infinite;
+}
+
 /* Anime slide in from sides */
 @keyframes animeSlideInLeft {
    0% {
@@ -891,4 +920,27 @@ body {
 
 .anime-slide-in-bottom {
    animation: animeSlideInBottom 0.4s ease-out;
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar {
+   scrollbar-width: thin;
+   scrollbar-color: hsl(var(--primary)) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+   width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+   background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+   background: hsl(var(--primary));
+   border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+   background: hsl(var(--primary) / 0.8);
 }

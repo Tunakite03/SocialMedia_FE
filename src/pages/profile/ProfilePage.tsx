@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
@@ -7,7 +7,6 @@ import { Settings, Grid, Bookmark, Tag, LogOut } from 'lucide-react';
 
 const ProfilePage = () => {
    const { userId } = useParams<{ userId: string }>();
-   const navigate = useNavigate();
    const { user: currentUser, logout } = useAuthStore();
    const [activeTab, setActiveTab] = useState('posts');
    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -22,7 +21,7 @@ const ProfilePage = () => {
 
    const confirmLogout = () => {
       logout();
-      navigate('/login');
+      // Remove manual navigation - let ProtectedRoute handle redirect
    };
 
    // Additional safety checks for user data

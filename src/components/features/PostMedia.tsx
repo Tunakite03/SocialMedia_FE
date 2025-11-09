@@ -1,4 +1,5 @@
 import type { Post } from '@/types';
+import { EnhancedVideoPlayer } from './video/EnhancedVideoPlayer';
 
 const PostMedia = ({ post }: { post: Post }) => {
    if (post.type === 'IMAGE' && post.mediaUrl) {
@@ -22,23 +23,11 @@ const PostMedia = ({ post }: { post: Post }) => {
       );
    }
    if (post.type === 'VIDEO' && post.mediaUrl) {
-      return (
-         <>
-            {post.mediaUrl && (
-               <div className='w-full bg-gray-100 rounded-2xl overflow-hidden'>
-                  <video
-                     src={post.mediaUrl}
-                     controls
-                     className='w-full object-cover max-h-[600px]'
-                  />
-               </div>
-            )}
-         </>
-      );
+      return <EnhancedVideoPlayer src={post.mediaUrl} />;
    }
 
    return (
-      <div className='w-full aspect-square bg-gray-100 relative group overflow-hidden rounded-2xl flex items-center font-semibold text-center'>
+      <div className='flex justify-center rounded-2xl  items-center font-semibold text-center w-full aspect-video bg-gray-100 overflow-hidden'>
          {post.content}
       </div>
    );

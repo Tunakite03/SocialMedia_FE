@@ -2,6 +2,27 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '@/types';
 
+// Forward declaration to avoid circular dependency
+let authService: any;
+let TokenManager: any;
+
+// Lazy imports to avoid circular dependencies
+const getAuthService = async () => {
+   if (!authService) {
+      const module = await import('./authService');
+      authService = module.authService;
+   }
+   return authService;
+};
+
+const getTokenManager = async () => {
+   if (!TokenManager) {
+      const module = await import('@/utils/tokenManager');
+      TokenManager = module.TokenManager;
+   }
+   return TokenManager;
+};
+
 // Create axios instance with default configuration
 const createApiClient = (): AxiosInstance => {
    const api = axios.create({
@@ -14,17 +35,15 @@ const createApiClient = (): AxiosInstance => {
 
    // Request interceptor to add auth token
    api.interceptors.request.use(
-      (config) => {
-         const token = localStorage.getItem('auth-storage');
-         if (token) {
-            try {
-               const authData = JSON.parse(token);
-               if (authData.state?.token) {
-                  config.headers.Authorization = `Bearer ${authData.state.token}`;
-               }
-            } catch (error) {
-               console.error('Error parsing auth token:', error);
+      async (config) => {
+         try {
+            const tokenManager = await getTokenManager();
+            const token = tokenManager.getAccessToken();
+            if (token) {
+               config.headers.Authorization = `Bearer ${token}`;
             }
+         } catch (error) {
+            console.error('Error getting auth token:', error);
          }
          return config;
       },
@@ -33,20 +52,47 @@ const createApiClient = (): AxiosInstance => {
       }
    );
 
-   // Response interceptor for error handling
+   // Response interceptor for error handling and token refresh
    api.interceptors.response.use(
       (response) => response,
-      (error) => {
-         if (
-            error.response?.status === 401 &&
-            window.location.pathname !== '/login' &&
-            window.location.pathname !== '/register'
-         ) {
-            // Token expired or invalid, redirect to login
-            localStorage.removeItem('auth-storage');
-            window.location.href = '/login';
+      async (error) => {
+         const originalRequest = error.config;
+
+         if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+               // Try to refresh the token
+               const tokenManager = await getTokenManager();
+               const refreshToken = tokenManager.getRefreshToken();
+
+               if (refreshToken) {
+                  const authServiceInstance = await getAuthService();
+                  const response = await authServiceInstance.refreshToken(refreshToken);
+
+                  if (response.success && response.data) {
+                     // Update tokens using TokenManager
+                     const { useAuthStore } = await import('@/store');
+                     useAuthStore.getState().updateTokens(response.data.accessToken, response.data.refreshToken);
+
+                     // Retry the original request with new token
+                     originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+                     return api(originalRequest);
+                  }
+               }
+            } catch (refreshError) {
+               console.error('Token refresh failed:', refreshError);
+            }
+
+            // If refresh fails or no refresh token, logout using TokenManager
+            const tokenManager = await getTokenManager();
+            if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+               tokenManager.logout();
+               window.location.href = '/login';
+            }
          }
-         return Promise.reject(error.response.data || 'An unexpected error occurred');
+
+         return Promise.reject(error.response?.data || 'An unexpected error occurred');
       }
    );
 

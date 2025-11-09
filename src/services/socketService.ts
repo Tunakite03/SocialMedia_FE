@@ -151,24 +151,49 @@ class SocketService {
    }
 
    // Call methods
-   initiateCall(receiverId: string, type: 'audio' | 'video'): void {
+   initiateCall(receiverId: string, type: 'VOICE' | 'VIDEO'): void {
       this.emit('call:initiate', { receiverId, type });
    }
 
    acceptCall(callId: string): void {
-      this.emit('call:accept', { callId });
+      this.emit('call:response', { callId, accepted: true });
    }
 
    rejectCall(callId: string): void {
-      this.emit('call:reject', { callId });
+      this.emit('call:response', { callId, accepted: false });
    }
 
    endCall(callId: string): void {
       this.emit('call:end', { callId });
    }
 
-   sendCallSignal(callId: string, signal: any, to: string): void {
-      this.emit('call:signal', { callId, signal, to });
+   // WebRTC Signaling methods
+   sendWebRTCOffer(receiverId: string, offer: RTCSessionDescriptionInit, callId: string): void {
+      this.emit('webrtc:offer', { receiverId, offer, callId });
+   }
+
+   sendWebRTCAnswer(senderId: string, answer: RTCSessionDescriptionInit, callId: string): void {
+      this.emit('webrtc:answer', { senderId, answer, callId });
+   }
+
+   sendICECandidate(targetId: string, candidate: RTCIceCandidate, callId: string): void {
+      this.emit('webrtc:ice-candidate', { targetId, candidate, callId });
+   }
+
+   // Notification methods
+   sendNotification(receiverId: string, type: string, message: string, entityId?: string, entityType?: string): void {
+      this.emit('notification:send', {
+         receiverId,
+         type,
+         message,
+         entityId,
+         entityType,
+      });
+   }
+
+   // Connection health methods
+   ping(): void {
+      this.emit('ping');
    }
 }
 

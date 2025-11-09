@@ -52,11 +52,33 @@ class PostService {
    }
 
    async createPost(postData: PostFormData): Promise<ApiResponse<{ post: Post }>> {
-      return apiService.post<{ post: Post }>(`${this.endpoint}`, {
-         content: postData.content,
+      // If there's a media file, use multipart/form-data
+      if (postData.mediaFile) {
+         const formData = new FormData();
+
+         if (postData.content?.trim()) {
+            formData.append('content', postData.content);
+         }
+
+         formData.append('type', postData.type || 'TEXT');
+         formData.append('isPublic', String(postData.isPublic !== false));
+         formData.append('media', postData.mediaFile);
+
+         return apiService.post<{ post: Post }>(`${this.endpoint}`, formData, {
+            headers: {
+               'Content-Type': 'multipart/form-data',
+            },
+         });
+      }
+
+      // For text-only posts, use JSON
+      const payload: any = {
+         content: postData.content || '',
          type: postData.type || 'TEXT',
          isPublic: postData.isPublic !== false,
-      });
+      };
+
+      return apiService.post<{ post: Post }>(`${this.endpoint}`, payload);
    }
 
    async updatePost(id: string, postData: Partial<PostFormData>): Promise<ApiResponse<null>> {

@@ -89,7 +89,9 @@ export const router = createBrowserRouter([
       path: '/activity',
       element: (
          <ProtectedRoute>
-            <ActivityPage />
+            <ErrorBoundary>
+               <ActivityPage />
+            </ErrorBoundary>
          </ProtectedRoute>
       ),
    },

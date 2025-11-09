@@ -25,7 +25,8 @@ export interface UserProfile extends User {
 
 export interface AuthState {
    user: User | null;
-   token: string | null;
+   token: string | null; // accessToken for backward compatibility
+   refreshToken: string | null;
    isAuthenticated: boolean;
    isLoading: boolean;
 }
@@ -102,25 +103,41 @@ export interface Reaction {
 }
 
 export interface Pagination {
-   page: number;
    limit: number;
+   offset: number;
+   hasMore: boolean; // Changed from hasNext to hasMore to match API
    total: number;
-   totalPages: number;
-   hasNext: boolean;
-   hasPrev: boolean;
+   nextCursor: string | null;
+   performanceHint: string | null;
+   // Optional backward compatibility
+   page?: number;
+   totalPages?: number;
+   hasNext?: boolean;
+   hasPrev?: boolean;
 }
 
 export interface Notification {
    id: string;
-   type: 'like' | 'comment' | 'message' | 'call' | 'friend_request';
+   type: 'LIKE' | 'COMMENT' | 'FOLLOW' | 'MESSAGE' | 'CALL' | 'MENTION';
    title: string;
    message: string;
    recipientId: string;
    senderId: string;
-   sender: User;
+   sender: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatar: string | null;
+   };
    isRead: boolean;
-   data?: any;
-   createdAt: Date;
+   entityId?: string; // ID of related entity (post, comment, etc.)
+   entityType?: 'post' | 'comment' | 'user';
+   metadata?: {
+      postId?: string;
+      commentId?: string;
+      callType?: 'VOICE' | 'VIDEO';
+   };
+   createdAt: string;
 }
 
 export interface CallState {
@@ -167,6 +184,7 @@ export interface CallRecord {
 export interface ApiResponse<T = any> {
    success: boolean;
    data?: T;
+   pagination?: Pagination;
    message?: string;
    error?: string;
    details?: Array<{
@@ -247,6 +265,7 @@ export interface PostFormData {
    content: string;
    type?: 'TEXT' | 'IMAGE' | 'VIDEO';
    isPublic?: boolean;
+   mediaFile?: File; // File object for multipart/form-data upload
 }
 
 export interface CommentFormData {

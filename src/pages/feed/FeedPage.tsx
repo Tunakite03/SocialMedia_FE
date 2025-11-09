@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useAuthStore } from '@/store';
+import { useEffect, useCallback, useRef } from 'react';
+import { TokenManager } from '@/utils/tokenManager';
 import { useFeedStore } from '@/hooks';
 import { socketService } from '@/services/socketService';
 import InstagramLayout from '@/components/layout/InstagramLayout';
@@ -88,7 +88,7 @@ const FeedPage = () => {
 
    useEffect(() => {
       // Initialize socket connection if not already connected
-      const token = useAuthStore.getState().token;
+      const token = TokenManager.getAccessToken();
       if (token && !socketService.isConnected) {
          socketService.connect(token);
       }

@@ -11,12 +11,14 @@ import type {
 
 interface LoginResponse {
    user: User;
-   token: string;
+   accessToken: string;
+   refreshToken: string;
 }
 
 interface RegisterResponse {
    user: User;
-   token: string;
+   accessToken: string;
+   refreshToken: string;
 }
 
 // API payload type without confirmPassword
@@ -59,6 +61,12 @@ class AuthService {
 
    async resetPassword(token: string, newPassword: string): Promise<ApiResponse<null>> {
       return apiService.post<null>(`${this.endpoint}/reset-password`, { token, newPassword });
+   }
+
+   async refreshToken(refreshToken: string): Promise<ApiResponse<{ accessToken: string; refreshToken: string }>> {
+      return apiService.post<{ accessToken: string; refreshToken: string }>(`${this.endpoint}/refresh`, {
+         refreshToken,
+      });
    }
 }
 

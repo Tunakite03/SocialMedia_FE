@@ -1,135 +1,88 @@
+import { useNavigate } from 'react-router-dom';
 import InstagramLayout from '@/components/layout/InstagramLayout';
-import { Heart, MessageCircle, UserPlus } from 'lucide-react';
+import { NotificationList } from '@/components/features/NotificationList';
+import { ConnectionStatus } from '@/components/providers/SocketNotificationProvider';
+import { useSocketNotification } from '@/components/providers/SocketNotificationProvider';
+import type { Notification } from '@/types';
 
 const ActivityPage = () => {
-   const activities = [
-      {
-         id: '1',
-         type: 'like',
-         user: 'john_doe',
-         avatar: '/api/placeholder/40/40',
-         action: 'liked your photo',
-         timestamp: '2m',
-         postImage: '/api/placeholder/40/40',
-      },
-      {
-         id: '2',
-         type: 'comment',
-         user: 'jane_smith',
-         avatar: '/api/placeholder/40/40',
-         action: 'commented: "Amazing shot! 📸"',
-         timestamp: '5m',
-         postImage: '/api/placeholder/40/40',
-      },
-      {
-         id: '3',
-         type: 'follow',
-         user: 'travel_lover',
-         avatar: '/api/placeholder/40/40',
-         action: 'started following you',
-         timestamp: '1h',
-         postImage: null,
-      },
-      {
-         id: '4',
-         type: 'like',
-         user: 'photographer_pro',
-         avatar: '/api/placeholder/40/40',
-         action: 'liked your photo',
-         timestamp: '2h',
-         postImage: '/api/placeholder/40/40',
-      },
-   ];
+   const navigate = useNavigate();
+   const { isConnected, connectionStatus, onlineUsers } = useSocketNotification();
 
-   const getActivityIcon = (type: string) => {
-      switch (type) {
-         case 'like':
-            return (
-               <Heart
-                  size={16}
-                  className='text-red-500 fill-red-500'
-               />
-            );
-         case 'comment':
-            return (
-               <MessageCircle
-                  size={16}
-                  className='text-blue-500'
-               />
-            );
-         case 'follow':
-            return (
-               <UserPlus
-                  size={16}
-                  className='text-green-500'
-               />
-            );
+   const handleNotificationNavigate = (notification: Notification) => {
+      // Navigate based on notification type and metadata
+      switch (notification.type) {
+         case 'LIKE':
+         case 'COMMENT':
+            if (notification.metadata?.postId) {
+               navigate(`/posts/${notification.metadata.postId}`);
+            }
+            break;
+         case 'FOLLOW':
+            navigate(`/profile/${notification.sender.username}`);
+            break;
+         case 'MESSAGE':
+            navigate(`/chat`);
+            break;
+         case 'CALL':
+            // Handle call navigation if needed
+            navigate('/chat');
+            break;
+         case 'MENTION':
+            if (notification.metadata?.postId) {
+               navigate(`/posts/${notification.metadata.postId}`);
+            } else if (notification.metadata?.commentId) {
+               navigate(`/posts/${notification.metadata.postId}#comment-${notification.metadata.commentId}`);
+            }
+            break;
          default:
-            return null;
+            console.log('Unknown notification type:', notification.type);
       }
    };
 
    return (
       <InstagramLayout>
-         <div className='p-4'>
-            <h1 className='text-xl font-bold mb-6'>Activity</h1>
+         <div className='p-4 anime-slide-in-bottom'>
+            {/* Connection Status Header */}
+            <div className='mb-4 p-3 card-liquid-glass-blue rounded-lg'>
+               <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-3'>
+                     <h1 className='text-xl font-semibold font-anime text-foreground'>Activity</h1>
+                     <ConnectionStatus />
+                  </div>
 
-            <div className='space-y-4'>
-               {activities.map((activity) => (
-                  <div
-                     key={activity.id}
-                     className='flex items-center space-x-3 py-2'
-                  >
-                     <div className='relative'>
-                        <div className='w-10 h-10 rounded-full bg-gray-200 overflow-hidden'>
-                           <img
-                              src={activity.avatar}
-                              alt={activity.user}
-                              className='w-full h-full object-cover'
-                              onError={(e) => {
-                                 const target = e.target as HTMLImageElement;
-                                 target.style.display = 'none';
-                                 target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${activity.user
-                                    .charAt(0)
-                                    .toUpperCase()}</div>`;
-                              }}
-                           />
+                  <div className='flex items-center gap-4 text-sm text-muted-foreground'>
+                     <span>
+                        {onlineUsers.length} user{onlineUsers.length !== 1 ? 's' : ''} online
+                     </span>
+                     {isConnected && (
+                        <div className='flex items-center gap-2'>
+                           <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                           <span className='text-green-600 font-medium'>Real-time</span>
                         </div>
-                        <div className='absolute -bottom-1 -right-1 bg-white rounded-full p-1'>
-                           {getActivityIcon(activity.type)}
-                        </div>
-                     </div>
-
-                     <div className='flex-1'>
-                        <p className='text-sm'>
-                           <span className='font-semibold'>{activity.user}</span> {activity.action}
-                        </p>
-                        <p className='text-xs text-gray-500'>{activity.timestamp}</p>
-                     </div>
-
-                     {activity.postImage && (
-                        <div className='w-10 h-10 rounded bg-gray-200 overflow-hidden'>
-                           <img
-                              src={activity.postImage}
-                              alt='Post'
-                              className='w-full h-full object-cover'
-                              onError={(e) => {
-                                 const target = e.target as HTMLImageElement;
-                                 target.style.display = 'none';
-                                 target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300"></div>`;
-                              }}
-                           />
-                        </div>
-                     )}
-
-                     {activity.type === 'follow' && (
-                        <button className='bg-blue-500 text-white px-4 py-1 rounded text-sm font-semibold hover:bg-blue-600 transition-colors'>
-                           Follow Back
-                        </button>
                      )}
                   </div>
-               ))}
+               </div>
+
+               {connectionStatus !== 'connected' && (
+                  <div className='mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md'>
+                     <p className='text-sm text-yellow-700 dark:text-yellow-300'>
+                        {connectionStatus === 'connecting'
+                           ? 'Connecting to real-time notifications...'
+                           : connectionStatus === 'error'
+                           ? 'Failed to connect to real-time notifications. Some features may be limited.'
+                           : 'Not connected to real-time notifications.'}
+                     </p>
+                  </div>
+               )}
             </div>
+
+            {/* Notifications */}
+            <NotificationList
+               onNavigate={handleNotificationNavigate}
+               className='min-h-[600px]'
+               maxHeight='max-h-[calc(90vh-200px)] lg:max-h-[calc(100vh-200px)]'
+            />
          </div>
       </InstagramLayout>
    );

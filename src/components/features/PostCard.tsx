@@ -182,7 +182,7 @@ const PostCard = ({ post }: PostCardProps) => {
                      ) : (
                         <Heart
                            size={26}
-                           className='text-muted-foreground group-hover:text-red-400 transition-colors'
+                           className='text-muted-foreground group-hover:scale(1.05) duration-300 ease transition-colors'
                         />
                      )}
                      <span className='font-anime font-semibold text-sm text-foreground'>{formatCount(likesCount)}</span>

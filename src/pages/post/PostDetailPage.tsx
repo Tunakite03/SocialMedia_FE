@@ -93,16 +93,14 @@ const PostDetailPage = () => {
       <InstagramLayout>
          <div className='w-full flex flex-col mx-auto liquid-glass overflow-hidden text-foreground'>
             {/* Header */}
-            <div className='p-2'>
-               <div className='flex items-center gap-4 '>
-                  <button
-                     onClick={() => navigate(-1)}
-                     className='p-2 hover:bg-gray-100 rounded-full transition-colors'
-                  >
-                     <ArrowLeft size={20} />
-                  </button>
-                  <h1 className='font-semibold text-lg '>Post</h1>
-               </div>
+            <div className='p-2 flex items-center gap-4 '>
+               <button
+                  onClick={() => navigate(-1)}
+                  className='p-2 hover:bg-gray-100 rounded-full transition-colors'
+               >
+                  <ArrowLeft size={20} />
+               </button>
+               <h1 className='font-semibold text-lg '>Post</h1>
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-2 justify-center h-[78vh] max-h-[78vh] gap-2 md:py-2'>
