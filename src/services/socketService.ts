@@ -26,7 +26,9 @@ class SocketService {
       }
 
       this.isConnecting = true;
-      const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
+      const serverUrl = import.meta.env.PROD
+         ? import.meta.env.VITE_SOCKET_URL
+         : import.meta.env.VITE_SOCKET_URL_DEV || 'http://localhost:8080';
 
       this.socket = io(serverUrl, {
          auth: {
