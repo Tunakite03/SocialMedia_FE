@@ -1,5 +1,5 @@
 import { apiService } from './apiService';
-import type { User, UserProfile, ApiResponse, ListSearchUser } from '@/types';
+import type { User, UserProfile, ApiResponse, ListSearchUser, ListFollower, ListFollowing } from '@/types';
 
 class UserService {
    private readonly endpoint = '/users';
@@ -14,12 +14,12 @@ class UserService {
       return apiService.get<{ user: UserProfile }>(`${this.endpoint}/${id}`);
    }
 
-   async getUserFollowers(id: string): Promise<ApiResponse<User[]>> {
-      return apiService.get<User[]>(`${this.endpoint}/${id}/followers`);
+   async getUserFollowers(id: string): Promise<ApiResponse<ListFollower>> {
+      return apiService.get<ListFollower>(`${this.endpoint}/${id}/followers`);
    }
 
-   async getUserFollowing(id: string): Promise<ApiResponse<User[]>> {
-      return apiService.get<User[]>(`${this.endpoint}/${id}/following`);
+   async getUserFollowing(id: string): Promise<ApiResponse<ListFollowing>> {
+      return apiService.get<ListFollowing>(`${this.endpoint}/${id}/following`);
    }
 
    async followUser(id: string): Promise<ApiResponse<null>> {

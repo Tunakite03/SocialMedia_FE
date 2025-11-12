@@ -208,12 +208,44 @@
    font-family: var(--font-anime);
 }
 
+/* Global styles with overlay scrollbar */
+html {
+   overflow-y: auto;
+   overflow-x: hidden;
+   scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+   /* Apply auto-hide scrollbar globally */
+   scrollbar-width: thin;
+   scrollbar-color: transparent transparent;
+   transition: scrollbar-color 0.3s ease;
+}
+
+html:hover,
+body:hover,
+#root:hover {
+   scrollbar-color: rgba(136, 136, 136, 0.6) transparent;
+}
+
+.dark html:hover,
+.dark body:hover,
+.dark #root:hover {
+   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
 /* Japanese font integration */
 body {
    font-family: var(--font-anime), 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
    background-color: hsl(var(--background));
    color: hsl(var(--foreground));
    transition: background-color 0.3s ease, color 0.3s ease;
+   margin: 0;
+   padding: 0;
+   min-height: 100vh;
+   overflow-x: hidden;
 }
 
 /* Global smooth transitions for theme switching */
@@ -595,25 +627,73 @@ body {
    transition: transform 0.1s ease;
 }
 
-/* Custom scrollbar with subtle anime styling */
+/* ============================================
+   OVERLAY SCROLLBAR WITH AUTO-HIDE
+   ============================================ */
+
+/* Global scrollbar - overlay style (doesn't take up layout space) */
 ::-webkit-scrollbar {
    width: 8px;
+   height: 8px;
+}
+
+::-webkit-scrollbar-corner {
+   background: transparent;
 }
 
 ::-webkit-scrollbar-track {
-   background: #f1f1f1;
+   background: transparent;
    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-   background: #888;
+   background: rgba(136, 136, 136, 0.6);
    border-radius: 4px;
-   transition: background 0.3s ease;
+   transition: background 0.3s ease, opacity 0.3s ease;
+   border: 2px solid transparent;
+   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-   background: #555;
+   background: rgba(85, 85, 85, 0.8);
 }
+
+/* Auto-hide scrollbar functionality */
+.auto-hide-scrollbar {
+   scrollbar-width: thin;
+   scrollbar-color: transparent transparent;
+   transition: scrollbar-color 0.3s ease;
+}
+
+.auto-hide-scrollbar:hover,
+.auto-hide-scrollbar:focus-within {
+   scrollbar-color: rgba(136, 136, 136, 0.6) transparent;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-thumb {
+   opacity: 0;
+   transition: opacity 0.3s ease;
+}
+
+.auto-hide-scrollbar:hover::-webkit-scrollbar-thumb,
+.auto-hide-scrollbar:focus-within::-webkit-scrollbar-thumb {
+   opacity: 1;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+   background: rgba(255, 255, 255, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+   background: rgba(255, 255, 255, 0.5);
+}
+
+.dark .auto-hide-scrollbar:hover,
+.dark .auto-hide-scrollbar:focus-within {
+   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
 .scrollbar-hide {
    -ms-overflow-style: none; /* IE and Edge */
    scrollbar-width: none; /* Firefox */
@@ -922,14 +1002,25 @@ body {
    animation: animeSlideInBottom 0.4s ease-out;
 }
 
-/* Custom scrollbar styles */
+/* ============================================
+   CUSTOM SCROLLBAR VARIANTS
+   ============================================ */
+
+/* Thin overlay scrollbar for feed and chat */
 .custom-scrollbar {
    scrollbar-width: thin;
-   scrollbar-color: hsl(var(--primary)) transparent;
+   scrollbar-color: transparent transparent;
+   transition: scrollbar-color 0.3s ease;
+}
+
+.custom-scrollbar:hover,
+.custom-scrollbar:focus-within {
+   scrollbar-color: hsl(var(--primary) / 0.6) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-   width: 6px;
+   width: 4px;
+   height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -937,12 +1028,41 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-   background: hsl(var(--primary));
-   border-radius: 3px;
+   background: hsl(var(--primary) / 0.6);
+   border-radius: 2px;
+   opacity: 0;
+   transition: opacity 0.3s ease, background 0.3s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:focus-within::-webkit-scrollbar-thumb {
+   opacity: 1;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
    background: hsl(var(--primary) / 0.8);
+}
+
+/* Always visible scrollbar variant */
+.scrollbar-visible {
+   scrollbar-width: thin;
+   scrollbar-color: hsl(var(--primary) / 0.4) transparent;
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+   width: 6px;
+   height: 6px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+   background: hsl(var(--primary) / 0.4);
+   border-radius: 3px;
+   opacity: 1;
+   transition: background 0.3s ease;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+   background: hsl(var(--primary) / 0.7);
 }
 
 /* Notification Popup Animations */
@@ -957,4 +1077,76 @@ body {
 
 .duration-linear {
    transition-timing-function: linear;
+}
+
+/* ============================================
+   OVERLAY SCROLLBAR UTILITIES
+   ============================================ */
+
+/* Perfect overlay scrollbar - doesn't affect layout */
+.scrollbar-overlay {
+   overflow: overlay; /* Uses overlay scrollbar when supported */
+   overflow: auto; /* Fallback */
+   scrollbar-width: thin;
+   scrollbar-color: transparent transparent;
+   transition: scrollbar-color 0.3s ease;
+}
+
+.scrollbar-overlay:hover {
+   scrollbar-color: rgba(136, 136, 136, 0.6) transparent;
+}
+
+.dark .scrollbar-overlay:hover {
+   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.scrollbar-overlay::-webkit-scrollbar {
+   width: 8px;
+   height: 8px;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-track {
+   background: transparent;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-thumb {
+   background: rgba(136, 136, 136, 0.6);
+   border-radius: 4px;
+   opacity: 0;
+   transition: opacity 0.3s ease;
+}
+
+.scrollbar-overlay:hover::-webkit-scrollbar-thumb {
+   opacity: 1;
+}
+
+.dark .scrollbar-overlay::-webkit-scrollbar-thumb {
+   background: rgba(255, 255, 255, 0.3);
+}
+
+/* Thin auto-hide for feed components */
+.scrollbar-feed {
+   scrollbar-width: thin;
+   scrollbar-color: transparent transparent;
+   transition: scrollbar-color 0.3s ease;
+}
+
+.scrollbar-feed:hover {
+   scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+}
+
+.scrollbar-feed::-webkit-scrollbar {
+   width: 3px;
+   height: 3px;
+}
+
+.scrollbar-feed::-webkit-scrollbar-thumb {
+   background: hsl(var(--primary) / 0.3);
+   border-radius: 2px;
+   opacity: 0;
+   transition: opacity 0.3s ease;
+}
+
+.scrollbar-feed:hover::-webkit-scrollbar-thumb {
+   opacity: 1;
 }

@@ -1,43 +1,162 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { authService } from '@/services';
+import { useAuthStore } from '@/store';
 import { TokenManager } from '@/utils/tokenManager';
-import type {
-   User,
-   UserProfile,
-   LoginFormData,
-   RegisterFormData,
-   ProfileFormData,
-   PasswordChangeFormData,
-} from '@/types';
+import type { UserProfile, LoginFormData, RegisterFormData, ProfileFormData, PasswordChangeFormData } from '@/types';
 
-// Hook for login
+// Main authentication hook - integrates with authStore
+export const useAuth = () => {
+   const authStore = useAuthStore();
+
+   const login = useCallback(
+      async (credentials: LoginFormData) => {
+         authStore.setLoading(true);
+         try {
+            const response = await authService.login(credentials);
+            if (response.success && response.data) {
+               authStore.login(response.data.user, response.data.accessToken, response.data.refreshToken);
+               return response.data;
+            } else {
+               throw new Error(response.error || 'Login failed');
+            }
+         } catch (err: any) {
+            authStore.setLoading(false);
+            const errorMessage = err.error || err.message || 'Login failed';
+            throw new Error(errorMessage);
+         }
+      },
+      [authStore]
+   );
+
+   const register = useCallback(
+      async (userData: Omit<RegisterFormData, 'confirmPassword'>) => {
+         authStore.setLoading(true);
+         try {
+            const response = await authService.register(userData);
+            if (response.success && response.data) {
+               authStore.login(response.data.user, response.data.accessToken, response.data.refreshToken);
+               return response.data;
+            } else {
+               throw new Error(response.error || 'Registration failed');
+            }
+         } catch (err: any) {
+            authStore.setLoading(false);
+            const errorMessage = err.error || err.message || 'Registration failed';
+            throw new Error(errorMessage);
+         }
+      },
+      [authStore]
+   );
+
+   const logout = useCallback(async () => {
+      authStore.setLoading(true);
+      try {
+         await authService.logout();
+      } catch (err) {
+         console.error('Logout error:', err);
+      } finally {
+         authStore.logout();
+         TokenManager.logout();
+      }
+   }, [authStore]);
+
+   const updateProfile = useCallback(
+      async (userData: ProfileFormData) => {
+         try {
+            const response = await authService.updateProfile(userData);
+            if (response.success && response.data) {
+               authStore.updateUser(response.data.user);
+               return response.data.user;
+            } else {
+               throw new Error(response.error || 'Failed to update profile');
+            }
+         } catch (err: any) {
+            const errorMessage = err.error || err.message || 'Failed to update profile';
+            throw new Error(errorMessage);
+         }
+      },
+      [authStore]
+   );
+
+   const verifyToken = useCallback(async () => {
+      try {
+         const response = await authService.verifyToken();
+         if (response.success && response.data) {
+            authStore.updateUser(response.data.user);
+            return response.data.user;
+         } else {
+            authStore.logout();
+            return null;
+         }
+      } catch (err) {
+         authStore.logout();
+         return null;
+      }
+   }, [authStore]);
+
+   const refreshTokens = useCallback(async () => {
+      const refreshToken = authStore.refreshToken;
+      if (!refreshToken) {
+         authStore.logout();
+         return false;
+      }
+
+      try {
+         const response = await authService.refreshToken(refreshToken);
+         if (response.success && response.data) {
+            authStore.updateTokens(response.data.accessToken, response.data.refreshToken);
+            return true;
+         } else {
+            authStore.logout();
+            return false;
+         }
+      } catch (err) {
+         authStore.logout();
+         return false;
+      }
+   }, [authStore]);
+
+   return {
+      // State from store
+      user: authStore.user,
+      token: authStore.token,
+      refreshToken: authStore.refreshToken,
+      isAuthenticated: authStore.isAuthenticated,
+      isLoading: authStore.isLoading,
+      error: authStore.error,
+      profileLoading: authStore.profileLoading,
+
+      // Actions
+      login,
+      register,
+      logout,
+      updateProfile,
+      verifyToken,
+      refreshTokens,
+      updateUser: authStore.updateUser,
+      setLoading: authStore.setLoading,
+      setError: authStore.setError,
+      clearError: authStore.clearError,
+      setProfileLoading: authStore.setProfileLoading,
+      updateActivity: authStore.updateActivity,
+      isSessionValid: authStore.isSessionValid,
+   };
+};
+
+// Hook for login (backward compatibility)
 export const useLogin = () => {
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   const { login: authLogin } = useAuth();
 
    const login = async (credentials: LoginFormData) => {
       setLoading(true);
       setError(null);
       try {
-         const response = await authService.login(credentials);
-         if (response.success && response.data) {
-            // Store tokens in localStorage
-            const authData = {
-               state: {
-                  user: response.data.user,
-                  token: response.data.accessToken,
-                  refreshToken: response.data.refreshToken,
-                  isAuthenticated: true,
-                  isLoading: false,
-               },
-            };
-            localStorage.setItem('auth-storage', JSON.stringify(authData));
-            return response.data;
-         } else {
-            throw new Error(response.error || 'Login failed');
-         }
+         const result = await authLogin(credentials);
+         return result;
       } catch (err: any) {
-         const errorMessage = err.error || err.message || 'Login failed';
+         const errorMessage = err.message || 'Login failed';
          setError(errorMessage);
          throw err;
       } finally {
@@ -48,34 +167,20 @@ export const useLogin = () => {
    return { login, loading, error };
 };
 
-// Hook for registration
+// Hook for registration (backward compatibility)
 export const useRegister = () => {
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   const { register: authRegister } = useAuth();
 
    const register = async (userData: Omit<RegisterFormData, 'confirmPassword'>) => {
       setLoading(true);
       setError(null);
       try {
-         const response = await authService.register(userData);
-         if (response.success && response.data) {
-            // Store tokens in localStorage
-            const authData = {
-               state: {
-                  user: response.data.user,
-                  token: response.data.accessToken,
-                  refreshToken: response.data.refreshToken,
-                  isAuthenticated: true,
-                  isLoading: false,
-               },
-            };
-            localStorage.setItem('auth-storage', JSON.stringify(authData));
-            return response.data;
-         } else {
-            throw new Error(response.error || 'Registration failed');
-         }
+         const result = await authRegister(userData);
+         return result;
       } catch (err: any) {
-         const errorMessage = err.error || err.message || 'Registration failed';
+         const errorMessage = err.message || 'Registration failed';
          setError(errorMessage);
          throw err;
       } finally {
@@ -86,34 +191,33 @@ export const useRegister = () => {
    return { register, loading, error };
 };
 
-// Hook for logout
+// Hook for logout (backward compatibility)
 export const useLogout = () => {
    const [loading, setLoading] = useState(false);
+   const { logout: authLogout } = useAuth();
 
    const logout = async () => {
       setLoading(true);
       try {
-         await authService.logout();
+         await authLogout();
       } catch (err) {
          console.error('Logout error:', err);
       } finally {
-         // Use TokenManager for centralized logout
-         TokenManager.logout();
          setLoading(false);
-         // React Router will handle redirect via ProtectedRoute
       }
    };
 
    return { logout, loading };
 };
 
-// Hook for getting user profile
+// Hook for getting and updating user profile
 export const useProfile = () => {
    const [profile, setProfile] = useState<UserProfile | null>(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
+   const { updateProfile: authUpdateProfile, user } = useAuth();
 
-   const fetchProfile = async () => {
+   const fetchProfile = useCallback(async () => {
       setLoading(true);
       setError(null);
       try {
@@ -129,28 +233,28 @@ export const useProfile = () => {
       } finally {
          setLoading(false);
       }
-   };
+   }, []);
 
    useEffect(() => {
       fetchProfile();
-   }, []);
+   }, [fetchProfile]);
+
+   // Keep profile in sync with store user
+   useEffect(() => {
+      if (user) {
+         setProfile(user as UserProfile);
+      }
+   }, [user]);
 
    const updateProfile = async (userData: ProfileFormData) => {
       setLoading(true);
       setError(null);
       try {
-         const response = await authService.updateProfile(userData);
-         if (response.success && response.data) {
-            setProfile((prevProfile) => ({
-               ...prevProfile!,
-               ...response.data!.user,
-            }));
-            return response.data.user;
-         } else {
-            throw new Error(response.error || 'Failed to update profile');
-         }
+         const updatedUser = await authUpdateProfile(userData);
+         setProfile(updatedUser as UserProfile);
+         return updatedUser;
       } catch (err: any) {
-         const errorMessage = err.error || err.message || 'Failed to update profile';
+         const errorMessage = err.message || 'Failed to update profile';
          setError(errorMessage);
          throw err;
       } finally {
@@ -158,7 +262,13 @@ export const useProfile = () => {
       }
    };
 
-   return { profile, loading, error, updateProfile, refetch: fetchProfile };
+   return {
+      profile,
+      loading,
+      error,
+      updateProfile,
+      refetch: fetchProfile,
+   };
 };
 
 // Hook for changing password
@@ -188,40 +298,42 @@ export const useChangePassword = () => {
    return { changePassword, loading, error };
 };
 
-// Hook for verifying token
+// Hook for token verification
 export const useVerifyToken = () => {
    const [isValid, setIsValid] = useState(false);
    const [loading, setLoading] = useState(true);
-   const [user, setUser] = useState<User | null>(null);
+   const { verifyToken: authVerifyToken, user, isAuthenticated } = useAuth();
 
-   const verifyToken = async () => {
+   const verifyToken = useCallback(async () => {
       setLoading(true);
       try {
-         const response = await authService.verifyToken();
-         if (response.success && response.data) {
+         const verifiedUser = await authVerifyToken();
+         if (verifiedUser) {
             setIsValid(true);
-            setUser(response.data.user);
          } else {
             setIsValid(false);
-            setUser(null);
          }
       } catch (err) {
          setIsValid(false);
-         setUser(null);
       } finally {
          setLoading(false);
       }
-   };
+   }, [authVerifyToken]);
 
    useEffect(() => {
       const token = TokenManager.getAccessToken();
-      if (token) {
+      if (token && isAuthenticated) {
          verifyToken();
       } else {
          setLoading(false);
          setIsValid(false);
       }
-   }, []);
+   }, [verifyToken, isAuthenticated]);
+
+   // Keep isValid in sync with auth state
+   useEffect(() => {
+      setIsValid(isAuthenticated && !!user);
+   }, [isAuthenticated, user]);
 
    return { isValid, loading, user, verifyToken };
 };
@@ -253,6 +365,90 @@ export const useForgotPassword = () => {
    };
 
    return { forgotPassword, loading, error, isSuccess };
+};
+
+// Hook for automatic session management
+export const useAuthSession = () => {
+   const {
+      isAuthenticated,
+      token,
+      refreshToken,
+      isSessionValid,
+      updateActivity,
+      refreshTokens,
+      logout: authLogout,
+   } = useAuth();
+
+   // Auto refresh token when needed
+   useEffect(() => {
+      if (!isAuthenticated || !token || !refreshToken) return;
+
+      const checkAndRefreshToken = async () => {
+         try {
+            // Check if token needs refresh (e.g., expires in < 5 minutes)
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const expiresIn = tokenPayload.exp * 1000 - Date.now();
+            const shouldRefresh = expiresIn < 5 * 60 * 1000; // 5 minutes
+
+            if (shouldRefresh) {
+               const success = await refreshTokens();
+               if (!success) {
+                  console.warn('Failed to refresh token, logging out');
+                  authLogout();
+               }
+            }
+         } catch (error) {
+            console.error('Token refresh check failed:', error);
+         }
+      };
+
+      // Check immediately and then every 5 minutes
+      checkAndRefreshToken();
+      const interval = setInterval(checkAndRefreshToken, 5 * 60 * 1000);
+
+      return () => clearInterval(interval);
+   }, [isAuthenticated, token, refreshToken, refreshTokens, authLogout]);
+
+   // Track user activity
+   useEffect(() => {
+      if (!isAuthenticated) return;
+
+      const handleActivity = () => {
+         updateActivity();
+      };
+
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+      events.forEach((event) => {
+         document.addEventListener(event, handleActivity, true);
+      });
+
+      return () => {
+         events.forEach((event) => {
+            document.removeEventListener(event, handleActivity, true);
+         });
+      };
+   }, [isAuthenticated, updateActivity]);
+
+   // Session timeout check
+   useEffect(() => {
+      if (!isAuthenticated) return;
+
+      const checkSession = () => {
+         if (!isSessionValid()) {
+            console.warn('Session expired, logging out');
+            authLogout();
+         }
+      };
+
+      // Check every minute
+      const interval = setInterval(checkSession, 60 * 1000);
+      return () => clearInterval(interval);
+   }, [isAuthenticated, isSessionValid, authLogout]);
+
+   return {
+      isAuthenticated,
+      sessionValid: isSessionValid(),
+   };
 };
 
 // Hook for reset password

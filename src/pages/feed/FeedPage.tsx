@@ -148,14 +148,14 @@ const FeedPage = () => {
 
    return (
       <InstagramLayout>
-         <div className='space-y-2 w-full max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto '>
+         <div className='space-y-2 w-full max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto scrollbar-feed'>
             {/* Stories section with anime float */}
             <div className='flex flex-row gap-4 '>
-               <div className='w-full space-y-2'>
+               <div className='w-full space-y-2 scrollbar-feed'>
                   <Stories />
 
                   {/* Posts feed with animations */}
-                  <div className='space-y-2'>
+                  <div className='space-y-2 scrollbar-feed'>
                      {posts.map((post: Post, index: number) => (
                         <div
                            key={post.id}

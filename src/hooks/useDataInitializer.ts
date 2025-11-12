@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useCommentStore } from '@/store/commentStore';
+import { notificationService } from '@/services/notificationService';
 
 /**
  * Hook để fetch fresh data khi user authenticated

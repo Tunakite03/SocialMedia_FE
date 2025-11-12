@@ -10,6 +10,8 @@ interface NotificationStore {
    isLoading: boolean;
    error: string | null;
    pagination: Pagination | null;
+   hasLoaded: boolean; // Track if initial load has been done
+   isLoadingInitial: boolean; // Track if initial load is in progress
 
    // Track notifications from socket for popup display
    newSocketNotifications: Notification[];
@@ -27,6 +29,10 @@ interface NotificationStore {
    setPagination: (pagination: Pagination) => void;
    setLoading: (loading: boolean) => void;
    setError: (error: string | null) => void;
+   setHasLoaded: (loaded: boolean) => void;
+
+   // Initial load
+   loadInitialNotifications: () => Promise<void>;
 
    // Optimistic updates
    optimisticMarkAsRead: (notificationId: string) => void;
@@ -52,6 +58,8 @@ export const useNotificationStore = create<NotificationStore>()(
          isLoading: false,
          error: null,
          pagination: null,
+         hasLoaded: false,
+         isLoadingInitial: false,
          newSocketNotifications: [],
 
          // Helper methods for specific notification types
@@ -234,6 +242,72 @@ export const useNotificationStore = create<NotificationStore>()(
          setLoading: (loading) => set({ isLoading: loading }),
 
          setError: (error) => set({ error }),
+
+         // Initial load
+         loadInitialNotifications: () => {
+            const { isLoading, hasLoaded, notifications, error, isLoadingInitial } = get();
+            if (notifications.length > 0 || isLoading || hasLoaded || error || isLoadingInitial) {
+               return Promise.resolve();
+            }
+
+            set({ isLoadingInitial: true });
+
+            // Import here to avoid circular dependency
+            return import('@/services').then(({ notificationService }) => {
+               set({ isLoading: true, error: null });
+               return notificationService
+                  .getNotifications({ limit: 20, offset: 0 })
+                  .then((response) => {
+                     if (response.success && response.data) {
+                        const { notifications: rawNotifications } = response.data;
+                        const { pagination: newPagination } = response;
+
+                        const validNotifications = rawNotifications.filter((notification: any) => {
+                           return (
+                              notification &&
+                              notification.id &&
+                              notification.type &&
+                              notification.title &&
+                              notification.message
+                           );
+                        });
+
+                        const unreadCount = validNotifications.filter((n) => !n.isRead).length;
+                        const commentNotifications = validNotifications.filter(
+                           (n) => !n.isRead && ['LIKE', 'COMMENT', 'MENTION'].includes(n.type)
+                        ).length;
+                        const messageNotifications = validNotifications.filter(
+                           (n) => !n.isRead && n.type === 'MESSAGE'
+                        ).length;
+
+                        set({
+                           notifications: validNotifications,
+                           unreadCount,
+                           unreadCommentNotifications: commentNotifications,
+                           unreadMessageNotifications: messageNotifications,
+                           pagination: newPagination,
+                           hasLoaded: true,
+                           isLoading: false,
+                           isLoadingInitial: false,
+                        });
+                     } else {
+                        set({
+                           error: response.error || 'Failed to load notifications',
+                           isLoading: false,
+                           isLoadingInitial: false,
+                        });
+                     }
+                  })
+                  .catch((error) => {
+                     console.error('Error loading notifications:', error);
+                     set({
+                        error: 'Failed to load notifications',
+                        isLoading: false,
+                        isLoadingInitial: false,
+                     });
+                  });
+            });
+         },
 
          // Optimistic updates
          optimisticMarkAsRead: (notificationId) => {

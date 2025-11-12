@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { userService } from '@/services';
-import type { User, UserProfile, SearchUser } from '@/types';
+import { postService } from '@/services';
+import type { User, UserProfile, SearchUser, Post } from '@/types';
 
 // Hook for searching users
 export const useUserSearch = () => {
@@ -78,7 +79,7 @@ export const useUserFollowers = (userId: string) => {
       try {
          const response = await userService.getUserFollowers(userId);
          if (response.success && response.data) {
-            setFollowers(response.data);
+            setFollowers(response.data.followers);
          } else {
             throw new Error(response.error || 'Failed to fetch followers');
          }
@@ -111,7 +112,7 @@ export const useUserFollowing = (userId: string) => {
       try {
          const response = await userService.getUserFollowing(userId);
          if (response.success && response.data) {
-            setFollowing(response.data);
+            setFollowing(response.data.following);
          } else {
             throw new Error(response.error || 'Failed to fetch following');
          }
@@ -176,4 +177,37 @@ export const useFollow = () => {
    };
 
    return { followUser, unfollowUser, loading, error };
+};
+
+// Hook for user posts (profile page)
+export const useUserPosts = (userId: string) => {
+   const [posts, setPosts] = useState<Post[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+
+   const fetchUserPosts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+         const response = await postService.getUserPosts({ userId });
+         if (response.success && response.data) {
+            setPosts(response.data.posts);
+         } else {
+            throw new Error(response.error || 'Failed to fetch user posts');
+         }
+      } catch (err: any) {
+         const errorMessage = err.error || err.message || 'Failed to fetch user posts';
+         setError(errorMessage);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      if (userId) {
+         fetchUserPosts();
+      }
+   }, [userId]);
+
+   return { posts, loading, error, refetch: fetchUserPosts };
 };

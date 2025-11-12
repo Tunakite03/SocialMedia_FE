@@ -38,7 +38,7 @@ class PostService {
    }
 
    async getUserPosts(params: GetUserPostsParams): Promise<ApiResponse<PostsResponse>> {
-      const { userId, offset = 0, limit = 10 } = params;
+      const { userId, offset = 0, limit = 12 } = params;
       return apiService.get<PostsResponse>(`${this.endpoint}/user/${userId}`, {
          params: { offset, limit },
       });

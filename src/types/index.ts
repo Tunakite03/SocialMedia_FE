@@ -14,6 +14,12 @@ export interface User {
    emailVerified: boolean;
    createdAt: string;
 }
+export interface ListFollower {
+   followers: User[];
+}
+export interface ListFollowing {
+   following: User[];
+}
 
 export interface UserProfile extends User {
    _count: {
@@ -291,6 +297,7 @@ export interface ProfileFormData {
    displayName?: string;
    bio?: string;
    dateOfBirth?: string;
+   avatar?: string;
 }
 
 export interface PasswordChangeFormData {

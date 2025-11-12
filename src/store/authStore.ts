@@ -3,21 +3,42 @@ import { persist } from 'zustand/middleware';
 import type { AuthState, User } from '@/types';
 
 interface AuthStore extends AuthState {
+   // Auth actions
    login: (user: User, accessToken: string, refreshToken: string) => void;
    logout: () => void;
    updateUser: (user: Partial<User>) => void;
    setLoading: (loading: boolean) => void;
    updateTokens: (accessToken: string, refreshToken: string) => void;
+
+   // Error handling
+   error: string | null;
+   setError: (error: string | null) => void;
+   clearError: () => void;
+
+   // Profile management
+   profileLoading: boolean;
+   setProfileLoading: (loading: boolean) => void;
+
+   // Session management
+   lastActivity: number;
+   updateActivity: () => void;
+   isSessionValid: () => boolean;
 }
 
 export const useAuthStore = create<AuthStore>()(
    persist(
       (set, get) => ({
+         // Base auth state
          user: null,
          token: null, // accessToken for backward compatibility
          refreshToken: null,
          isAuthenticated: false,
          isLoading: false,
+
+         // Extended state
+         error: null,
+         profileLoading: false,
+         lastActivity: Date.now(),
 
          login: (user: User, accessToken: string, refreshToken: string) => {
             // Ensure user data has all required fields with fallbacks
@@ -40,6 +61,8 @@ export const useAuthStore = create<AuthStore>()(
                refreshToken: refreshToken,
                isAuthenticated: true,
                isLoading: false,
+               error: null,
+               lastActivity: Date.now(),
             });
          },
 
@@ -50,6 +73,9 @@ export const useAuthStore = create<AuthStore>()(
                refreshToken: null,
                isAuthenticated: false,
                isLoading: false,
+               error: null,
+               profileLoading: false,
+               lastActivity: 0,
             });
 
             // Clear other stores when logging out
@@ -75,6 +101,7 @@ export const useAuthStore = create<AuthStore>()(
             if (currentUser) {
                set({
                   user: { ...currentUser, ...userData },
+                  lastActivity: Date.now(),
                });
             }
          },
@@ -87,7 +114,32 @@ export const useAuthStore = create<AuthStore>()(
             set({
                token: accessToken,
                refreshToken: refreshToken,
+               lastActivity: Date.now(),
             });
+         },
+
+         setError: (error: string | null) => {
+            set({ error });
+         },
+
+         clearError: () => {
+            set({ error: null });
+         },
+
+         setProfileLoading: (loading: boolean) => {
+            set({ profileLoading: loading });
+         },
+
+         updateActivity: () => {
+            set({ lastActivity: Date.now() });
+         },
+
+         isSessionValid: () => {
+            const state = get();
+            const now = Date.now();
+            const sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours
+
+            return Boolean(state.isAuthenticated && state.token && now - state.lastActivity < sessionTimeout);
          },
       }),
       {
@@ -97,6 +149,7 @@ export const useAuthStore = create<AuthStore>()(
             token: state.token,
             refreshToken: state.refreshToken,
             isAuthenticated: state.isAuthenticated,
+            lastActivity: state.lastActivity,
          }),
       }
    )

@@ -28,6 +28,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       isLoading,
       error,
       pagination,
+      hasLoaded,
       setNotifications,
       setUnreadCount,
       setPagination,
@@ -36,6 +37,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       addNotifications,
       optimisticMarkAsRead,
       optimisticMarkAllAsRead,
+      loadInitialNotifications,
    } = useNotificationStore();
 
    const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -43,7 +45,10 @@ export const useNotifications = (): UseNotificationsReturn => {
 
    const loadNotifications = useCallback(
       async (params?: { limit?: number; offset?: number }) => {
-         if (isLoading) return;
+         if (isLoading) {
+            return;
+         }
+
          try {
             setLoading(true);
             setError(null);
@@ -54,7 +59,7 @@ export const useNotifications = (): UseNotificationsReturn => {
             });
 
             if (response.success && response.data) {
-               const { notifications: rawNotifications, unreadCount: newUnreadCount } = response.data;
+               const { notifications: rawNotifications } = response.data;
                const { pagination: newPagination } = response;
 
                // Filter out any malformed notifications
@@ -74,7 +79,7 @@ export const useNotifications = (): UseNotificationsReturn => {
                if (newPagination) {
                   setPagination(newPagination);
                }
-               setUnreadCount(newUnreadCount);
+               setUnreadCount(validNotifications.filter((n) => !n.isRead).length);
             } else {
                console.error('Initial load failed:', response.error);
                setError(response.error || 'Failed to load notifications');
@@ -187,12 +192,12 @@ export const useNotifications = (): UseNotificationsReturn => {
       await loadNotifications({ limit: 20, offset: 0 });
    }, [loadNotifications]);
 
-   // Initial load
+   // Initial load - runs only once per hook instance
    useEffect(() => {
-      if (notifications.length === 0 && !isLoading && !error) {
-         loadNotifications({ limit: 20, offset: 0 });
+      if (!hasLoaded) {
+         loadInitialNotifications();
       }
-   }, []);
+   }, []); // Empty dependency array to run only once
 
    return {
       notifications,
