@@ -64,9 +64,11 @@ class AuthService {
    }
 
    async refreshToken(refreshToken: string): Promise<ApiResponse<{ accessToken: string; refreshToken: string }>> {
-      return apiService.post<{ accessToken: string; refreshToken: string }>(`${this.endpoint}/refresh`, {
-         refreshToken,
-      });
+      return apiService.post<{ accessToken: string; refreshToken: string }>(
+         `${this.endpoint}/refresh`,
+         { refreshToken },
+         { _skipRetry: true } as any
+      );
    }
 }
 

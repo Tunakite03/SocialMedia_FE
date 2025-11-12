@@ -52,8 +52,18 @@ export const useAuthStore = create<AuthStore>()(
                isLoading: false,
             });
 
-            // Force clear localStorage to ensure persistence is updated
+            // Clear other stores when logging out
             try {
+               // Import stores dynamically to avoid circular dependency
+               import('./notificationStore').then(({ useNotificationStore }) => {
+                  useNotificationStore.getState().clearNotifications();
+               });
+
+               import('./commentStore').then(({ useCommentStore }) => {
+                  useCommentStore.getState().clearAllComments();
+               });
+
+               // Force clear localStorage to ensure persistence is updated
                localStorage.removeItem('auth-storage');
             } catch (error) {
                console.error('Error clearing localStorage:', error);

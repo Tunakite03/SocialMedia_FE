@@ -22,6 +22,21 @@ export interface UserProfile extends User {
       following: number;
    };
 }
+export interface ListSearchUser {
+   users: SearchUser[];
+}
+export interface SearchUser {
+   id: string;
+   username: string;
+   displayName: string;
+   avatar?: string;
+   bio?: string;
+   isFollowing?: boolean; // Only present when authenticated
+   _count: {
+      followers: number;
+      following: number;
+   };
+}
 
 export interface AuthState {
    user: User | null;
@@ -106,24 +121,23 @@ export interface Pagination {
    limit: number;
    offset: number;
    hasMore: boolean; // Changed from hasNext to hasMore to match API
+   page?: number;
    total: number;
    nextCursor: string | null;
    performanceHint: string | null;
    // Optional backward compatibility
-   page?: number;
-   totalPages?: number;
    hasNext?: boolean;
    hasPrev?: boolean;
 }
 
 export interface Notification {
    id: string;
-   type: 'LIKE' | 'COMMENT' | 'FOLLOW' | 'MESSAGE' | 'CALL' | 'MENTION';
+   type: 'REACT' | 'COMMENT' | 'FOLLOW' | 'MESSAGE' | 'CALL' | 'MENTION';
    title: string;
    message: string;
-   recipientId: string;
+   recipientId?: string;
    senderId: string;
-   sender: {
+   sender?: {
       id: string;
       username: string;
       displayName: string;

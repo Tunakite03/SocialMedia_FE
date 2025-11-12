@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { userService } from '@/services';
-import type { User, UserProfile } from '@/types';
+import type { User, UserProfile, SearchUser } from '@/types';
 
 // Hook for searching users
 export const useUserSearch = () => {
-   const [users, setUsers] = useState<User[]>([]);
+   const [users, setUsers] = useState<SearchUser[]>([]);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
 
@@ -13,13 +13,12 @@ export const useUserSearch = () => {
          setUsers([]);
          return;
       }
-
       setLoading(true);
       setError(null);
       try {
          const response = await userService.searchUsers(query);
          if (response.success && response.data) {
-            setUsers(response.data);
+            setUsers(response.data.users || []);
          } else {
             throw new Error(response.error || 'Failed to search users');
          }

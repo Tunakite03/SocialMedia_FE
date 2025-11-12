@@ -4,11 +4,14 @@ import { useAuthStore } from '@/store';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import DropdownMenu from '@/components/ui/dropdown-menu';
+import { useNotificationStore } from '@/store/notificationStore';
+import NotificationBadge from '../ui/notification-badge';
 
 const DesktopSidebar = () => {
    const location = useLocation();
    const { user, logout } = useAuthStore();
    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+   const { unreadCount } = useNotificationStore();
 
    const handleLogout = () => {
       setShowLogoutConfirm(true);
@@ -58,7 +61,7 @@ const DesktopSidebar = () => {
    ];
 
    return (
-      <aside className='hidden lg:flex lg:flex-col lg:w-16 xl:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-2 xl:p-4'>
+      <aside className='hidden lg:flex lg:flex-col lg:w-16 xl:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-2 xl:p-3'>
          <div className='mb-8 pt-4'>
             <Link
                to='/feed'
@@ -82,23 +85,31 @@ const DesktopSidebar = () => {
             <ul className='space-y-2'>
                {navItems.map((item) => {
                   const IconComponent = item.icon;
-                  const isActive =
-                     location.pathname === item.activeKey ||
-                     (item.activeKey === '/profile' && location.pathname.startsWith('/profile')) ||
-                     (item.activeKey === '/chat' && location.pathname.startsWith('/chat'));
+                  const isActive = location.pathname === item.activeKey;
 
                   return (
                      <li key={item.path}>
                         <Link
                            to={item.path}
-                           className={`flex items-center lg:space-x-0 xl:space-x-4 lg:px-2 xl:px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
+                           className={`flex items-center xl:justify-start justify-center  relative lg:space-x-0 xl:space-x-4 lg:px-2 xl:px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
                               isActive ? 'font-bold bg-muted' : ''
-                           }`}
+                           } `}
                         >
                            <IconComponent
                               size={24}
                               className={`${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                            />
+                           {
+                              /* Show notification badge only for Notifications item */
+                              item.label === 'Notifications' && unreadCount > 0 && (
+                                 <NotificationBadge
+                                    count={unreadCount}
+                                    color='red'
+                                    size='sm'
+                                 />
+                              )
+                           }
+
                            <span
                               className={`text-base hidden xl:inline ${
                                  isActive ? 'font-bold text-foreground' : 'text-foreground'

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share, ThumbsUp, Star, Laugh, Angry, Meh } from 'lucide-react';
 import { usePostReactions } from '@/hooks/usePosts';
 import type { Post } from '@/types';
-import PostMedia from './PostMedia';
+import PostMedia from '../PostMedia';
 
 interface PostDetailCardProps {
    post: Post;

@@ -1,10 +1,9 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { TokenManager } from '@/utils/tokenManager';
 import { useFeedStore } from '@/hooks';
 import { socketService } from '@/services/socketService';
 import InstagramLayout from '@/components/layout/InstagramLayout';
-import Stories from '@/components/features/Stories';
-import PostCard from '@/components/features/PostCard';
+import Stories from '@/components/features/post/Stories';
+import PostCard from '@/components/features/post/PostCard';
 import { PlusCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import type { Post } from '@/types';
 
@@ -49,7 +48,6 @@ const FeedPage = () => {
 
    // Ensure posts is always an array
    const posts = rawPosts || [];
-
    // Intersection Observer for infinite scroll
    const handleObserver = useCallback(
       (entries: IntersectionObserverEntry[]) => {
@@ -60,12 +58,6 @@ const FeedPage = () => {
       },
       [hasMore, loading, loadMore]
    );
-
-   // Initialize feed data
-   useEffect(() => {
-      // The hook will auto-fetch feed data on mount
-      // No need to manually call fetchFeed here since useFeedStore handles it
-   }, []);
 
    useEffect(() => {
       const option = {
@@ -87,15 +79,8 @@ const FeedPage = () => {
    }, [handleObserver]);
 
    useEffect(() => {
-      // Initialize socket connection if not already connected
-      const token = TokenManager.getAccessToken();
-      if (token && !socketService.isConnected) {
-         socketService.connect(token);
-      }
-
       // Socket event handlers with store integration
       const handleNewPost = (newPost: Post) => {
-         console.log('New post received:', newPost);
          // Add new post to the store
          addPost(newPost);
       };
@@ -169,22 +154,6 @@ const FeedPage = () => {
                <div className='w-full space-y-2'>
                   <Stories />
 
-                  {/* Error banner if there's an error but we have some posts */}
-                  {error && posts.length > 0 && (
-                     <div className='bg-red-50 border border-red-200 rounded-lg p-3 mb-4'>
-                        <div className='flex items-center gap-2'>
-                           <AlertCircle className='w-4 h-4 text-red-500' />
-                           <p className='text-red-700 text-sm'>{error}</p>
-                           <button
-                              onClick={handleRefresh}
-                              className='ml-auto text-red-600 hover:text-red-800'
-                           >
-                              <RefreshCw className='w-4 h-4' />
-                           </button>
-                        </div>
-                     </div>
-                  )}
-
                   {/* Posts feed with animations */}
                   <div className='space-y-2'>
                      {posts.map((post: Post, index: number) => (
@@ -257,7 +226,7 @@ const FeedPage = () => {
 
             {/* Manual load more button (fallback) */}
             {!loading && hasMore && posts.length > 0 && (
-               <div className='flex justify-center py-8'>
+               <div className='flex justify-center py-3'>
                   <button
                      onClick={handleLoadMore}
                      className='bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium'

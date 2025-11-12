@@ -89,7 +89,7 @@ class WebRTCService {
          });
 
          // Initiate call through socket
-         socketService.initiateCall(receiverId, callType);
+         socketService.initiateCall(receiverId, callType === 'video' ? 'VIDEO' : 'VOICE');
 
          return callId;
       } catch (error) {

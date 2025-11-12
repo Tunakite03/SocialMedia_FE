@@ -561,7 +561,7 @@ body {
 }
 
 .anime-hover-scale:hover {
-   transform: scale(1.05);
+   transform: scale(1.015);
    transition: transform 0.3s ease;
 }
 
@@ -943,4 +943,18 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
    background: hsl(var(--primary) / 0.8);
+}
+
+/* Notification Popup Animations */
+@keyframes shrink {
+   from {
+      width: 100%;
+   }
+   to {
+      width: 0%;
+   }
+}
+
+.duration-linear {
+   transition-timing-function: linear;
 }

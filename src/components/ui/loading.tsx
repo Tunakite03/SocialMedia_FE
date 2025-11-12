@@ -37,3 +37,62 @@ export const LoadingButton = ({ isLoading, children, className }: LoadingButtonP
       </div>
    );
 };
+
+// Skeleton components for loading states
+const skeletonVariants = cva('animate-pulse bg-gray-200 rounded', {
+   variants: {
+      variant: {
+         default: '',
+         circle: 'rounded-full',
+         rounded: 'rounded-lg',
+      },
+   },
+   defaultVariants: {
+      variant: 'default',
+   },
+});
+
+interface SkeletonProps extends VariantProps<typeof skeletonVariants> {
+   className?: string;
+}
+
+export const Skeleton = ({ variant, className }: SkeletonProps) => {
+   return <div className={cn(skeletonVariants({ variant }), className)} />;
+};
+
+// User card skeleton for search results
+export const UserCardSkeleton = () => {
+   return (
+      <div className='card-liquid-glass p-4 mb-4'>
+         <div className='flex items-center justify-between'>
+            <div className='flex items-center space-x-3'>
+               <Skeleton
+                  variant='circle'
+                  className='w-12 h-12'
+               />
+               <div className='flex-1 space-y-2'>
+                  <Skeleton className='h-4 w-32' />
+                  <Skeleton className='h-3 w-24' />
+                  <Skeleton className='h-3 w-48' />
+                  <div className='flex items-center space-x-4 mt-2'>
+                     <Skeleton className='h-3 w-16' />
+                     <Skeleton className='h-3 w-16' />
+                  </div>
+               </div>
+            </div>
+            <Skeleton className='h-8 w-20 rounded-lg' />
+         </div>
+      </div>
+   );
+};
+
+// Multiple user card skeletons
+export const UserSearchSkeleton = ({ count = 3 }: { count?: number }) => {
+   return (
+      <div className='space-y-2'>
+         {Array.from({ length: count }, (_, i) => (
+            <UserCardSkeleton key={i} />
+         ))}
+      </div>
+   );
+};

@@ -43,6 +43,7 @@ export const useNotifications = (): UseNotificationsReturn => {
 
    const loadNotifications = useCallback(
       async (params?: { limit?: number; offset?: number }) => {
+         if (isLoading) return;
          try {
             setLoading(true);
             setError(null);
@@ -188,7 +189,9 @@ export const useNotifications = (): UseNotificationsReturn => {
 
    // Initial load
    useEffect(() => {
-      loadNotifications({ limit: 20, offset: 0 });
+      if (notifications.length === 0 && !isLoading && !error) {
+         loadNotifications({ limit: 20, offset: 0 });
+      }
    }, []);
 
    return {

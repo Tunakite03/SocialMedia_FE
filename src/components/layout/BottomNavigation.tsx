@@ -49,7 +49,7 @@ const BottomNavigation = () => {
                      key={item.path}
                      to={item.path}
                      className={`flex flex-col items-center justify-center p-2 min-w-[60px] md:min-w-20 hover:bg-gray-100 rounded-lg transition-colors ${
-                        isActive ? 'bg-gray-200' : ''
+                        isActive ? 'bg-muted' : ''
                      } transition-colors md:mb-1`}
                   >
                      <IconComponent
@@ -58,8 +58,6 @@ const BottomNavigation = () => {
                            isActive ? 'text-foreground ' : 'text-muted-foreground'
                         } transition-colors md:mb-1`}
                      />
-
-                     
                   </Link>
                );
             })}

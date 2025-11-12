@@ -13,7 +13,7 @@ import {
    Monitor,
    Headphones,
 } from 'lucide-react';
-import { useSocketNotification } from '@/components/providers/SocketNotificationProvider';
+import { useSocketNotification } from '@/contexts/SocketNotificationProvider';
 import { notificationSoundService } from '@/services';
 
 interface NotificationSettingsProps {

@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Github, LogIn, Stars, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store';
 import { useLogin } from '@/hooks';
-import { socketService } from '@/services/socketService';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ const LoginPage = () => {
          login(result.user, result.accessToken, result.refreshToken);
 
          // Connect to socket
-         socketService.connect(result.accessToken);
+         // socketService.connect(result.accessToken);
 
          // Navigate to dashboard
          navigate('/');
@@ -144,6 +143,7 @@ const LoginPage = () => {
                               rightIcon={
                                  <button
                                     type='button'
+                                    tabIndex={-1}
                                     onClick={() => setShowPassword((s) => !s)}
                                     className='p-1 text-muted-foreground hover:text-foreground anime-hover-scale'
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}

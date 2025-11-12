@@ -1,11 +1,11 @@
 import { apiService } from './apiService';
-import type { User, UserProfile, ApiResponse } from '@/types';
+import type { User, UserProfile, ApiResponse, ListSearchUser } from '@/types';
 
 class UserService {
    private readonly endpoint = '/users';
 
-   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-      return apiService.get<User[]>(`${this.endpoint}/search`, {
+   async searchUsers(query: string): Promise<ApiResponse<ListSearchUser>> {
+      return apiService.get<ListSearchUser>(`${this.endpoint}/search`, {
          params: { q: query },
       });
    }

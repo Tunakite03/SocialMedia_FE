@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bell, BellOff, Wifi, WifiOff } from 'lucide-react';
 import { useUnreadCount } from '@/store/notificationStore';
-import { useSocketNotification } from '@/components/providers/SocketNotificationProvider';
+import { useSocketNotification } from '@/contexts/SocketNotificationProvider';
 
 interface NotificationBadgeProps {
    className?: string;

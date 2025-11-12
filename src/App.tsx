@@ -1,13 +1,19 @@
 import { Suspense } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
+import { useDataInitializer } from '@/hooks/useDataInitializer';
 import ThemeInitializer from '@/components/theme/ThemeInitializer';
+import NotificationPopupManager from '@/components/features/NotificationPopupManager';
 import './App.css';
 
 function App() {
+   // Initialize fresh data on app start (replaces localStorage persistence)
+   useDataInitializer();
    return (
       <>
          <ThemeInitializer />
+         <NotificationPopupManager />
+
          <Suspense
             fallback={
                <div className='min-h-screen flex items-center justify-center bg-background'>

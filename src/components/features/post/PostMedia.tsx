@@ -1,5 +1,5 @@
 import type { Post } from '@/types';
-import { EnhancedVideoPlayer } from './video/EnhancedVideoPlayer';
+import { EnhancedVideoPlayer } from '../video/EnhancedVideoPlayer';
 
 const PostMedia = ({ post }: { post: Post }) => {
    if (post.type === 'IMAGE' && post.mediaUrl) {

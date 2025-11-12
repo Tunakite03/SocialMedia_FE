@@ -1,11 +1,11 @@
 // Authentication hooks
 export * from './useAuth';
 
+// Data initialization hooks (replaces localStorage persistence)
+export * from './useDataInitializer';
+
 // User hooks
 export * from './useUsers';
-
-// Post hooks (legacy - will be deprecated)
-export * from './usePosts';
 
 // Post hooks with Zustand store (new approach)
 export {
@@ -25,7 +25,8 @@ export {
 // Notification hooks
 export * from './useNotifications';
 export * from './useNotificationSocket';
-export * from './useRealTimeNotifications';
+export * from './useNewNotifications';
+export * from './useSocketNotifications';
 
 // Reaction hooks
 

@@ -1,9 +1,10 @@
 import { useCommentStore } from '@/store';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Hook for managing comments of a specific post
 export const usePostComments = (postId: string) => {
    const { getComments, isLoading, getError, hasMoreComments, fetchComments, clearPostComments } = useCommentStore();
+   const hasInitiallyFetched = useRef<Set<string>>(new Set());
 
    const comments = getComments(postId);
    const loading = isLoading(postId);
@@ -12,10 +13,19 @@ export const usePostComments = (postId: string) => {
 
    // Auto-fetch comments when component mounts
    useEffect(() => {
-      if (postId && comments.length === 0 && !loading) {
+      if (postId && !loading && !hasInitiallyFetched.current.has(postId)) {
+         console.log('Fetching comments for post:', postId);
+         hasInitiallyFetched.current.add(postId);
          fetchComments(postId);
       }
-   }, [postId, comments.length, loading, fetchComments]);
+
+      // Cleanup function to remove tracking when component unmounts
+      return () => {
+         if (postId) {
+            hasInitiallyFetched.current.delete(postId);
+         }
+      };
+   }, [postId]);
 
    const loadMore = () => {
       if (hasMore && !loading) {
@@ -25,6 +35,7 @@ export const usePostComments = (postId: string) => {
    };
 
    const refetch = () => {
+      // Allow refetch even if already fetched
       fetchComments(postId);
    };
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Bell, BellOff, CheckCheck, Loader2, RefreshCw } from 'lucide-react';
 import { NotificationCard } from './NotificationCard';
-import { NotificationErrorBoundary } from './NotificationErrorBoundary';
 import { useNotifications } from '@/hooks';
 import type { Notification } from '@/types';
 
@@ -40,11 +39,10 @@ export const NotificationList: React.FC<NotificationListProps> = ({
          const [target] = entries;
 
          if (target.isIntersecting && hasNextPage && !isLoading && !isLoadingMore) {
-            console.log('🚀 Triggering load more notifications...');
             loadMoreNotifications();
          }
       },
-      [hasNextPage, isLoading, isLoadingMore, loadMoreNotifications]
+      [hasNextPage, isLoadingMore, loadMoreNotifications]
    );
 
    useEffect(() => {
@@ -82,7 +80,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
    if (error) {
       return (
-         <div className={`card-liquid-glass p-6 text-center ${className}`}>
+         <div className={`card-liquid-glass text-center ${className}`}>
             <BellOff className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
             <h3 className='font-semibold text-foreground mb-2 font-anime'>Failed to load notifications</h3>
             <p className='text-sm text-muted-foreground mb-4'>{error}</p>
@@ -99,7 +97,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
    }
 
    return (
-      <div className={`card-liquid-glass ${className}`}>
+      <div className={`liquid-glass p-2 md:p-4 ${className}`}>
          {/* Header */}
          {showHeader && (
             <div className='flex items-center justify-between p-4 border-b border-border/50'>
@@ -149,15 +147,14 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                   </p>
                </div>
             ) : (
-               <div className='p-4 space-y-3 '>
+               <div className='p-4 space-y-2'>
                   {notifications.map((notification) => (
-                     <NotificationErrorBoundary key={notification.id}>
-                        <NotificationCard
-                           notification={notification}
-                           onMarkAsRead={markAsRead}
-                           onNavigate={onNavigate}
-                        />
-                     </NotificationErrorBoundary>
+                     <NotificationCard
+                        key={notification.id}
+                        notification={notification}
+                        onMarkAsRead={markAsRead}
+                        onNavigate={onNavigate}
+                     />
                   ))}
 
                   {/* Infinite scroll trigger */}

@@ -59,21 +59,39 @@ const PostCard = ({ post }: PostCardProps) => {
    const [isBookmarked, setIsBookmarked] = useState(false);
    const [showReactionPopup, setShowReactionPopup] = useState(false);
    const reactionPopupRef = useRef<HTMLDivElement>(null);
+   const longPressTimer = useRef<number | null>(null);
+   const isTouch = 'ontouchstart' in window;
+   const [popupOpenedByLongPress, setPopupOpenedByLongPress] = useState(false);
+   const [isLongPressing, setIsLongPressing] = useState(false);
 
    // Use store data or fallback to post data
    const currentReaction = userReaction || post.userReaction;
    const likesCount = reactionCount || post._count.reactions;
 
-   // Close reaction popup when clicking outside on mobile
+   // Cleanup timer on unmount
+   useEffect(() => {
+      return () => {
+         if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+         }
+      };
+   }, []);
+
+   // Close reaction popup when clicking outside
    useEffect(() => {
       const handleClickOutside = (event: MouseEvent | TouchEvent) => {
          if (
             showReactionPopup &&
             reactionPopupRef.current &&
-            !reactionPopupRef.current.contains(event.target as Node) &&
-            'ontouchstart' in window
+            !reactionPopupRef.current.contains(event.target as Node)
          ) {
-            setShowReactionPopup(false);
+            // Small delay to prevent immediate closing after long press
+            setTimeout(() => {
+               if (!popupOpenedByLongPress) {
+                  setShowReactionPopup(false);
+                  setPopupOpenedByLongPress(false);
+               }
+            }, 100);
          }
       };
 
@@ -86,7 +104,7 @@ const PostCard = ({ post }: PostCardProps) => {
          document.removeEventListener('touchstart', handleClickOutside);
          document.removeEventListener('click', handleClickOutside);
       };
-   }, [showReactionPopup]);
+   }, [showReactionPopup, popupOpenedByLongPress]);
 
    const handleReaction = async (type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW') => {
       try {
@@ -97,7 +115,10 @@ const PostCard = ({ post }: PostCardProps) => {
          // Store handles error states, but you can add additional UI feedback here if needed
       }
 
+      // Close popup after reaction selection
       setShowReactionPopup(false);
+      setPopupOpenedByLongPress(false);
+      setIsLongPressing(false);
    };
 
    const handleBookmark = () => {
@@ -150,28 +171,71 @@ const PostCard = ({ post }: PostCardProps) => {
          <div
             className='flex items-center justify-between px-4 py-3'
             onMouseLeave={() => {
-               // Only hide on mouse leave for desktop devices
-               if (!('ontouchstart' in window)) {
+               // Hide popup on mouse leave for desktop only, and not when opened by long press
+               if (!isTouch && !popupOpenedByLongPress) {
                   setShowReactionPopup(false);
+                  setPopupOpenedByLongPress(false);
                }
             }}
          >
             <div className='flex items-center space-x-4'>
                <div className='relative flex items-center'>
                   <button
-                     onClick={(e) => {
-                        // On mobile/tablet, show reaction popup on single tap if not already shown
-                        if ('ontouchstart' in window && !showReactionPopup) {
-                           e.preventDefault();
-                           setShowReactionPopup(true);
+                     onClick={() => {
+                        if (isTouch) {
+                           // On mobile, only react if it's not a long press
+                           if (!isLongPressing) {
+                              // Simple tap on mobile - toggle like/unlike
+                              if (currentReaction) {
+                                 handleReaction(currentReaction); // Remove current reaction
+                              } else {
+                                 handleReaction('LIKE'); // Add like
+                              }
+                           }
                         } else {
-                           // On desktop or second tap on mobile, execute reaction
+                           // Desktop - execute reaction directly
                            handleReaction(currentReaction || 'LIKE');
                         }
                      }}
+                     onTouchStart={() => {
+                        if (isTouch) {
+                           setIsLongPressing(false);
+                           // Start long press timer for mobile
+                           longPressTimer.current = window.setTimeout(() => {
+                              setIsLongPressing(true);
+                              setShowReactionPopup(true);
+                              setPopupOpenedByLongPress(true);
+                              if (navigator.vibrate) {
+                                 navigator.vibrate(50);
+                              }
+                              // Allow closing after a delay
+                              setTimeout(() => {
+                                 setPopupOpenedByLongPress(false);
+                              }, 1000);
+                           }, 400);
+                        }
+                     }}
+                     onTouchEnd={(e) => {
+                        if (isTouch) {
+                           // Only prevent default if it was a long press
+                           if (isLongPressing) {
+                              e.preventDefault();
+                           }
+                           if (longPressTimer.current) {
+                              clearTimeout(longPressTimer.current);
+                              longPressTimer.current = null;
+                           }
+                        }
+                     }}
+                     onTouchMove={() => {
+                        if (isTouch && longPressTimer.current) {
+                           clearTimeout(longPressTimer.current);
+                           longPressTimer.current = null;
+                        }
+                     }}
                      onMouseEnter={() => {
-                        // Only show on hover for desktop devices
-                        if (!('ontouchstart' in window)) {
+                        // Show popup on hover for desktop
+                        if (!isTouch) {
                            setShowReactionPopup(true);
                         }
                      }}
@@ -191,16 +255,16 @@ const PostCard = ({ post }: PostCardProps) => {
                   {showReactionPopup && (
                      <div
                         ref={reactionPopupRef}
-                        className='absolute bottom-full -left-2.5 transform mb-2 bg-white border rounded-lg liquid-glass p-2 flex space-x-1 z-10 '
+                        className='absolute bottom-full -left-2.5 transform mb-2 bg-white border rounded-lg liquid-glass p-2 flex space-x-1 z-10'
                         onMouseEnter={() => {
                            // Keep popup open on desktop hover
-                           if (!('ontouchstart' in window)) {
+                           if (!isTouch) {
                               setShowReactionPopup(true);
                            }
                         }}
                         onMouseLeave={() => {
                            // Hide popup on desktop mouse leave
-                           if (!('ontouchstart' in window)) {
+                           if (!isTouch) {
                               setShowReactionPopup(false);
                            }
                         }}
@@ -220,11 +284,13 @@ const PostCard = ({ post }: PostCardProps) => {
                               </button>
                            ))}
                         {/* Close button for mobile */}
-                        {'ontouchstart' in window && (
+                        {isTouch && (
                            <button
                               onClick={(e) => {
                                  e.stopPropagation();
                                  setShowReactionPopup(false);
+                                 setPopupOpenedByLongPress(false);
+                                 setIsLongPressing(false);
                               }}
                               className='text-lg text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 ml-1'
                            >

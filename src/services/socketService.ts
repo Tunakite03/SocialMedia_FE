@@ -6,12 +6,26 @@ class SocketService {
    private reconnectAttempts = 0;
    private maxReconnectAttempts = 5;
    private reconnectDelay = 1000;
+   private isConnecting = false; // Add flag to prevent multiple connections
 
    connect(token: string): Socket {
+      // Return existing connected socket
       if (this.socket?.connected) {
          return this.socket;
       }
 
+      // Prevent multiple simultaneous connection attempts
+      if (this.isConnecting) {
+         return this.socket!;
+      }
+
+      // If socket exists but not connected, disconnect first
+      if (this.socket && !this.socket.connected) {
+         this.socket.disconnect();
+         this.socket = null;
+      }
+
+      this.isConnecting = true;
       const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
       this.socket = io(serverUrl, {
@@ -20,7 +34,7 @@ class SocketService {
          },
          transports: ['websocket', 'polling'],
          timeout: 20000,
-         forceNew: true,
+         forceNew: false, // Change to false to reuse connection if possible
       });
 
       this.setupEventListeners();
@@ -33,10 +47,12 @@ class SocketService {
       this.socket.on('connect', () => {
          console.log('Connected to server');
          this.reconnectAttempts = 0;
+         this.isConnecting = false; // Reset flag on successful connection
       });
 
       this.socket.on('disconnect', (reason) => {
          console.log('Disconnected from server:', reason);
+         this.isConnecting = false; // Reset flag on disconnect
 
          if (reason === 'io server disconnect') {
             // Server initiated disconnect, don't auto-reconnect
@@ -49,6 +65,7 @@ class SocketService {
 
       this.socket.on('connect_error', (error) => {
          console.error('Connection error:', error);
+         this.isConnecting = false; // Reset flag on error
          this.handleReconnect();
       });
 
@@ -82,6 +99,7 @@ class SocketService {
          this.socket.disconnect();
          this.socket = null;
       }
+      this.isConnecting = false; // Reset flag when manually disconnecting
    }
 
    // Event emission methods

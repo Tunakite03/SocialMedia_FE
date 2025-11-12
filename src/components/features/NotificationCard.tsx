@@ -11,7 +11,7 @@ interface NotificationCardProps {
 
 const getNotificationIcon = (type: Notification['type']) => {
    const iconMap = {
-      LIKE: Heart,
+      REACT: Heart,
       COMMENT: MessageCircle,
       FOLLOW: UserPlus,
       MESSAGE: Mail,
@@ -24,7 +24,7 @@ const getNotificationIcon = (type: Notification['type']) => {
 
 const getNotificationColor = (type: Notification['type']) => {
    const colorMap = {
-      LIKE: 'text-red-500',
+      REACT: 'text-red-500',
       COMMENT: 'text-blue-500',
       FOLLOW: 'text-green-500',
       MESSAGE: 'text-purple-500',
@@ -37,7 +37,7 @@ const getNotificationColor = (type: Notification['type']) => {
 
 const getNotificationGradient = (type: Notification['type']) => {
    const gradientMap = {
-      LIKE: 'from-red-500/20 to-pink-500/20',
+      REACT: 'from-red-500/20 to-pink-500/20',
       COMMENT: 'from-blue-500/20 to-cyan-500/20',
       FOLLOW: 'from-green-500/20 to-emerald-500/20',
       MESSAGE: 'from-purple-500/20 to-violet-500/20',

@@ -4,8 +4,8 @@ import InstagramLayout from '@/components/layout/InstagramLayout';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { usePostStore } from '@/store/postStore';
-import { PrivacySelector } from '@/components/features/PrivacySelector';
-import { Camera, Image as ImageIcon, Video, X, FileText, Upload, ArrowLeft, Send } from 'lucide-react';
+import { PrivacySelector } from '@/components/features/privacy/PrivacySelector';
+import { Camera, Image as ImageIcon, X, FileText, Upload, ArrowLeft, Send } from 'lucide-react';
 import type { PostFormData } from '@/types';
 
 interface PreviewMedia {
@@ -168,8 +168,7 @@ const CreatePage = () => {
       }
    };
 
-   const isLoading = creatingPost;
-   const canSubmit = (content.trim() || previewMedia) && !isLoading;
+   const canSubmit = (content.trim() || previewMedia) && !creatingPost;
 
    if (step === 'compose') {
       return (
@@ -287,7 +286,7 @@ const CreatePage = () => {
                            className='anime-hover-lift anime-button-press'
                            size='sm'
                         >
-                           {isLoading ? (
+                           {creatingPost ? (
                               <LoadingSpinner size='sm' />
                            ) : (
                               <>

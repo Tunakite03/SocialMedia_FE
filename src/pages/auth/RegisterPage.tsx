@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import { useRegister } from '@/hooks';
-import { socketService } from '@/services/socketService';
 import { Input } from '@/components/ui/input';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { Eye, EyeOff, Github, UserPlus, Heart, Stars, Sparkles } from 'lucide-react';
@@ -56,7 +55,7 @@ const RegisterPage = () => {
          login(result.user, result.accessToken, result.refreshToken);
 
          // Connect to socket
-         socketService.connect(result.accessToken);
+         // socketService.connect(result.accessToken);
 
          // Navigate to dashboard
          navigate('/');
@@ -190,6 +189,7 @@ const RegisterPage = () => {
                               rightIcon={
                                  <button
                                     type='button'
+                                    tabIndex={-1}
                                     onClick={() => setShowPassword((s) => !s)}
                                     className='p-1 text-muted-foreground hover:text-foreground anime-hover-scale'
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -218,6 +218,7 @@ const RegisterPage = () => {
                               rightIcon={
                                  <button
                                     type='button'
+                                    tabIndex={-1}
                                     onClick={() => setShowConfirm((s) => !s)}
                                     className='p-1 text-muted-foreground hover:text-foreground anime-hover-scale'
                                     aria-label={showConfirm ? 'Hide password' : 'Show password'}

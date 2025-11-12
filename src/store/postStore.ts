@@ -9,6 +9,8 @@ interface PostStore {
    error: string | null;
    hasMore: boolean;
    page: number;
+   totalPosts: number;
+   cursor?: string;
 
    // Single post state (for post detail page)
    currentPost: Post | null;
@@ -44,8 +46,10 @@ export const usePostStore = create<PostStore>()((set, get) => ({
    posts: [],
    loading: false,
    error: null,
-   hasMore: true,
+   hasMore: false,
    page: 1,
+   totalPosts: 0,
+   cursor: '',
 
    currentPost: null,
    currentPostLoading: false,
@@ -62,19 +66,28 @@ export const usePostStore = create<PostStore>()((set, get) => ({
 
       try {
          const response = await postService.getFeed({
-            page: pageNum,
+            offset: (pageNum - 1) * 10,
             limit: 10,
+            cursor: state.cursor || '',
          });
 
          if (response.success && response.data) {
             const newPosts = Array.isArray(response.data.posts) ? response.data.posts : [];
 
+            if (append) {
+               const filteredPosts = newPosts.filter((p) => !state.posts.find((sp) => sp.id === p.id));
+               set({ posts: [...state.posts, ...filteredPosts] });
+            } else {
+               set({ posts: newPosts });
+            }
+
             set({
-               posts: append ? [...state.posts, ...newPosts] : newPosts,
-               hasMore: response.data.pagination?.hasNext || false,
+               hasMore: response.pagination?.hasMore || false,
                page: pageNum,
                loading: false,
+               totalPosts: response.pagination?.total || 0,
                error: null,
+               cursor: response.pagination?.nextCursor || '',
             });
          } else {
             throw new Error(response.error || 'Failed to fetch feed');
@@ -152,6 +165,7 @@ export const usePostStore = create<PostStore>()((set, get) => ({
 
    createPost: async (postData: PostFormData) => {
       try {
+         set({ loading: true, error: null });
          const response = await postService.createPost(postData);
          if (response.success && response.data) {
             const newPost = response.data.post;
@@ -159,18 +173,21 @@ export const usePostStore = create<PostStore>()((set, get) => ({
             set((state) => ({
                posts: [newPost, ...state.posts],
             }));
+            set({ loading: false, error: null });
             return newPost;
          } else {
+            set({ loading: false, error: response.error || 'Failed to create post' });
             throw new Error(response.error || 'Failed to create post');
          }
       } catch (err: any) {
-         console.error('Create post error:', err);
-         throw err;
+         set({ loading: false, error: err.error || 'Failed to create post' });
+         throw new Error(err.error || 'Failed to create post');
       }
    },
 
    editPost: async (postId: string, postData: Partial<PostFormData>) => {
       try {
+         set({ loading: true, error: null });
          const response = await postService.updatePost(postId, postData);
          if (response.success) {
             // Refetch the specific post to get updated data
@@ -180,33 +197,40 @@ export const usePostStore = create<PostStore>()((set, get) => ({
             }
             // Also update in the feed if it exists
             await state.refetch();
+
+            set({ loading: false, error: null });
          } else {
+            set({ loading: false, error: response.error || 'Failed to update post' });
             throw new Error(response.error || 'Failed to update post');
          }
       } catch (err: any) {
-         console.error('Edit post error:', err);
-         throw err;
+         set({ loading: false, error: err.error || 'Failed to update post' });
+         throw new Error(err.error || 'Failed to update post');
       }
    },
 
    deletePost: async (postId: string) => {
       try {
+         set({ loading: true, error: null });
          const response = await postService.deletePost(postId);
          if (response.success) {
             // Remove from store
             get().removePost(postId);
+            set({ loading: false, error: null });
             return true;
          } else {
+            set({ loading: false, error: response.error || 'Failed to delete post' });
             throw new Error(response.error || 'Failed to delete post');
          }
       } catch (err: any) {
-         console.error('Delete post error:', err);
-         throw err;
+         set({ loading: false, error: err.error || 'Failed to delete post' });
+         throw new Error(err.error || 'Failed to delete post');
       }
    },
 
    addReaction: async (postId: string, type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW') => {
       try {
+         set({ loading: true, error: null });
          const response = await postService.addPostReaction(postId, { type });
          if (response.success && response.data) {
             // Optimistically update the post's reaction count and user reaction
@@ -224,12 +248,14 @@ export const usePostStore = create<PostStore>()((set, get) => ({
 
                state.updatePost(postId, updates);
             }
+            set({ loading: false, error: null });
          } else {
+            set({ loading: false, error: response.error || 'Failed to add reaction' });
             throw new Error(response.error || 'Failed to add reaction');
          }
       } catch (err: any) {
-         console.error('Add reaction error:', err);
-         throw err;
+         set({ loading: false, error: err.error || 'Failed to add reaction' });
+         throw new Error(err.error || 'Failed to add reaction');
       }
    },
 

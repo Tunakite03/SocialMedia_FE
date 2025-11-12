@@ -7,9 +7,9 @@ class NotificationSoundService {
    private isEnabled = true;
    private volume = 0.3;
 
-   constructor() {
-      this.loadDefaultSounds();
-   }
+   // constructor() {
+   //    this.loadDefaultSounds();
+   // }
 
    /**
     * Initialize audio context (call after user interaction)
@@ -29,7 +29,7 @@ class NotificationSoundService {
     */
    private async loadDefaultSounds(): Promise<void> {
       const soundUrls = {
-         notification: '/sounds/notification.mp3',
+         notification: '/sounds/noti.mp3',
          like: '/sounds/like.mp3',
          comment: '/sounds/comment.mp3',
          message: '/sounds/message.mp3',

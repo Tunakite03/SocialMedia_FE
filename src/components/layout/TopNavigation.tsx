@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
 import { MessageCircle, Bell, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import NotificationBadge from '@/components/ui/notification-badge';
+import { useNotifications } from '@/hooks';
 
 const TopNavigation = () => {
    const [isScrolled, setIsScrolled] = useState(false);
+   // const unreadMessageCount = useUnreadMessageCount();
+   const { unreadCount } = useNotifications();
    useEffect(() => {
       // Scroll down to resize navigation, scroll top to expand
       const handleScroll = () => {
@@ -40,39 +44,39 @@ const TopNavigation = () => {
                />
             </Link>
 
-            {/* Center search for tablet */}
-            <div className='hidden md:block lg:hidden flex-1 max-w-xs mx-4 nav-search'>
-               <Link
-                  to='/search'
-                  className={`flex items-center bg-muted rounded-lg px-3 py-2 transition-all duration-300 hover:bg-muted/80`}
-               >
-                  <Search
-                     size={20}
-                     className='text-muted-foreground mr-2 transition-all duration-300'
-                  />
-                  <span className='text-muted-foreground text-sm'>Search...</span>
-               </Link>
-            </div>
-
             {/* Right icons with anime effects */}
             <div className='flex items-center space-x-2 md:space-x-4 nav-actions'>
                <Link
                   to='/chat'
-                  className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon'
+                  className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon relative'
                >
                   <MessageCircle
                      size={24}
                      className={`text-foreground transition-all duration-300`}
                   />
+                  {/* {unreadMessageCount > 0 && (
+                     <NotificationBadge
+                        count={unreadMessageCount}
+                        color='purple'
+                        size='sm'
+                     />
+                  )} */}
                </Link>
                <Link
                   to='/activity'
-                  className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon'
+                  className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon relative'
                >
                   <Bell
                      size={24}
                      className={`text-foreground transition-all duration-300`}
                   />
+                  {unreadCount > 0 && (
+                     <NotificationBadge
+                        count={unreadCount}
+                        color='red'
+                        size='sm'
+                     />
+                  )}
                </Link>
             </div>
          </div>

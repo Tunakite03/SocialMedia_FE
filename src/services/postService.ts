@@ -2,26 +2,19 @@ import { apiService } from './apiService';
 import type { Post, PostFormData, Reaction, ReactionFormData, ApiResponse } from '@/types';
 
 interface GetFeedParams {
-   page?: number;
+   offset?: number;
    limit?: number;
+   cursor?: string;
 }
 
 interface GetUserPostsParams {
    userId: string;
-   page?: number;
+   offset?: number;
    limit?: number;
 }
 
 interface PostsResponse {
    posts: Post[];
-   pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-   };
 }
 
 interface ReactionResponse {
@@ -34,9 +27,9 @@ class PostService {
    private readonly endpoint = '/posts';
 
    async getFeed(params: GetFeedParams = {}): Promise<ApiResponse<PostsResponse>> {
-      const { page = 1, limit = 10 } = params;
+      const { offset = 0, limit = 10, cursor = '' } = params;
       return apiService.get<PostsResponse>(`${this.endpoint}/feed`, {
-         params: { page, limit },
+         params: { offset, limit, cursor },
       });
    }
 
@@ -45,9 +38,9 @@ class PostService {
    }
 
    async getUserPosts(params: GetUserPostsParams): Promise<ApiResponse<PostsResponse>> {
-      const { userId, page = 1, limit = 10 } = params;
+      const { userId, offset = 0, limit = 10 } = params;
       return apiService.get<PostsResponse>(`${this.endpoint}/user/${userId}`, {
-         params: { page, limit },
+         params: { offset, limit },
       });
    }
 
