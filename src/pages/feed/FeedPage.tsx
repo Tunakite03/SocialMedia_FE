@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useFeedStore } from '@/hooks';
-import { socketService } from '@/services/socketService';
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import Stories from '@/components/features/post/Stories';
 import PostCard from '@/components/features/post/PostCard';
@@ -32,17 +31,7 @@ const transformPostForCard = (post: Post) => {
 
 const FeedPage = () => {
    // Use the wrapper hook for cleaner code
-   const {
-      posts: rawPosts,
-      loading,
-      error,
-      hasMore,
-      loadMore,
-      refetch,
-      addPost,
-      updatePost,
-      removePost,
-   } = useFeedStore();
+   const { posts: rawPosts, loading, error, hasMore, loadMore, refetch } = useFeedStore();
 
    const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -78,41 +67,41 @@ const FeedPage = () => {
       };
    }, [handleObserver]);
 
-   useEffect(() => {
-      // Socket event handlers with store integration
-      const handleNewPost = (newPost: Post) => {
-         // Add new post to the store
-         addPost(newPost);
-      };
+   // useEffect(() => {
+   //    // Socket event handlers with store integration
+   //    const handleNewPost = (newPost: Post) => {
+   //       // Add new post to the store
+   //       addPost(newPost);
+   //    };
 
-      const handlePostUpdated = (updatedPost: Post) => {
-         console.log('Post updated:', updatedPost);
-         // Update post in the store
-         updatePost(updatedPost.id, updatedPost);
-      };
+   //    const handlePostUpdated = (updatedPost: Post) => {
+   //       console.log('Post updated:', updatedPost);
+   //       // Update post in the store
+   //       updatePost(updatedPost.id, updatedPost);
+   //    };
 
-      const handlePostDeleted = (postId: string) => {
-         console.log('Post deleted:', postId);
-         // Remove post from the store
-         removePost(postId);
-      };
+   //    const handlePostDeleted = (postId: string) => {
+   //       console.log('Post deleted:', postId);
+   //       // Remove post from the store
+   //       removePost(postId);
+   //    };
 
-      // Subscribe to socket events
-      if (socketService.isConnected) {
-         socketService.on('post:new', handleNewPost);
-         socketService.on('post:updated', handlePostUpdated);
-         socketService.on('post:deleted', handlePostDeleted);
-      }
+   //    // Subscribe to socket events
+   //    if (socketService.isConnected) {
+   //       socketService.on('post:new', handleNewPost);
+   //       socketService.on('post:updated', handlePostUpdated);
+   //       socketService.on('post:deleted', handlePostDeleted);
+   //    }
 
-      // Cleanup socket listeners
-      return () => {
-         if (socketService.isConnected) {
-            socketService.off('post:new', handleNewPost);
-            socketService.off('post:updated', handlePostUpdated);
-            socketService.off('post:deleted', handlePostDeleted);
-         }
-      };
-   }, [addPost, updatePost, removePost]);
+   //    // Cleanup socket listeners
+   //    return () => {
+   //       if (socketService.isConnected) {
+   //          socketService.off('post:new', handleNewPost);
+   //          socketService.off('post:updated', handlePostUpdated);
+   //          socketService.off('post:deleted', handlePostDeleted);
+   //       }
+   //    };
+   // }, [addPost, updatePost, removePost]);
 
    const handleLoadMore = async () => {
       if (hasMore && !loading) {

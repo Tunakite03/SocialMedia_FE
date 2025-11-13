@@ -7,7 +7,7 @@ import { useNotificationStore } from '@/store/notificationStore';
 import NotificationBadge from '../ui/notification-badge';
 import { navItems } from '@/config';
 
-const DesktopSidebar = () => {
+const DesktopSidebarCollapse = () => {
    const location = useLocation();
    const { user, logout } = useAuthStore();
    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -21,7 +21,7 @@ const DesktopSidebar = () => {
    };
 
    return (
-      <aside className='hidden lg:flex lg:flex-col lg:w-16 xl:w-64 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-2 xl:p-3'>
+      <aside className='hidden lg:flex lg:flex-col lg:w-16 lg:fixed lg:left-0 lg:top-0 lg:h-full bg-background border-r border-border lg:p-2 '>
          <div className='mb-8 pt-4 min-h-44'>
             <Link
                to='/feed'
@@ -31,11 +31,6 @@ const DesktopSidebar = () => {
                   src='/logov2_128.png'
                   alt='Otakomi Logo'
                   className='h-15 object-contain'
-               />
-               <img
-                  src='/logo_text.png'
-                  alt='Otakomi Logo'
-                  className='h-10 w-auto object-contain hidden xl:block'
                />
             </Link>
          </div>
@@ -51,7 +46,7 @@ const DesktopSidebar = () => {
                      <li key={item.path}>
                         <Link
                            to={item.path}
-                           className={`flex items-center xl:justify-start justify-center  relative lg:space-x-0 xl:space-x-4 lg:px-2 xl:px-3 py-3 rounded-lg transition-colors hover:bg-muted ${
+                           className={`flex items-center xl:justify-start justify-center  relative lg:space-x-0 lg:px-2 py-3 rounded-lg transition-colors hover:bg-muted ${
                               isActive ? 'font-bold bg-muted' : ''
                            } `}
                         >
@@ -69,14 +64,6 @@ const DesktopSidebar = () => {
                                  />
                               )
                            }
-
-                           <span
-                              className={`text-base hidden xl:inline ${
-                                 isActive ? 'font-bold text-foreground' : 'text-foreground'
-                              }`}
-                           >
-                              {item.label}
-                           </span>
                         </Link>
                      </li>
                   );
@@ -88,11 +75,14 @@ const DesktopSidebar = () => {
          {user && user.username && (
             <div className='mt-auto pt-4 border-t border-border'>
                {/* More Button with Dropdown */}
-               <DropdownMenu onLogout={handleLogout} />
+               <DropdownMenu
+                  onLogout={handleLogout}
+                  isCollapsed={true}
+               />
 
                <Link
                   to='/profile'
-                  className='flex items-center  lg:space-x-0 xl:space-x-3 lg:px-2 xl:px-3 py-2 rounded-lg hover:bg-muted transition-colors mt-2'
+                  className='flex items-center  lg:space-x-0  lg:px-2 py-2 rounded-lg hover:bg-muted transition-colors mt-2'
                >
                   <div className='w-8 h-8 rounded-full bg-muted overflow-hidden'>
                      {user.avatar ? (
@@ -106,10 +96,6 @@ const DesktopSidebar = () => {
                            {(user.displayName || user.username || 'U').charAt(0).toUpperCase()}
                         </div>
                      )}
-                  </div>
-                  <div className='flex-1 min-w-0 hidden xl:block'>
-                     <p className='text-sm font-semibold text-foreground truncate'>{user.username}</p>
-                     <p className='text-xs text-muted-foreground truncate'>{user.displayName || user.username}</p>
                   </div>
                </Link>
             </div>
@@ -130,4 +116,4 @@ const DesktopSidebar = () => {
    );
 };
 
-export default DesktopSidebar;
+export default DesktopSidebarCollapse;

@@ -1,5 +1,5 @@
 import { apiService } from './apiService';
-import type { User, UserProfile, ApiResponse, ListSearchUser, ListFollower, ListFollowing } from '@/types';
+import type { UserProfile, ApiResponse, ListSearchUser, ListFollower, ListFollowing } from '@/types';
 
 class UserService {
    private readonly endpoint = '/users';
@@ -28,6 +28,14 @@ class UserService {
 
    async unfollowUser(id: string): Promise<ApiResponse<null>> {
       return apiService.delete<null>(`${this.endpoint}/${id}/follow`);
+   }
+
+   async checkFollowStatus(id: string): Promise<ApiResponse<{ isFollowing: boolean }>> {
+      return apiService.get<{ isFollowing: boolean }>(`${this.endpoint}/${id}/follow-status`);
+   }
+
+   async getUserByUsername(username: string): Promise<ApiResponse<{ user: UserProfile }>> {
+      return apiService.get<{ user: UserProfile }>(`${this.endpoint}/by-username/${username}`);
    }
 }
 

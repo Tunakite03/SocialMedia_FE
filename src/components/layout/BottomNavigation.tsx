@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, PlusSquare, User, SettingsIcon } from 'lucide-react';
+import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react';
 
 const BottomNavigation = () => {
    const location = useLocation();
@@ -24,16 +24,16 @@ const BottomNavigation = () => {
          activeKey: '/create',
       },
       {
+         icon: MessageCircle,
+         label: 'Chat',
+         path: '/chat',
+         activeKey: '/chat',
+      },
+      {
          icon: User,
          label: 'Profile',
          path: '/profile',
          activeKey: '/profile',
-      },
-      {
-         icon: SettingsIcon,
-         label: 'Settings',
-         path: '/settings',
-         activeKey: '/settings',
       },
    ];
 
@@ -42,7 +42,11 @@ const BottomNavigation = () => {
          <div className='flex justify-around items-center py-2'>
             {navItems.map((item) => {
                const IconComponent = item.icon;
-               const isActive = location.pathname === item.activeKey;
+               // Handle chat routes specially - both /chat and /chat/:id should be active
+               const isActive =
+                  item.activeKey === '/chat'
+                     ? location.pathname.startsWith('/chat')
+                     : location.pathname === item.activeKey;
 
                return (
                   <Link

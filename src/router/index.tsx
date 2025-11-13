@@ -104,7 +104,7 @@ export const router = createBrowserRouter([
       ),
    },
    {
-      path: '/chat/:roomId',
+      path: '/chat/:conversationId',
       element: (
          <ProtectedRoute>
             <ChatPage />
@@ -122,7 +122,7 @@ export const router = createBrowserRouter([
       ),
    },
    {
-      path: '/profile/:userId',
+      path: '/profile/:id',
       element: (
          <ProtectedRoute>
             <ErrorBoundary>

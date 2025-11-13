@@ -32,14 +32,14 @@ interface SocketNotificationContextType {
 
    // Messaging
    sendMessage: (message: {
+      conversationId: string;
       content: string;
-      receiverId?: string;
-      conversationId?: string;
-      type?: 'text' | 'image' | 'file';
+      type?: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE';
+      replyToId?: string | null;
    }) => void;
    markMessageAsRead: (messageId: string) => void;
-   startTyping: (conversationId: string, userId: string) => void;
-   stopTyping: (conversationId: string, userId: string) => void;
+   startTyping: (conversationId: string) => void;
+   stopTyping: (conversationId: string) => void;
 
    // Room management
    joinRoom: (roomId: string) => void;
@@ -138,10 +138,10 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
    // Messaging methods
    const sendMessage = useCallback(
       (message: {
+         conversationId: string;
          content: string;
-         receiverId?: string;
-         conversationId?: string;
-         type?: 'text' | 'image' | 'file';
+         type?: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE';
+         replyToId?: string | null;
       }) => {
          if (isConnected) {
             socketService.sendMessage(message);
@@ -164,18 +164,18 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
    );
 
    const startTyping = useCallback(
-      (conversationId: string, userId: string) => {
+      (conversationId: string) => {
          if (isConnected) {
-            socketService.startTyping(conversationId, userId);
+            socketService.startTyping(conversationId);
          }
       },
       [isConnected]
    );
 
    const stopTyping = useCallback(
-      (conversationId: string, userId: string) => {
+      (conversationId: string) => {
          if (isConnected) {
-            socketService.stopTyping(conversationId, userId);
+            socketService.stopTyping(conversationId);
          }
       },
       [isConnected]

@@ -1,35 +1,49 @@
 import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useAuth';
-import { useUserPosts } from '@/hooks/useUsers';
+import { useUser, useUserPosts, useFollow, useFollowStatus } from '@/hooks/useUsers';
 import { useFollowersModal, useFollowingModal } from '@/hooks/useFollowModal';
 import { uploadService } from '@/services/uploadService';
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
-import { Settings, Grid, Bookmark, Tag, LogOut, Camera, X } from 'lucide-react';
+import { Settings, Grid, Bookmark, Tag, LogOut, Camera, X, UserPlus, UserCheck, MessageCircle } from 'lucide-react';
 
 const ProfilePage = () => {
-   const { user: currentUser, logout } = useAuthStore();
+   const { logout, user: currentUser } = useAuthStore();
+   const navigate = useNavigate();
    const [activeTab, setActiveTab] = useState('posts');
+   const { id } = useParams<{ id: string }>();
    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
    const fileInputRef = useRef<HTMLInputElement>(null);
 
-   // Profile page is always for the current user (own profile)
-   const profileUserId = currentUser?.id;
-   const isOwnProfile = true; // Always true since this is personal profile page
+   // Determine if this is the current user's profile
+   const isOwner = !id || id === currentUser?.id;
 
-   // Use useProfile to get current user's detailed profile information
-   const { profile, loading: profileLoading, updateProfile } = useProfile();
-   const { posts, loading: postsLoading } = useUserPosts(profileUserId!);
+   // Get current user's profile data for personal profile
+   const { profile: currentUserProfile, loading: currentUserLoading, updateProfile } = useProfile();
+
+   // Get other user's profile data for external profiles
+   const { user: otherUserProfile, loading: otherUserLoading, error: otherUserError } = useUser(id || '');
+
+   // Get posts for the displayed user
+   const { posts, loading: postsLoading } = useUserPosts(isOwner ? currentUserProfile?.id || '' : id || '');
+
+   // Follow functionality for other users
+   const { followUser, unfollowUser, loading: followLoading } = useFollow();
+
+   // Check follow status for other users
+   const { isFollowing, setIsFollowing } = useFollowStatus(!isOwner ? id || '' : '');
+
+   // Determine which profile data to display
+   const displayUser = isOwner ? currentUserProfile : otherUserProfile;
+   const profileLoading = isOwner ? currentUserLoading : otherUserLoading;
 
    // Use custom modal hooks for followers/following
-   const followersModal = useFollowersModal(profileUserId!);
-   const followingModal = useFollowingModal(profileUserId!);
-
-   // Use profile from useProfile hook or fallback to currentUser
-   const user = profile || currentUser;
+   const followersModal = useFollowersModal(displayUser?.id || '');
+   const followingModal = useFollowingModal(displayUser?.id || '');
 
    const handleLogout = () => {
       setShowLogoutConfirm(true);
@@ -38,6 +52,28 @@ const ProfilePage = () => {
    const confirmLogout = () => {
       logout();
       // Remove manual navigation - let ProtectedRoute handle redirect
+   };
+
+   const handleFollow = async () => {
+      if (!displayUser?.id || followLoading) return;
+
+      try {
+         await followUser(displayUser.id);
+         setIsFollowing(true);
+      } catch (error) {
+         console.error('Error following user:', error);
+      }
+   };
+
+   const handleUnfollow = async () => {
+      if (!displayUser?.id || followLoading) return;
+
+      try {
+         await unfollowUser(displayUser.id);
+         setIsFollowing(false);
+      } catch (error) {
+         console.error('Error unfollowing user:', error);
+      }
    };
 
    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,45 +124,123 @@ const ProfilePage = () => {
       fileInputRef.current?.click();
    };
 
-   // Additional safety checks for user data and loading states
-   if (!currentUser) {
+   if (profileLoading) {
       return (
          <InstagramLayout>
             <div className='p-4 text-center'>
-               <h1 className='text-xl font-bold mb-4'>Not Authenticated</h1>
-               <p className='text-gray-500'>Please log in to view your profile.</p>
+               <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
+                  <div className='relative mb-6'>
+                     <div className='anime-spinner w-12 h-12 border-4 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4 anime-bounce'></div>
+                     <div className='absolute inset-0 flex items-center justify-center'>
+                        <div className='text-3xl anime-pulse'>👤</div>
+                     </div>
+                  </div>
+                  <div className='space-y-3'>
+                     <h3 className='font-anime font-bold text-lg text-hsl(var(--primary)) anime-float'>
+                        {isOwner ? 'Loading your profile...' : 'Loading profile...'}
+                     </h3>
+                     <p className='text-sm text-hsl(var(--muted-foreground)) font-anime'>Please wait a moment ✨</p>
+                  </div>
+               </div>
             </div>
          </InstagramLayout>
       );
    }
 
-   if (profileLoading || !profileUserId) {
+   // Handle case where user is not found (for other users' profiles)
+   if (!isOwner && otherUserError) {
       return (
          <InstagramLayout>
             <div className='p-4 text-center'>
-               <h1 className='text-xl font-bold mb-4'>Loading...</h1>
-               <p className='text-gray-500'>Please wait while we load the profile.</p>
+               <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
+                  <div className='text-6xl mb-6 anime-bounce'>😔</div>
+                  <div className='space-y-4'>
+                     <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>User not found</h3>
+                     <p className='text-hsl(var(--muted-foreground)) font-anime'>
+                        The user you're looking for doesn't exist or may have been removed.
+                     </p>
+                     <div className='flex gap-3 justify-center mt-6'>
+                        <button
+                           onClick={() => navigate('/profile')}
+                           className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           ← Back to My Profile
+                        </button>
+                        <button
+                           onClick={() => navigate('/search')}
+                           className='card-liquid-glass-accent py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           🔍 Find Users
+                        </button>
+                     </div>
+                  </div>
+               </div>
             </div>
          </InstagramLayout>
       );
    }
 
-   // For profile page, we should always have at least currentUser data
-   // Even if profile from API is not available yet, we can show currentUser data
-   const displayUser = user;
+   // Handle case where loading finished but no user found (invalid ID)
+   if (!isOwner && !otherUserLoading && !otherUserProfile) {
+      return (
+         <InstagramLayout>
+            <div className='p-4 text-center'>
+               <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
+                  <div className='text-6xl mb-6 anime-bounce'>🔍</div>
+                  <div className='space-y-4'>
+                     <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>User not found</h3>
+                     <p className='text-hsl(var(--muted-foreground)) font-anime'>
+                        The profile you're looking for doesn't exist. It may have been deleted or the link is incorrect.
+                     </p>
+                     <div className='flex gap-3 justify-center mt-6'>
+                        <button
+                           onClick={() => navigate('/profile')}
+                           className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           ← Back to My Profile
+                        </button>
+                        <button
+                           onClick={() => navigate('/search')}
+                           className='card-liquid-glass-accent py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           🔍 Find Users
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </InstagramLayout>
+      );
+   }
 
+   // Handle general profile error (couldn't load data)
    if (!displayUser || !displayUser.username) {
       return (
          <InstagramLayout>
             <div className='p-4 text-center'>
-               <h1 className='text-xl font-bold mb-4'>Profile Error</h1>
-               <p className='text-gray-500'>Unable to load profile information.</p>
-               <button
-                  onClick={() => window.location.reload()}
-                  className='mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors'
-               >
-                  Try Again
-               </button>
+               <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
+                  <div className='text-6xl mb-6 anime-bounce'>⚠️</div>
+                  <div className='space-y-4'>
+                     <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>Profile Error</h3>
+                     <p className='text-hsl(var(--muted-foreground)) font-anime'>
+                        Unable to load profile information. This might be a temporary issue.
+                     </p>
+                     <div className='flex gap-3 justify-center mt-6'>
+                        <button
+                           onClick={() => window.location.reload()}
+                           className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           🔄 Try Again
+                        </button>
+                        <button
+                           onClick={() => navigate('/feed')}
+                           className='card-liquid-glass-accent py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'
+                        >
+                           ← Back to Feed
+                        </button>
+                     </div>
+                  </div>
+               </div>
             </div>
          </InstagramLayout>
       );
@@ -142,29 +256,31 @@ const ProfilePage = () => {
       <InstagramLayout>
          <div className='min-h-screen bg-linear-to-b from-indigo-50/30 to-purple-50/30 md:mx-4'>
             {/* Profile Header Card */}
-            <div className='card-liquid-glass-animate  mb-0'>
+            <div className='card-liquid-glass'>
                {/* Header with username and actions */}
-               <div className='flex items-center justify-end mb-4'>
-                  <div className='flex items-center space-x-3'>
-                     <Link to='/settings'>
-                        <button className='card-liquid-glass-blue p-2 rounded-full anime-hover-lift anime-button-press transition-all'>
-                           <Settings
-                              size={20}
-                              className='text-hsl(var(--primary))'
-                           />
-                        </button>
-                     </Link>
-                     {isOwnProfile && (
-                        <button
-                           onClick={handleLogout}
-                           className='card-liquid-glass-accent p-2 rounded-full anime-hover-lift anime-button-press relative group transition-all hover:bg-red-50'
-                           title='Logout'
-                        >
-                           <LogOut
-                              size={20}
-                              className='text-red-500 group-hover:text-red-600 transition-colors'
-                           />
-                        </button>
+               <div className='flex items-center justify-between mb-4'>
+                  <div className='flex items-center space-x-3 ml-auto'>
+                     {isOwner && (
+                        <>
+                           <Link to='/settings'>
+                              <button className='card-liquid-glass-blue p-2 rounded-full anime-hover-lift anime-button-press transition-all'>
+                                 <Settings
+                                    size={20}
+                                    className='text-hsl(var(--primary))'
+                                 />
+                              </button>
+                           </Link>
+                           <button
+                              onClick={handleLogout}
+                              className='card-liquid-glass-accent p-2 rounded-full anime-hover-lift anime-button-press relative group transition-all hover:bg-red-50'
+                              title='Logout'
+                           >
+                              <LogOut
+                                 size={20}
+                                 className='text-red-500 group-hover:text-red-600 transition-colors'
+                              />
+                           </button>
+                        </>
                      )}
                   </div>
                </div>
@@ -191,30 +307,34 @@ const ProfilePage = () => {
                            🌸
                         </div>
 
-                        {/* Avatar upload overlay */}
-                        <button
-                           onClick={triggerAvatarUpload}
-                           disabled={isUploadingAvatar}
-                           className='absolute inset-0 bg-black/0 hover:bg-black/60 transition-all duration-300 flex items-center justify-center rounded-full anime-hover-scale'
-                           title='Change avatar'
-                        >
-                           <Camera
-                              size={24}
-                              className='text-white opacity-0 hover:opacity-100 transition-opacity'
+                        {/* Avatar upload overlay - only for owner */}
+                        {isOwner && (
+                           <button
+                              onClick={triggerAvatarUpload}
+                              disabled={isUploadingAvatar}
+                              className='absolute inset-0 bg-black/0 hover:bg-black/60 transition-all duration-300 flex items-center justify-center rounded-full anime-hover-scale'
+                              title='Change avatar'
+                           >
+                              <Camera
+                                 size={24}
+                                 className='text-white opacity-0 hover:opacity-100 transition-opacity'
+                              />
+                              {isUploadingAvatar && (
+                                 <div className='absolute inset-0 bg-black/80 flex items-center justify-center rounded-full'>
+                                    <div className='anime-spinner w-6 h-6 border-2 border-white border-t-transparent rounded-full'></div>
+                                 </div>
+                              )}
+                           </button>
+                        )}
+                        {isOwner && (
+                           <input
+                              ref={fileInputRef}
+                              type='file'
+                              accept='image/*'
+                              onChange={handleAvatarUpload}
+                              className='hidden'
                            />
-                           {isUploadingAvatar && (
-                              <div className='absolute inset-0 bg-black/80 flex items-center justify-center rounded-full'>
-                                 <div className='anime-spinner w-6 h-6 border-2 border-white border-t-transparent rounded-full'></div>
-                              </div>
-                           )}
-                        </button>
-                        <input
-                           ref={fileInputRef}
-                           type='file'
-                           accept='image/*'
-                           onChange={handleAvatarUpload}
-                           className='hidden'
-                        />
+                        )}
                      </div>
 
                      {/* Display Name */}
@@ -255,17 +375,53 @@ const ProfilePage = () => {
 
                      {/* Action Buttons */}
                      <div className='flex gap-3'>
-                        <Link
-                           to='/settings'
-                           className='flex-1'
-                        >
-                           <button className='w-full card-liquid-glass-accent py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
-                              ✏️ Edit Profile
-                           </button>
-                        </Link>
-                        <button className='card-liquid-glass-blue py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
-                           📤 Share
-                        </button>
+                        {isOwner ? (
+                           // Buttons for own profile
+                           <>
+                              <Link
+                                 to='/settings'
+                                 className='flex-1'
+                              >
+                                 <button className='w-full card-liquid-glass-accent py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
+                                    Edit Profile
+                                 </button>
+                              </Link>
+                              <button className='card-liquid-glass-blue py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
+                                 Share
+                              </button>
+                           </>
+                        ) : (
+                           // Buttons for other users' profiles
+                           <>
+                              <button
+                                 onClick={isFollowing ? handleUnfollow : handleFollow}
+                                 disabled={followLoading}
+                                 className={`flex-1 py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all flex items-center justify-center gap-2 ${
+                                    isFollowing
+                                       ? 'card-liquid-glass-accent text-hsl(var(--primary))'
+                                       : 'card-liquid-glass-blue text-hsl(var(--primary))'
+                                 }`}
+                              >
+                                 {followLoading ? (
+                                    <div className='anime-spinner w-5 h-5 border-2 border-current border-t-transparent rounded-full'></div>
+                                 ) : (
+                                    <>
+                                       {isFollowing ? <UserCheck size={20} /> : <UserPlus size={20} />}
+                                       {isFollowing ? 'Following' : 'Follow'}
+                                    </>
+                                 )}
+                              </button>
+                              <Link
+                                 to={`/chat`}
+                                 className=''
+                              >
+                                 <button className='card-liquid-glass-purple py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary)) flex items-center gap-2'>
+                                    <MessageCircle size={20} />
+                                    Message
+                                 </button>
+                              </Link>
+                           </>
+                        )}
                      </div>
                   </div>
                </div>
@@ -273,15 +429,33 @@ const ProfilePage = () => {
                {/* Bio Section */}
                <div className='mt-4 p-4 card-liquid-glass-accent rounded-xl anime-slide-in-left'>
                   <div className='text-sm text-hsl(var(--foreground)) leading-relaxed font-anime'>
-                     <div className='flex items-center gap-2 mb-2'>
-                        <span className='text-lg'>🚀</span>
-                        <span className='font-semibold'>Welcome to Otakomi!</span>
-                     </div>
-                     <div className='text-hsl(var(--muted-foreground))'>
-                        Building connections through communication ✨
-                        <br />
-                        📧 {displayUser.email}
-                     </div>
+                     {isOwner ? (
+                        // Bio for own profile
+                        <>
+                           <div className='flex items-center gap-2 mb-2'>
+                              <span className='text-lg'>🚀</span>
+                              <span className='font-semibold'>Welcome to Otakomi!</span>
+                           </div>
+                           <div className='text-hsl(var(--muted-foreground))'>
+                              Building connections through communication ✨
+                              <br />
+                              📧 {displayUser.email}
+                           </div>
+                        </>
+                     ) : (
+                        // Bio for other users
+                        <>
+                           <div className='flex items-center gap-2 mb-2'>
+                              <span className='text-lg'>👋</span>
+                              <span className='font-semibold'>{displayUser.displayName || displayUser.username}</span>
+                           </div>
+                           <div className='text-hsl(var(--muted-foreground))'>
+                              {displayUser.bio ? displayUser.bio : <span className='italic'>No bio available</span>}
+                              <br />
+                              <span className='text-xs'>@{displayUser.username}</span>
+                           </div>
+                        </>
+                     )}
                   </div>
                </div>
             </div>
@@ -307,42 +481,47 @@ const ProfilePage = () => {
                         Posts
                      </span>
                   </button>
-                  <button
-                     onClick={() => setActiveTab('saved')}
-                     className={`flex-1 py-4 flex items-center justify-center gap-3 duration-500 rounded-2xl transition-all anime-hover-lift font-anime font-semibold ${
-                        activeTab === 'saved' ? 'shadow-lg ' : ' '
-                     }`}
-                  >
-                     <Bookmark
-                        size={22}
-                        className={activeTab === 'saved' ? 'text-foreground' : 'text-muted-foreground'}
-                     />
-                     <span
-                        className={`${
-                           activeTab === 'saved' ? 'text-foreground' : 'text-muted-foreground'
-                        } text-sm sm:text-base`}
-                     >
-                        Saved
-                     </span>
-                  </button>
-                  <button
-                     onClick={() => setActiveTab('tagged')}
-                     className={`flex-1 py-4 flex items-center justify-center gap-3 duration-500 rounded-2xl transition-all anime-hover-lift font-anime font-semibold ${
-                        activeTab === 'tagged' ? 'shadow-lg ' : ' '
-                     }`}
-                  >
-                     <Tag
-                        size={22}
-                        className={activeTab === 'tagged' ? 'text-foreground' : 'text-muted-foreground'}
-                     />
-                     <span
-                        className={`${
-                           activeTab === 'tagged' ? 'text-foreground' : 'text-muted-foreground'
-                        } text-sm sm:text-base`}
-                     >
-                        Tagged
-                     </span>
-                  </button>
+                  {/* Only show Saved and Tagged tabs for own profile */}
+                  {isOwner && (
+                     <>
+                        <button
+                           onClick={() => setActiveTab('saved')}
+                           className={`flex-1 py-4 flex items-center justify-center gap-3 duration-500 rounded-2xl transition-all anime-hover-lift font-anime font-semibold ${
+                              activeTab === 'saved' ? 'shadow-lg ' : ' '
+                           }`}
+                        >
+                           <Bookmark
+                              size={22}
+                              className={activeTab === 'saved' ? 'text-foreground' : 'text-muted-foreground'}
+                           />
+                           <span
+                              className={`${
+                                 activeTab === 'saved' ? 'text-foreground' : 'text-muted-foreground'
+                              } text-sm sm:text-base`}
+                           >
+                              Saved
+                           </span>
+                        </button>
+                        <button
+                           onClick={() => setActiveTab('tagged')}
+                           className={`flex-1 py-4 flex items-center justify-center gap-3 duration-500 rounded-2xl transition-all anime-hover-lift font-anime font-semibold ${
+                              activeTab === 'tagged' ? 'shadow-lg ' : ' '
+                           }`}
+                        >
+                           <Tag
+                              size={22}
+                              className={activeTab === 'tagged' ? 'text-foreground' : 'text-muted-foreground'}
+                           />
+                           <span
+                              className={`${
+                                 activeTab === 'tagged' ? 'text-foreground' : 'text-muted-foreground'
+                              } text-sm sm:text-base`}
+                           >
+                              Tagged
+                           </span>
+                        </button>
+                     </>
+                  )}
                </div>
             </div>
 
@@ -421,13 +600,21 @@ const ProfilePage = () => {
                      ) : (
                         <div className='col-span-3 py-16 text-center anime-float'>
                            <div className='text-6xl mb-6 anime-bounce'>📸</div>
-                           <h3 className='text-xl font-anime font-bold text-hsl(var(--primary)) mb-2'>No posts yet</h3>
-                           <p className=' font-anime mb-4'>Share your first post to get started!</p>
-                           <Link to='/create'>
-                              <button className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift transition-all'>
-                                 ✨ Create Post
-                              </button>
-                           </Link>
+                           <h3 className='text-xl font-anime font-bold text-hsl(var(--primary)) mb-2'>
+                              {isOwner
+                                 ? 'No posts yet'
+                                 : `${displayUser.displayName || displayUser.username} hasn't posted yet`}
+                           </h3>
+                           <p className='font-anime mb-4'>
+                              {isOwner ? 'Share your first post to get started!' : 'Check back later for new posts!'}
+                           </p>
+                           {isOwner && (
+                              <Link to='/create'>
+                                 <button className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift transition-all'>
+                                    ✨ Create Post
+                                 </button>
+                              </Link>
+                           )}
                         </div>
                      )}
                   </div>

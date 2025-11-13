@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, Bell, Search } from 'lucide-react';
+import { MessageCircle, Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import NotificationBadge from '@/components/ui/notification-badge';
 import { useNotifications } from '@/hooks';
@@ -46,7 +46,7 @@ const TopNavigation = () => {
 
             {/* Right icons with anime effects */}
             <div className='flex items-center space-x-2 md:space-x-4 nav-actions'>
-               <Link
+               {/* <Link
                   to='/chat'
                   className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon relative'
                >
@@ -54,14 +54,8 @@ const TopNavigation = () => {
                      size={24}
                      className={`text-foreground transition-all duration-300`}
                   />
-                  {/* {unreadMessageCount > 0 && (
-                     <NotificationBadge
-                        count={unreadMessageCount}
-                        color='purple'
-                        size='sm'
-                     />
-                  )} */}
-               </Link>
+              
+               </Link> */}
                <Link
                   to='/activity'
                   className='p-2 anime-hover-lift hover:bg-muted rounded-lg transition-all duration-300 nav-icon relative'

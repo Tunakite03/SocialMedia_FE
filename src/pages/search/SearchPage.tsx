@@ -5,6 +5,7 @@ import { useUserSearch, useFollow } from '@/hooks';
 import { useAuthStore } from '@/store';
 import { UserSearchSkeleton } from '@/components/ui/loading';
 import type { SearchUser } from '@/types';
+import { Link } from 'react-router-dom';
 
 const SearchPage = () => {
    const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +59,10 @@ const SearchPage = () => {
    const UserCard = ({ user }: { user: SearchUser }) => (
       <div className='card-liquid-glass p-4 mb-4 anime-hover-scale text-foreground'>
          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-3'>
+            <Link
+               to={`/profile/${user.id}`}
+               className='flex items-center space-x-3'
+            >
                <div className='relative'>
                   <img
                      src={user.avatar || '/images/avatar/default-avatar.png'}
@@ -89,7 +93,8 @@ const SearchPage = () => {
                      </div>
                   </div>
                </div>
-            </div>
+            </Link>
+
             {isAuthenticated && (
                <button
                   onClick={() => handleFollowToggle(user)}

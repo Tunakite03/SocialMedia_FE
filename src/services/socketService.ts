@@ -149,25 +149,37 @@ class SocketService {
    }
 
    // Chat methods
+   joinConversation(conversationId: string): void {
+      this.emit('conversation:join', { conversationId });
+   }
+
+   leaveConversation(conversationId: string): void {
+      this.emit('conversation:leave', { conversationId });
+   }
+
    sendMessage(message: {
+      conversationId: string;
       content: string;
-      receiverId?: string;
-      chatRoomId?: string;
-      type?: 'text' | 'image' | 'file';
+      type?: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE';
+      replyToId?: string | null;
    }): void {
       this.emit('message:send', message);
+   }
+
+   reactToMessage(messageId: string, emoji: string): void {
+      this.emit('message:react', { messageId, emoji });
    }
 
    markMessageAsRead(messageId: string): void {
       this.emit('message:read', { messageId });
    }
 
-   startTyping(chatRoomId: string, userId: string): void {
-      this.emit('typing:start', { chatRoomId, userId });
+   startTyping(conversationId: string): void {
+      this.emit('typing:start', { conversationId });
    }
 
-   stopTyping(chatRoomId: string, userId: string): void {
-      this.emit('typing:stop', { chatRoomId, userId });
+   stopTyping(conversationId: string): void {
+      this.emit('typing:stop', { conversationId });
    }
 
    // Call methods

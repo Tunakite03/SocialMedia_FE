@@ -107,7 +107,10 @@ const PostDetailPage = () => {
             <div className='h-full flex flex-col min-h-0 gap-1'>
                {/* Author header - hidden on mobile */}
                <div className='hidden md:flex flex-row liquid-glass rounded-2xl p-2 justify-between items-center shrink-0'>
-                  <div className='flex items-center gap-3'>
+                  <Link
+                     to={`/profile/${post.author.id}`}
+                     className='font-semibold text-base flex items-center gap-3'
+                  >
                      <div className='w-12 h-12 rounded-full overflow-hidden'>
                         <img
                            src={post.author.avatar || '/default-avatar.png'}
@@ -122,15 +125,9 @@ const PostDetailPage = () => {
                            }}
                         />
                      </div>
-                     <div>
-                        <Link
-                           to={`/profile/${post.author.id}`}
-                           className='font-semibold text-base hover:underline'
-                        >
-                           {post.author.username}
-                        </Link>
-                     </div>
-                  </div>
+                     <div className='text-semibold'>{post.author.username}</div>
+                  </Link>
+
                   <div>
                      <MoreHorizontal size={20} />
                   </div>

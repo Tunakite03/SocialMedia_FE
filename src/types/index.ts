@@ -22,6 +22,7 @@ export interface ListFollowing {
 }
 
 export interface UserProfile extends User {
+   isFollowing?: boolean;
    _count: {
       posts: number;
       followers: number;
@@ -55,12 +56,64 @@ export interface AuthState {
 export interface Message {
    id: string;
    content: string;
+   type: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE';
+   mediaUrl?: string;
+   conversationId: string;
    senderId: string;
+   sender: User;
    receiverId?: string;
-   chatRoomId?: string;
-   type: 'text' | 'image' | 'file' | 'call';
-   timestamp: Date;
+   receiver?: User;
+   replyToId?: string | null;
+   replyTo?: Message;
+   reactions: MessageReaction[];
+   attachments: MessageAttachment[];
    isRead: boolean;
+   readAt?: string;
+   createdAt: string;
+   updatedAt: string;
+}
+
+export interface MessageReaction {
+   id: string;
+   messageId: string;
+   userId: string;
+   emoji: string;
+   user: User;
+   createdAt: string;
+}
+
+export interface MessageAttachment {
+   id: string;
+   messageId: string;
+   fileName: string;
+   fileUrl: string;
+   fileType: string;
+   fileSize: number;
+   createdAt: string;
+}
+
+export interface Conversation {
+   id: string;
+   title?: string | null;
+   type: 'DIRECT' | 'GROUP';
+   participants: ConversationParticipant[];
+   messages?: Message[];
+   lastMessage?: Message;
+   _count: {
+      messages: number;
+   };
+   unreadCount?: number;
+   createdAt: string;
+   updatedAt: string;
+}
+
+export interface ConversationParticipant {
+   id: string;
+   conversationId: string;
+   userId: string;
+   user: User;
+   joinedAt: string;
+   leftAt?: string;
 }
 
 export interface ChatRoom {
@@ -228,7 +281,9 @@ export interface PaginatedResponse<T> {
    data: T[];
    pagination: Pagination;
 }
-
+export interface FollowStatusResponse {
+   isFollowing: boolean;
+}
 // Socket.IO event types
 export interface SocketEvents {
    // Authentication

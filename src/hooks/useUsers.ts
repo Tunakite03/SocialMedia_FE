@@ -64,7 +64,39 @@ export const useUser = (userId: string) => {
       }
    }, [userId]);
 
-   return { user, loading, error, refetch: fetchUser };
+   return { user, loading, error, fetchUser };
+};
+
+export const useUserByUsername = (username: string) => {
+   const [user, setUser] = useState<UserProfile | null>(null);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+
+   const fetchUser = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+         const response = await userService.getUserByUsername(username);
+         if (response.success && response.data) {
+            setUser(response.data.user);
+         } else {
+            throw new Error(response.error || 'Failed to fetch user');
+         }
+      } catch (err: any) {
+         const errorMessage = err.error || err.message || 'Failed to fetch user';
+         setError(errorMessage);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      if (username) {
+         fetchUser();
+      }
+   }, [username]);
+
+   return { user, loading, error, fetchUser };
 };
 
 // Hook for user followers
@@ -210,4 +242,39 @@ export const useUserPosts = (userId: string) => {
    }, [userId]);
 
    return { posts, loading, error, refetch: fetchUserPosts };
+};
+
+// Hook to check if current user follows another user
+export const useFollowStatus = (userId: string) => {
+   const [isFollowing, setIsFollowing] = useState(false);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+
+   const checkFollowStatus = async () => {
+      if (!userId) return;
+
+      setLoading(true);
+      setError(null);
+      try {
+         const response = await userService.checkFollowStatus(userId);
+         if (response.success && response.data) {
+            setIsFollowing(response.data.isFollowing);
+         } else {
+            throw new Error(response.error || 'Failed to check follow status');
+         }
+      } catch (err: any) {
+         const errorMessage = err.error || err.message || 'Failed to check follow status';
+         setError(errorMessage);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      if (userId) {
+         checkFollowStatus();
+      }
+   }, [userId]);
+
+   return { isFollowing, setIsFollowing, loading, error, refetch: checkFollowStatus };
 };

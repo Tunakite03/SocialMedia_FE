@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Star, Laugh, Angry, Meh } from 'lucide-react';
 import { usePostReactionsStore } from '@/hooks';
 import type { Post } from '@/types';
@@ -136,22 +136,25 @@ const PostCard = ({ post }: PostCardProps) => {
          {/* Header with enhanced styling */}
          <div className='flex items-center justify-between px-4 py-3'>
             <div className='flex items-center space-x-3'>
-               <div className='w-10 h-10 rounded-full  p-0.5 anime-hover-scale'>
-                  <div className='w-full h-full rounded-full bg-white overflow-hidden'>
-                     <img
-                        src={post.author.avatar || '/default-avatar.png'}
-                        alt={post.author.username}
-                        className='w-full h-full object-cover'
-                        onError={(e) => {
-                           const target = e.target as HTMLImageElement;
-                           target.style.display = 'none';
-                           target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${post.author.username
-                              .charAt(0)
-                              .toUpperCase()}</div>`;
-                        }}
-                     />
+               <Link to={`/profile/${post.author.id}`}>
+                  <div className='w-10 h-10 rounded-full  p-0.5 anime-hover-scale'>
+                     <div className='w-full h-full rounded-full bg-white overflow-hidden'>
+                        <img
+                           src={post.author.avatar || '/default-avatar.png'}
+                           alt={post.author.username}
+                           className='w-full h-full object-cover'
+                           onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = `<div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold text-sm">${post.author.username
+                                 .charAt(0)
+                                 .toUpperCase()}</div>`;
+                           }}
+                        />
+                     </div>
                   </div>
-               </div>
+               </Link>
+
                <div className='flex flex-col'>
                   <span className='font-anime font-semibold text-sm text-foreground'>{post.author.username}</span>
                   <span className='text-xs text-muted-foreground font-anime'>{post.updatedAt}</span>
