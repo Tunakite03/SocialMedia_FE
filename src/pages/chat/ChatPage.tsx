@@ -382,7 +382,7 @@ const ChatPage = () => {
                </header>
 
                {/* Messages Area */}
-               <div className='flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 min-h-0'>
+               <div className='flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 space-y-3 sm:space-y-4 min-h-0'>
                   {isLoading ? (
                      <div className='text-center text-muted-foreground anime-pulse'>
                         <div className='text-4xl mb-4'>💭</div>
