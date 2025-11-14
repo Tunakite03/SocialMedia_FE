@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import NotificationBadge from '@/components/ui/notification-badge';
 import { useNotifications } from '@/hooks';

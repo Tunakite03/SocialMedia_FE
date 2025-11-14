@@ -27,44 +27,44 @@ class NotificationSoundService {
    /**
     * Load default notification sounds
     */
-   private async loadDefaultSounds(): Promise<void> {
-      const soundUrls = {
-         notification: '/sounds/noti.mp3',
-         like: '/sounds/like.mp3',
-         comment: '/sounds/comment.mp3',
-         message: '/sounds/message.mp3',
-         call: '/sounds/call.mp3',
-         error: '/sounds/error.mp3',
-         success: '/sounds/success.mp3',
-      };
+   // private async loadDefaultSounds(): Promise<void> {
+   //    const soundUrls = {
+   //       notification: '/sounds/noti.mp3',
+   //       like: '/sounds/like.mp3',
+   //       comment: '/sounds/comment.mp3',
+   //       message: '/sounds/message.mp3',
+   //       call: '/sounds/call.mp3',
+   //       error: '/sounds/error.mp3',
+   //       success: '/sounds/success.mp3',
+   //    };
 
-      for (const [name, url] of Object.entries(soundUrls)) {
-         try {
-            await this.loadSound(name, url);
-         } catch (error) {
-            console.warn(`Failed to load sound ${name}:`, error);
-         }
-      }
-   }
+   //    for (const [name, url] of Object.entries(soundUrls)) {
+   //       try {
+   //          await this.loadSound(name, url);
+   //       } catch (error) {
+   //          console.warn(`Failed to load sound ${name}:`, error);
+   //       }
+   //    }
+   // }
 
    /**
     * Load a sound file into memory
     */
-   private async loadSound(name: string, url: string): Promise<void> {
-      try {
-         await this.initAudioContext();
-         if (!this.audioContext) return;
+   // private async loadSound(name: string, url: string): Promise<void> {
+   //    try {
+   //       await this.initAudioContext();
+   //       if (!this.audioContext) return;
 
-         const response = await fetch(url);
-         if (!response.ok) return;
+   //       const response = await fetch(url);
+   //       if (!response.ok) return;
 
-         const arrayBuffer = await response.arrayBuffer();
-         const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-         this.sounds.set(name, audioBuffer);
-      } catch (error) {
-         console.warn(`Failed to load sound ${name}:`, error);
-      }
-   }
+   //       const arrayBuffer = await response.arrayBuffer();
+   //       const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+   //       this.sounds.set(name, audioBuffer);
+   //    } catch (error) {
+   //       console.warn(`Failed to load sound ${name}:`, error);
+   //    }
+   // }
 
    /**
     * Play a notification sound

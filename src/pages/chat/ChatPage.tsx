@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useChatStore, useAuthStore } from '@/store';
 import { socketService } from '@/services/socketService';
 import { messageService } from '@/services/messageService';
@@ -16,8 +16,6 @@ const ChatPage = () => {
    const { conversationId } = useParams<{ conversationId: string }>();
    const isMobile = useMobile(768); // Instagram's mobile breakpoint
 
-   console.log('🚀 [ChatPage] useParams conversationId:', conversationId);
-   console.log('🚀 [ChatPage] URL location:', window.location.pathname);
    const [isTyping, setIsTyping] = useState(false);
    const [replyingTo, setReplyingTo] = useState<Message | undefined>(undefined);
    const [editingMessage, setEditingMessage] = useState<Message | undefined>(undefined);
@@ -54,11 +52,7 @@ const ChatPage = () => {
 
    // Load conversation and messages when conversation ID changes
    useEffect(() => {
-      console.log('🚀 [ChatPage] useEffect conversationId changed:', conversationId);
-      console.log('🚀 [ChatPage] Current user:', user?.id);
-
       if (conversationId && user) {
-         console.log('🚀 [ChatPage] Setting active chat and loading data for:', conversationId);
          setActiveChat(conversationId);
          loadConversationData();
 
@@ -71,7 +65,6 @@ const ChatPage = () => {
 
       return () => {
          if (conversationId) {
-            console.log('🚀 [ChatPage] Leaving room:', conversationId);
             socketService.leaveRoom(conversationId);
          }
       };
@@ -139,7 +132,6 @@ const ChatPage = () => {
    // Socket event handlers
    const handleNewMessage = (message: Message) => {
       if (message.conversationId === conversationId) {
-         console.log('📨 [ChatPage] Received new message from socket:', message.id);
          addMessage(message);
 
          // Auto-mark as read if conversation is active
@@ -188,16 +180,10 @@ const ChatPage = () => {
             }
          } else {
             // Send new message
-            const response = await messageService.sendMessage(conversationId, {
+            await messageService.sendMessage(conversationId, {
                content: content.trim(),
                type,
             });
-
-            if (response.success && response.data) {
-               // ✅ Socket event will handle adding the message
-               // Removed optimistic update to prevent duplicate
-               console.log('📤 [ChatPage] Message sent successfully:', response.data.message.id);
-            }
          }
 
          // Clear reply state
