@@ -230,10 +230,9 @@ const MessageInput = ({
                      className='
                         w-full px-3 py-2 pr-10 bg-muted/50 border border-border rounded-lg
                         focus:outline-none focus:ring-2 focus:ring-ring resize-none
-                        anime-hover-scale transition-all duration-200
-                        placeholder:text-muted-foreground
+                        transition-all duration-200 placeholder:text-muted-foreground scrollbar-hide
+                        max-h-32
                      '
-                     style={{ maxHeight: '150px' }}
                   />
 
                   {/* Emoji button */}
@@ -251,7 +250,6 @@ const MessageInput = ({
                      <Smile className='h-4 w-4' />
                   </Button>
                </div>
-
 
                {/* Send button */}
                <Button

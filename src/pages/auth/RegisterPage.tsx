@@ -119,7 +119,7 @@ const RegisterPage = () => {
 
                {/* Enhanced form card */}
                <div
-                  className='card-anime p-6 anime-slide-in-right'
+                  className='card-anime p-6 '
                   style={{ animationDelay: '0.3s' }}
                >
                   <form
@@ -133,10 +133,7 @@ const RegisterPage = () => {
                      )}
 
                      <div className='space-y-4'>
-                        <div
-                           className='anime-slide-in-left'
-                           style={{ animationDelay: '0.6s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('email')}
                               type='email'
@@ -147,10 +144,7 @@ const RegisterPage = () => {
                            />
                         </div>
 
-                        <div
-                           className='anime-slide-in-right'
-                           style={{ animationDelay: '0.7s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('username')}
                               type='text'
@@ -161,10 +155,7 @@ const RegisterPage = () => {
                            />
                         </div>
 
-                        <div
-                           className='anime-slide-in-left'
-                           style={{ animationDelay: '0.8s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('displayName')}
                               type='text'
@@ -175,10 +166,7 @@ const RegisterPage = () => {
                            />
                         </div>
 
-                        <div
-                           className='anime-slide-in-right'
-                           style={{ animationDelay: '0.9s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('password')}
                               type={showPassword ? 'text' : 'password'}
@@ -204,10 +192,7 @@ const RegisterPage = () => {
                            </div>
                         </div>
 
-                        <div
-                           className='anime-slide-in-left'
-                           style={{ animationDelay: '1s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('confirmPassword')}
                               type={showConfirm ? 'text' : 'password'}
@@ -232,7 +217,7 @@ const RegisterPage = () => {
 
                      <div
                         className='space-y-4 anime-slide-in-right'
-                        style={{ animationDelay: '1.1s' }}
+                        style={{ animationDelay: '0.5s' }}
                      >
                         <button
                            type='submit'
@@ -289,7 +274,7 @@ const RegisterPage = () => {
                {/* Enhanced footer */}
                <div
                   className='text-center anime-slide-in-left'
-                  style={{ animationDelay: '1.4s' }}
+                  style={{ animationDelay: '0.7s' }}
                >
                   <p className='text-sm font-anime text-muted-foreground'>
                      Already have an account?{' '}

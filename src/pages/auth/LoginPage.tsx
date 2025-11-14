@@ -100,10 +100,7 @@ const LoginPage = () => {
                </div>
 
                {/* Enhanced form card */}
-               <div
-                  className='card-anime p-8 anime-slide-in-right'
-                  style={{ animationDelay: '0.3s' }}
-               >
+               <div className='card-anime p-8 '>
                   <form
                      onSubmit={handleSubmit(onSubmit)}
                      className='space-y-6'
@@ -115,10 +112,7 @@ const LoginPage = () => {
                      )}
 
                      <div className='space-y-4'>
-                        <div
-                           className='anime-slide-in-left'
-                           style={{ animationDelay: '0.6s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('email')}
                               type='email'
@@ -129,10 +123,7 @@ const LoginPage = () => {
                            />
                         </div>
 
-                        <div
-                           className='anime-slide-in-right'
-                           style={{ animationDelay: '0.7s' }}
-                        >
+                        <div className=''>
                            <Input
                               {...register('password')}
                               type={showPassword ? 'text' : 'password'}
@@ -155,10 +146,7 @@ const LoginPage = () => {
                         </div>
                      </div>
 
-                     <div
-                        className='flex items-center justify-end gap-4 anime-slide-in-left'
-                        style={{ animationDelay: '0.8s' }}
-                     >
+                     <div className='flex items-center justify-end gap-4 '>
                         <Link
                            to='/forgot-password'
                            className='text-sm font-anime text-muted-foreground hover:text-primary transition-colors anime-hover-scale'
@@ -169,7 +157,7 @@ const LoginPage = () => {
 
                      <div
                         className='space-y-4 anime-slide-in-right'
-                        style={{ animationDelay: '0.9s' }}
+                        style={{ animationDelay: '0.5s' }}
                      >
                         <button
                            type='submit'
@@ -223,7 +211,7 @@ const LoginPage = () => {
                {/* Enhanced footer */}
                <div
                   className='text-center anime-slide-in-left'
-                  style={{ animationDelay: '1.2s' }}
+                  style={{ animationDelay: '0.6s' }}
                >
                   <p className='text-sm font-anime text-muted-foreground'>
                      Don't have an account?{' '}

@@ -352,18 +352,10 @@ const ChatPage = () => {
 
                         <div className='min-w-0 flex-1'>
                            <h1 className='font-semibold text-sm sm:text-base truncate'>{conversationInfo.name}</h1>
-                           {currentTypingUsers.length > 0 ? (
-                              <p className='text-xs sm:text-sm text-primary anime-pulse'>
-                                 ✨{' '}
-                                 {currentTypingUsers.length === 1
-                                    ? 'Typing...'
-                                    : `${currentTypingUsers.length} people typing...`}
-                              </p>
-                           ) : (
-                              <p className='text-xs sm:text-sm text-muted-foreground truncate'>
-                                 {conversationInfo.subtitle}
-                              </p>
-                           )}
+
+                           <p className='text-xs sm:text-sm text-muted-foreground truncate'>
+                              {conversationInfo.subtitle}
+                           </p>
                         </div>
                      </div>
 
@@ -433,7 +425,28 @@ const ChatPage = () => {
                   )}
                   <div ref={messagesEndRef} />
                </div>
-
+               {/* Enhanced Typing Indicator */}
+               <div className='flex'>
+                  {currentTypingUsers.length > 0 && (
+                     <div className='flex items-center space-x-2 anime-fade-in p-2'>
+                        <div className='flex space-x-1'>
+                           <div
+                              className='w-1 h-1 bg-primary rounded-full anime-bounce'
+                              style={{ animationDelay: '0ms' }}
+                           ></div>
+                           <div
+                              className='w-1 h-1 bg-primary rounded-full anime-bounce'
+                              style={{ animationDelay: '150ms' }}
+                           ></div>
+                           <div
+                              className='w-1 h-1 bg-primary rounded-full anime-bounce'
+                              style={{ animationDelay: '300ms' }}
+                           ></div>
+                        </div>
+                        <p className='text-xs sm:text-sm text-primary font-medium anime-pulse'>typing...</p>
+                     </div>
+                  )}
+               </div>
                {/* Message Input */}
                <MessageInput
                   onSendMessage={handleSendMessage}
