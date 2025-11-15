@@ -209,6 +209,7 @@ export interface Notification {
       postId?: string;
       commentId?: string;
       callType?: 'VOICE' | 'VIDEO';
+      conversationId?: string;
    };
    createdAt: string;
 }

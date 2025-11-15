@@ -106,7 +106,10 @@ export const useChatStore = create<ChatStore>((set) => ({
    // Message actions
    setMessages: (roomId, messages) =>
       set((state) => ({
-         messages: { ...state.messages, [roomId]: messages },
+         messages: {
+            ...state.messages,
+            [roomId]: messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+         },
       })),
 
    addMessage: (message) =>

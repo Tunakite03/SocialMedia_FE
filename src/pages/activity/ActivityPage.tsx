@@ -16,10 +16,10 @@ const ActivityPage = () => {
             }
             break;
          case 'FOLLOW':
-            navigate(`/profile/${notification.sender?.username || ''}`);
+            navigate(`/profile/${notification.sender?.id || ''}`);
             break;
          case 'MESSAGE':
-            navigate(`/chat`);
+            navigate(`/chat/${notification.metadata?.conversationId || ''}`);
             break;
          case 'CALL':
             // Handle call navigation if needed

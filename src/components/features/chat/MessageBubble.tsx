@@ -180,7 +180,7 @@ const MessageBubble = ({
 
                {/* Message bubble */}
                <div
-                  className={` liquid-glass px-4 py-2 relative rounded-lg anime-slide-in-${isOwn ? 'right' : 'left'}
+                  className={` px-4 py-2 relative rounded-2xl shadow-lg backdrop-blur-2xl anime-slide-in-${isOwn ? 'right' : 'left'}
                      ${isOwn ? 'text-primary-foreground shadow-lg' : 'bg-muted/70 text-foreground'}
                      cursor-pointer select-none active:scale-95 transition-transform duration-100
                      touch-manipulation

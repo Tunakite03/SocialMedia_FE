@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { socketService, notificationSoundService } from '@/services';
-import { useNotificationStore, useAuthStore } from '@/store';
+import { useNotificationStore, useAuthStore, useChatStore } from '@/store';
 import type { Notification } from '@/types';
 
 interface OnlineUser {
@@ -41,9 +41,10 @@ interface NotificationMetadata {
 }
 export const useNotificationSocket = (): SocketNotificationHookReturn => {
    const { addNotificationFromSocket } = useNotificationStore();
+   const { incrementUnreadCount } = useChatStore();
    const { isAuthenticated, token, user } = useAuthStore();
    const onlineUsersRef = useRef<OnlineUser[]>([]);
-
+   const location = window.location;
    // Browser notification permission request
    const requestNotificationPermission = useCallback(async () => {
       if ('Notification' in window && Notification.permission === 'default') {
@@ -115,8 +116,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
 
       // Handler for new notifications
       const handleNewNotification = (notification: NotificationMetadata) => {
-         console.log('New notification received:', notification);
-
          // Add notification to store
          addNotificationFromSocket({ ...notification, isRead: false });
 
@@ -237,8 +236,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
 
       // Message-related handlers
       const handleMessageNew = (message: any) => {
-         console.log('New message received:', message.id);
-
          // Create a message notification
          const messageNotification: Notification = {
             id: `message-${message.id}`,
@@ -248,15 +245,22 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
             recipientId: user?.id || '',
             senderId: message.senderId,
             sender: message.sender,
-            isRead: false,
+            isRead: true,
             entityId: message.id,
             entityType: undefined,
             createdAt: message.createdAt || new Date().toISOString(),
+            metadata: {
+               conversationId: message.conversationId,
+            },
          };
-
+         if (location.pathname.includes(`/chat/${messageNotification.metadata?.conversationId}`)) {
+            return;
+         }
          // Don't create notification for messages from current user
          if (message.senderId !== user?.id) {
             addNotificationFromSocket(messageNotification);
+            // Increment unread count for the conversation
+            incrementUnreadCount(message.conversationId);
          }
       };
 

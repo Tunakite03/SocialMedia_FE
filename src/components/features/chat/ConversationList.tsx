@@ -13,9 +13,10 @@ interface ConversationItemProps {
    isActive: boolean;
    onClick: () => void;
    currentUserId: string;
+   unreadCount: number;
 }
 
-const ConversationItem = ({ conversation, isActive, onClick, currentUserId }: ConversationItemProps) => {
+const ConversationItem = ({ conversation, isActive, onClick, currentUserId, unreadCount }: ConversationItemProps) => {
    const getConversationDisplay = () => {
       if (conversation.type === 'GROUP') {
          return {
@@ -60,7 +61,7 @@ const ConversationItem = ({ conversation, isActive, onClick, currentUserId }: Co
    };
 
    const { name, avatar, subtitle } = getConversationDisplay();
-   const hasUnread = (conversation.unreadCount ?? 0) > 0;
+   const hasUnread = unreadCount > 0;
 
    return (
       <div
@@ -116,7 +117,7 @@ const ConversationItem = ({ conversation, isActive, onClick, currentUserId }: Co
 
                {hasUnread && (
                   <span className='min-w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center anime-bounce'>
-                     {conversation.unreadCount! > 99 ? '99+' : conversation.unreadCount}
+                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                )}
             </div>
@@ -133,7 +134,7 @@ const ConversationList = ({}: ConversationListProps) => {
    const navigate = useNavigate();
    const { conversationId } = useParams<{ conversationId: string }>();
    const { user } = useAuthStore();
-   const { conversations, setConversations, isLoading, setIsLoading } = useChatStore();
+   const { conversations, setConversations, isLoading, setIsLoading, unreadCounts } = useChatStore();
 
    const [searchTerm, setSearchTerm] = useState('');
    const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -281,6 +282,7 @@ const ConversationList = ({}: ConversationListProps) => {
                            isActive={conversationId === conversation.id}
                            onClick={() => handleConversationClick(conversation)}
                            currentUserId={user?.id || ''}
+                           unreadCount={unreadCounts[conversation.id] || 0}
                         />
                      </div>
                   ))}

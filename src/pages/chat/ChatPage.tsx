@@ -180,10 +180,14 @@ const ChatPage = () => {
             }
          } else {
             // Send new message
-            await messageService.sendMessage(conversationId, {
+            const response = await messageService.sendMessage(conversationId, {
                content: content.trim(),
                type,
             });
+            if (response.success && response.data) {
+               // Add message to store immediately for instant UI update
+               addMessage(response.data.message);
+            }
          }
 
          // Clear reply state
