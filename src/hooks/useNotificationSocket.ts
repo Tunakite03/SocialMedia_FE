@@ -41,7 +41,7 @@ interface NotificationMetadata {
 }
 export const useNotificationSocket = (): SocketNotificationHookReturn => {
    const { addNotificationFromSocket } = useNotificationStore();
-   const { incrementUnreadCount } = useChatStore();
+   const { incrementUnreadCount, incrementConversationUnreadCount } = useChatStore();
    const { isAuthenticated, token, user } = useAuthStore();
    const onlineUsersRef = useRef<OnlineUser[]>([]);
    const location = window.location;
@@ -245,7 +245,7 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
             recipientId: user?.id || '',
             senderId: message.senderId,
             sender: message.sender,
-            isRead: true,
+            isRead: false,
             entityId: message.id,
             entityType: undefined,
             createdAt: message.createdAt || new Date().toISOString(),
@@ -259,8 +259,10 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
          // Don't create notification for messages from current user
          if (message.senderId !== user?.id) {
             addNotificationFromSocket(messageNotification);
-            // Increment unread count for the conversation
-            incrementUnreadCount(message.conversationId);
+            if (!location.pathname.startsWith(`/chat/${messageNotification.metadata?.conversationId}`)) {
+               incrementUnreadCount(message.conversationId);
+               incrementConversationUnreadCount(message.conversationId);
+            }
          }
       };
 

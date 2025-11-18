@@ -21,6 +21,12 @@ interface ChatStore {
    // Unread counts by conversation/room ID
    unreadCounts: Record<string, number>;
 
+   // Helper functions for unread counts
+   getUnreadCount: (conversation: Conversation) => number;
+   updateConversationUnreadCount: (conversationId: string, count: number) => void;
+   incrementConversationUnreadCount: (conversationId: string) => void;
+   resetConversationUnreadCount: (conversationId: string) => void;
+
    // Legacy chat room actions
    setChatRooms: (rooms: ChatRoom[]) => void;
    addChatRoom: (room: ChatRoom) => void;
@@ -38,6 +44,7 @@ interface ChatStore {
    updateMessage: (messageId: string, roomId: string, updates: Partial<Message>) => void;
    removeMessage: (messageId: string, roomId: string) => void;
    markMessageAsRead: (messageId: string, roomId: string) => void;
+   markMessagesAsRead: (senderId: string, roomId: string, readAt?: string) => void;
 
    // UI state actions
    setActiveChat: (roomId: string | null) => void;
@@ -163,6 +170,18 @@ export const useChatStore = create<ChatStore>((set) => ({
          },
       })),
 
+   markMessagesAsRead: (senderId, roomId, readAt) =>
+      set((state) => ({
+         messages: {
+            ...state.messages,
+            [roomId]: (state.messages[roomId] || []).map((msg) =>
+               msg.senderId === senderId && !msg.isRead
+                  ? { ...msg, isRead: true, readAt: readAt || new Date().toISOString() }
+                  : msg
+            ),
+         },
+      })),
+
    // UI state actions
    setActiveChat: (roomId) => set({ activeChat: roomId }),
    setIsLoading: (loading) => set({ isLoading: loading }),
@@ -208,6 +227,81 @@ export const useChatStore = create<ChatStore>((set) => ({
       set((state) => ({
          unreadCounts: { ...state.unreadCounts, [roomId]: 0 },
       })),
+
+   // Helper functions for unread counts
+   getUnreadCount: (conversation) => {
+      // Prioritize _count.unreadMessages, fallback to legacy unreadCount
+      return conversation._count?.unreadMessages ?? conversation.unreadCount ?? 0;
+   },
+
+   updateConversationUnreadCount: (conversationId, count) =>
+      set((state) => {
+         const updatedConversations = state.conversations.map((conv) =>
+            conv.id === conversationId
+               ? {
+                    ...conv,
+                    _count: {
+                       ...conv._count,
+                       unreadMessages: count,
+                    },
+                    unreadCount: count, // Keep legacy property in sync
+                 }
+               : conv
+         );
+         return {
+            conversations: updatedConversations,
+            unreadCounts: { ...state.unreadCounts, [conversationId]: count },
+         };
+      }),
+
+   incrementConversationUnreadCount: (conversationId) =>
+      set((state) => {
+         const conversation = state.conversations.find((c) => c.id === conversationId);
+         const currentCount = conversation
+            ? state.conversations.find((c) => c.id === conversationId)?._count?.unreadMessages ??
+              conversation.unreadCount ??
+              0
+            : 0;
+         const newCount = currentCount + 1;
+
+         const updatedConversations = state.conversations.map((conv) =>
+            conv.id === conversationId
+               ? {
+                    ...conv,
+                    _count: {
+                       ...conv._count,
+                       unreadMessages: newCount,
+                    },
+                    unreadCount: newCount, // Keep legacy property in sync
+                 }
+               : conv
+         );
+
+         return {
+            conversations: updatedConversations,
+            unreadCounts: { ...state.unreadCounts, [conversationId]: newCount },
+         };
+      }),
+
+   resetConversationUnreadCount: (conversationId) =>
+      set((state) => {
+         const updatedConversations = state.conversations.map((conv) =>
+            conv.id === conversationId
+               ? {
+                    ...conv,
+                    _count: {
+                       ...conv._count,
+                       unreadMessages: 0,
+                    },
+                    unreadCount: 0, // Keep legacy property in sync
+                 }
+               : conv
+         );
+         return {
+            conversations: updatedConversations,
+            unreadCounts: { ...state.unreadCounts, [conversationId]: 0 },
+         };
+      }),
 
    // Cleanup
    clearChatData: () =>

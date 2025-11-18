@@ -53,6 +53,13 @@ export interface AuthState {
    isLoading: boolean;
 }
 
+export interface MessageSender {
+   id: string;
+   username: string;
+   displayName: string;
+   avatar?: string;
+}
+
 export interface Message {
    id: string;
    content: string;
@@ -60,11 +67,11 @@ export interface Message {
    mediaUrl?: string;
    conversationId: string;
    senderId: string;
-   sender: User;
+   sender: MessageSender;
    receiverId?: string;
    receiver?: User;
-   replyToId?: string | null;
-   replyTo?: Message;
+   parentId: string | null;
+   parent?: Message | null;
    reactions: MessageReaction[];
    attachments: MessageAttachment[];
    isRead: boolean;
@@ -101,6 +108,7 @@ export interface Conversation {
    lastMessage?: Message;
    _count: {
       messages: number;
+      unreadMessages?: number;
    };
    unreadCount?: number;
    createdAt: string;

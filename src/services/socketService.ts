@@ -174,6 +174,10 @@ class SocketService {
       this.emit('message:read', { messageId });
    }
 
+   markConversationAsRead(conversationId: string): void {
+      this.emit('messages:read', { conversationId });
+   }
+
    startTyping(conversationId: string): void {
       this.emit('typing:start', { conversationId });
    }

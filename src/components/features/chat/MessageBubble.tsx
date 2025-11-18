@@ -189,6 +189,14 @@ const MessageBubble = ({
                   onTouchStart={handleMessageInteraction}
                   onClick={handleMessageInteraction}
                >
+                  {/* Reply indicator */}
+                  {message.parent && (
+                     <div className=' p-2 bg-muted rounded-lg'>
+                        <p className='text-xs text-muted-foreground'>{message.parent.sender.displayName}</p>
+                        <p className='text-sm text-foreground'>{message.parent.content}</p>
+                     </div>
+                  )}
+
                   {renderMessageContent()}
 
                   {/* Message info */}

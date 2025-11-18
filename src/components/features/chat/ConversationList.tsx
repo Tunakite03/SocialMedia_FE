@@ -134,7 +134,7 @@ const ConversationList = ({}: ConversationListProps) => {
    const navigate = useNavigate();
    const { conversationId } = useParams<{ conversationId: string }>();
    const { user } = useAuthStore();
-   const { conversations, setConversations, isLoading, setIsLoading, unreadCounts } = useChatStore();
+   const { conversations, setConversations, isLoading, setIsLoading, getUnreadCount } = useChatStore();
 
    const [searchTerm, setSearchTerm] = useState('');
    const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -274,7 +274,6 @@ const ConversationList = ({}: ConversationListProps) => {
                   {filteredConversations.map((conversation: Conversation, index: number) => (
                      <div
                         key={conversation.id}
-                        className='anime-slide-in-left'
                         style={{ animationDelay: `${index * 50}ms` }}
                      >
                         <ConversationItem
@@ -282,7 +281,7 @@ const ConversationList = ({}: ConversationListProps) => {
                            isActive={conversationId === conversation.id}
                            onClick={() => handleConversationClick(conversation)}
                            currentUserId={user?.id || ''}
-                           unreadCount={unreadCounts[conversation.id] || 0}
+                           unreadCount={getUnreadCount(conversation)}
                         />
                      </div>
                   ))}

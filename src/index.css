@@ -989,7 +989,7 @@ body {
 /* Anime slide-in-bottom animation */
 @keyframes animeSlideInBottom {
    0% {
-      transform: translateY(100px);
+      transform: translateY(50px);
       opacity: 0;
    }
    100% {
@@ -999,7 +999,7 @@ body {
 }
 
 .anime-slide-in-bottom {
-   animation: animeSlideInBottom 0.4s ease-out;
+   animation: animeSlideInBottom 0.5s ease;
 }
 
 /* ============================================

@@ -39,7 +39,7 @@ const ActivityPage = () => {
 
    return (
       <InstagramLayout>
-         <div className='md:p-4 anime-slide-in-bottom'>
+         <div className='md:p-4'>
             {/* Notifications */}
             <NotificationList
                onNavigate={handleNotificationNavigate}
