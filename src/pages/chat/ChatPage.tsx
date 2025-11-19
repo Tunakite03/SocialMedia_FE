@@ -43,7 +43,6 @@ const ChatPage = () => {
       resetUnreadCount,
       incrementUnreadCount,
       isLoading,
-      getUnreadCount,
       updateConversationUnreadCount: updateConvUnreadCount,
       incrementConversationUnreadCount,
       resetConversationUnreadCount,
@@ -96,10 +95,10 @@ const ChatPage = () => {
       socketService.on('message:updated', handleMessageUpdate);
       socketService.on('message:deleted', handleMessageDelete);
 
-      // Read events
+      // Read events - updated to match new API
       socketService.on('messages:read', handleMessagesRead);
-      socketService.on('messages:read:success', handleMessagesReadSuccess);
-      socketService.on('messages:read:error', handleMessagesReadError);
+      socketService.on('conversation:read:success', handleMessagesReadSuccess);
+      socketService.on('conversation:read:error', handleMessagesReadError);
 
       // Typing events
       socketService.on('typing:start', handleTypingStart);
@@ -110,14 +109,12 @@ const ChatPage = () => {
          socketService.off('message:updated', handleMessageUpdate);
          socketService.off('message:deleted', handleMessageDelete);
          socketService.off('messages:read', handleMessagesRead);
-         socketService.off('messages:read:success', handleMessagesReadSuccess);
-         socketService.off('messages:read:error', handleMessagesReadError);
+         socketService.off('conversation:read:success', handleMessagesReadSuccess);
+         socketService.off('conversation:read:error', handleMessagesReadError);
          socketService.off('typing:start', handleTypingStart);
          socketService.off('typing:stop', handleTypingStop);
       };
-   }, [conversationId, user?.id]);
-
-   // Auto-scroll to bottom when new messages arrive
+   }, [conversationId, user?.id]); // Auto-scroll to bottom when new messages arrive
    useEffect(() => {
       scrollToBottom();
    }, [currentMessages]);
@@ -137,6 +134,11 @@ const ChatPage = () => {
             const conversationResponse = await messageService.getConversation(conversationId);
             if (conversationResponse.success && conversationResponse.data) {
                setCurrentConversation(conversationResponse.data.conversation);
+               // Add to conversations list if not already there
+               const existingConversation = conversations.find((c) => c.id === conversationId);
+               if (!existingConversation) {
+                  addConversation(conversationResponse.data.conversation);
+               }
             }
          }
       } catch (error) {
@@ -144,11 +146,20 @@ const ChatPage = () => {
       }
    };
 
-   const markConversationAsRead = async () => {
+   const markConversationAsRead = async (lastMessageId?: string) => {
       if (!conversationId) return;
 
       try {
-         await messageService.markConversationAsRead(conversationId);
+         // Use provided lastMessageId or get from current messages
+         const messageId =
+            lastMessageId || (currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].id : undefined);
+
+         const response = await messageService.markConversationAsRead(conversationId, messageId);
+         if (response.success) {
+            // Update local state immediately
+            resetUnreadCount(conversationId);
+            resetConversationUnreadCount(conversationId);
+         }
       } catch (error) {
          console.error('Failed to mark conversation as read:', error);
       }
@@ -167,7 +178,7 @@ const ChatPage = () => {
             clearTimeout(debounceTimerRef.current);
          }
          debounceTimerRef.current = setTimeout(() => {
-            messageService.markConversationAsRead(message.conversationId);
+            markConversationAsRead(message.id);
          }, 1000); // Wait 1 second after the last message
       } else {
          // Check if the conversation exists in the store
@@ -188,13 +199,13 @@ const ChatPage = () => {
          }
 
          // Increment unread count for other conversations
-
          incrementUnreadCount(message.conversationId);
          incrementConversationUnreadCount(message.conversationId);
 
-         // Update the conversation's lastMessage in the store
+         // Update the conversation's lastMessage and updatedAt in the store
          updateConversation(message.conversationId, {
             lastMessage: message,
+            updatedAt: message.createdAt,
          });
       }
    };
@@ -225,24 +236,33 @@ const ChatPage = () => {
 
    // Read event handlers
    const handleMessagesRead = (data: {
+      userId: string;
       conversationId: string;
-      readBy: string;
+      lastReadMessageId: string;
       readAt: string;
-      messageCount: number;
    }) => {
       // Update messages in current conversation
       if (data.conversationId === conversationId) {
-         // Mark messages as read for the sender who was read
-         updateMessagesReadStatus(data.readBy, data.readAt);
+         // Mark messages as read for the user who read them
+         updateMessagesReadStatus(data.userId, data.readAt);
       }
 
-      // Update conversation list unread counts
-      updateConversationUnreadCount(data.conversationId, data.messageCount);
+      // Update conversation read status
+      updateConversation(data.conversationId, {
+         lastReadMessageId: data.lastReadMessageId,
+      });
    };
 
-   const handleMessagesReadSuccess = (data: { conversationId: string; updatedCount: number }) => {
-      // This is just a confirmation, no UI update needed
-      console.log(`Successfully marked ${data.updatedCount} messages as read in conversation ${data.conversationId}`);
+   const handleMessagesReadSuccess = (data: {
+      conversationId: string;
+      unreadCount: number;
+      lastReadMessageId: string;
+   }) => {
+      // Update unread count based on server response
+      updateConvUnreadCount(data.conversationId, data.unreadCount);
+      console.log(
+         `Successfully marked messages as read in conversation ${data.conversationId}, unread count: ${data.unreadCount}`
+      );
    };
 
    const handleMessagesReadError = (data: { error: string }) => {
@@ -253,18 +273,8 @@ const ChatPage = () => {
    const updateMessagesReadStatus = (readBy: string, readAt: string) => {
       if (!conversationId) return;
 
-      // Mark messages as read for the sender who was read
+      // Mark messages as read for the user who read them
       markMessagesAsRead(readBy, conversationId, readAt);
-   };
-
-   const updateConversationUnreadCount = (convId: string, messageCount: number) => {
-      // Update conversation unread count using the new helper
-      const conv = conversations.find((c) => c.id === convId);
-      if (conv) {
-         const currentUnread = getUnreadCount(conv);
-         const newCount = Math.max(0, currentUnread - messageCount);
-         updateConvUnreadCount(convId, newCount);
-      }
    };
 
    // Message actions
@@ -364,15 +374,17 @@ const ChatPage = () => {
          };
       }
 
-      // Direct conversation
+      // Direct conversation - find the other participant
       const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
       if (otherParticipant) {
          return {
-            name: otherParticipant.user.displayName,
+            name: otherParticipant.user.displayName || otherParticipant.user.username,
             avatar: otherParticipant.user.avatar,
             subtitle: otherParticipant.user.isOnline
                ? 'Online'
-               : `Last seen ${new Date(otherParticipant.user.lastSeen || '').toLocaleString()}`,
+               : otherParticipant.user.lastSeen
+               ? `Last seen ${new Date(otherParticipant.user.lastSeen).toLocaleString()}`
+               : 'Offline',
          };
       }
 

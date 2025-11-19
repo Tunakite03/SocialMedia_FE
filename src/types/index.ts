@@ -111,6 +111,8 @@ export interface Conversation {
       unreadMessages?: number;
    };
    unreadCount?: number;
+   lastReadMessageId?: string;
+   lastReadAt?: string;
    createdAt: string;
    updatedAt: string;
 }

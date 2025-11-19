@@ -174,8 +174,12 @@ class SocketService {
       this.emit('message:read', { messageId });
    }
 
-   markConversationAsRead(conversationId: string): void {
-      this.emit('messages:read', { conversationId });
+   // Mark entire conversation as read with batch operation
+   markConversationAsRead(conversationId: string, lastMessageId?: string): void {
+      this.emit('conversation:markAsRead', {
+         conversationId,
+         lastMessageId,
+      });
    }
 
    startTyping(conversationId: string): void {
