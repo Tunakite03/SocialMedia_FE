@@ -98,7 +98,10 @@ const ChatPage = () => {
       socketService.on('message:deleted', handleMessageDelete);
 
       // Read events - updated to match new API
+      // Read events - updated to match new API
       socketService.on('messages:read', handleMessagesRead);
+      socketService.on('conversation:read:success', handleMessagesReadSuccess);
+      socketService.on('conversation:read:error', handleMessagesReadError);
       socketService.on('conversation:read:success', handleMessagesReadSuccess);
       socketService.on('conversation:read:error', handleMessagesReadError);
 
@@ -111,6 +114,8 @@ const ChatPage = () => {
          socketService.off('message:updated', handleMessageUpdate);
          socketService.off('message:deleted', handleMessageDelete);
          socketService.off('messages:read', handleMessagesRead);
+         socketService.off('conversation:read:success', handleMessagesReadSuccess);
+         socketService.off('conversation:read:error', handleMessagesReadError);
          socketService.off('conversation:read:success', handleMessagesReadSuccess);
          socketService.off('conversation:read:error', handleMessagesReadError);
          socketService.off('typing:start', handleTypingStart);
@@ -434,6 +439,7 @@ const ChatPage = () => {
          };
       }
 
+      // Direct conversation - find the other participant
       // Direct conversation - find the other participant
       const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
       if (otherParticipant) {
