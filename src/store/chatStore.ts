@@ -231,7 +231,7 @@ export const useChatStore = create<ChatStore>((set) => ({
    // Helper functions for unread counts
    getUnreadCount: (conversation) => {
       // Prioritize _count.unreadMessages, fallback to legacy unreadCount
-      return conversation._count?.unreadMessages ?? conversation.unreadCount ?? 0;
+      return conversation._count?.unreadMessages ?? conversation._count.unreadMessages ?? 0;
    },
 
    updateConversationUnreadCount: (conversationId, count) =>
@@ -257,11 +257,11 @@ export const useChatStore = create<ChatStore>((set) => ({
    incrementConversationUnreadCount: (conversationId) =>
       set((state) => {
          const conversation = state.conversations.find((c) => c.id === conversationId);
-         const currentCount = conversation
-            ? state.conversations.find((c) => c.id === conversationId)?._count?.unreadMessages ??
-              conversation.unreadCount ??
-              0
-            : 0;
+         if (!conversation) {
+            return state;
+         }
+
+         const currentCount = conversation._count?.unreadMessages ?? 0;
          const newCount = currentCount + 1;
 
          const updatedConversations = state.conversations.map((conv) =>

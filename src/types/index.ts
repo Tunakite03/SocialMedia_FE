@@ -14,6 +14,12 @@ export interface User {
    emailVerified: boolean;
    createdAt: string;
 }
+export interface SimpleUser {
+   id: string;
+   username: string;
+   displayName: string;
+   avatar?: string;
+}
 export interface ListFollower {
    followers: User[];
 }
@@ -110,9 +116,11 @@ export interface Conversation {
       messages: number;
       unreadMessages?: number;
    };
-   unreadCount?: number;
+   lastReadMessageId?: string;
+   lastReadAt?: string;
    createdAt: string;
    updatedAt: string;
+   otherParticipant?: SimpleUser; 
 }
 
 export interface ConversationParticipant {

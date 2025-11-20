@@ -38,6 +38,7 @@ class MessageService {
 
    // Conversation management
    async getConversations(limit = 20, offset = 0): Promise<ApiResponse<ConversationResponse>> {
+
       return apiService.get<ConversationResponse>(`${this.conversationsEndpoint}?limit=${limit}&offset=${offset}`);
    }
 
@@ -100,8 +101,15 @@ class MessageService {
       return apiService.put<null>(`${this.messagesEndpoint}/${messageId}/read`);
    }
 
-   async markConversationAsRead(conversationId: string): Promise<ApiResponse<null>> {
-      return apiService.put<null>(`${this.conversationsEndpoint}/${conversationId}/read`);
+   async markConversationAsRead(
+      conversationId: string,
+      lastMessageId?: string
+   ): Promise<ApiResponse<{ unreadCount: number; lastReadMessageId: string }>> {
+      const body = lastMessageId ? { lastMessageId } : {};
+      return apiService.post<{ unreadCount: number; lastReadMessageId: string }>(
+         `${this.conversationsEndpoint}/${conversationId}/read`,
+         body
+      );
    }
 
    async deleteMessage(messageId: string): Promise<ApiResponse<null>> {

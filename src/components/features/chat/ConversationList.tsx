@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useChatStore, useAuthStore } from '@/store';
-import { messageService } from '@/services/messageService';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MessageCircle, Plus, Search } from 'lucide-react';
 import NewChatModal from './NewChatModal';
 import type { Conversation } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useConversations } from '@/hooks/useConversations';
 
 interface ConversationItemProps {
    conversation: Conversation;
@@ -75,7 +75,7 @@ const ConversationItem = ({ conversation, isActive, onClick, currentUserId, unre
          <div className='relative'>
             <Avatar className='h-12 w-12 anime-hover-scale'>
                <AvatarImage
-                  src={avatar || ''}
+                  src={avatar || undefined}
                   alt={name}
                />
                <AvatarFallback className='bg-linear-to-br from-accent to-secondary text-accent-foreground'>
@@ -134,34 +134,14 @@ const ConversationList = ({}: ConversationListProps) => {
    const navigate = useNavigate();
    const { conversationId } = useParams<{ conversationId: string }>();
    const { user } = useAuthStore();
-   const { conversations, setConversations, isLoading, setIsLoading, getUnreadCount } = useChatStore();
-
+   const { conversations, isLoading, getUnreadCount } = useChatStore();
+   const { loadConversations } = useConversations();
    const [searchTerm, setSearchTerm] = useState('');
    const [showNewChatModal, setShowNewChatModal] = useState(false);
 
    useEffect(() => {
       loadConversations();
-   }, []);
-
-   const loadConversations = async () => {
-      if (!user) return;
-
-      setIsLoading(true);
-      try {
-         const response = await messageService.getConversations();
-
-         if (response.success && response.data) {
-            setConversations(response.data.conversations);
-         } else {
-            setConversations([]);
-         }
-      } catch (error) {
-         console.error('Failed to load conversations:', error);
-         setConversations([]);
-      } finally {
-         setIsLoading(false);
-      }
-   };
+   }, [loadConversations]);
 
    const handleConversationClick = (conversation: Conversation) => {
       navigate(`/chat/${conversation.id}`);

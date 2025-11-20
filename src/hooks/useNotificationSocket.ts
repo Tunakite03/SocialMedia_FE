@@ -41,7 +41,7 @@ interface NotificationMetadata {
 }
 export const useNotificationSocket = (): SocketNotificationHookReturn => {
    const { addNotificationFromSocket } = useNotificationStore();
-   const { incrementUnreadCount, incrementConversationUnreadCount } = useChatStore();
+   const { incrementConversationUnreadCount } = useChatStore();
    const { isAuthenticated, token, user } = useAuthStore();
    const onlineUsersRef = useRef<OnlineUser[]>([]);
    const location = window.location;
@@ -259,10 +259,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
          // Don't create notification for messages from current user
          if (message.senderId !== user?.id) {
             addNotificationFromSocket(messageNotification);
-            if (!location.pathname.startsWith(`/chat/${messageNotification.metadata?.conversationId}`)) {
-               incrementUnreadCount(message.conversationId);
-               incrementConversationUnreadCount(message.conversationId);
-            }
          }
       };
 
@@ -276,15 +272,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
 
       const handleMessageError = (error: { message: string; messageId?: string }) => {
          console.error('Message error:', error.message);
-      };
-
-      // Typing indicators
-      const handleTypingStart = (data: { conversationId: string; user: OnlineUser; timestamp: string }) => {
-         console.log('User started typing:', data.user.username);
-      };
-
-      const handleTypingStop = (data: { conversationId: string; userId: string; timestamp: string }) => {
-         console.log('User stopped typing:', data.userId);
       };
 
       // WebRTC signaling handlers
@@ -349,11 +336,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
       socketService.on('message:received', handleMessageReceived);
       socketService.on('message:read', handleMessageRead);
       socketService.on('message:error', handleMessageError);
-
-      // Typing events
-      socketService.on('typing:start', handleTypingStart);
-      socketService.on('typing:stop', handleTypingStop);
-
       // WebRTC events
       socketService.on('webrtc:offer', handleWebRTCOffer);
       socketService.on('webrtc:answer', handleWebRTCAnswer);
@@ -392,8 +374,6 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
          socketService.off('message:received', handleMessageReceived);
          socketService.off('message:read', handleMessageRead);
          socketService.off('message:error', handleMessageError);
-         socketService.off('typing:start', handleTypingStart);
-         socketService.off('typing:stop', handleTypingStop);
          socketService.off('webrtc:offer', handleWebRTCOffer);
          socketService.off('webrtc:answer', handleWebRTCAnswer);
          socketService.off('webrtc:ice-candidate', handleWebRTCIceCandidate);

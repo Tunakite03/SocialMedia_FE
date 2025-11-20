@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChatStore, useAuthStore } from '@/store';
 import { socketService } from '@/services/socketService';
@@ -13,7 +13,7 @@ import ChatLayout from '@/components/layout/ChatLayout';
 const ChatPage = () => {
    const navigate = useNavigate();
    const { conversationId } = useParams<{ conversationId: string }>();
-   const isMobile = useMobile(768); // Instagram's mobile breakpoint
+   const isMobile = useMobile();
 
    const [isTyping, setIsTyping] = useState(false);
    const [replyingTo, setReplyingTo] = useState<Message | undefined>(undefined);
@@ -21,7 +21,10 @@ const ChatPage = () => {
    const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
    // On mobile, sidebar visibility is controlled by route; on desktop by state
    const [showSidebar, setShowSidebar] = useState(!isMobile);
-   const debounceTimerRef = useRef<number | null>(null);
+
+   // Track if user is focused on this conversation
+   const isWindowFocused = useRef(true);
+   const isConversationActive = useRef(true);
 
    const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,9 +44,7 @@ const ChatPage = () => {
       addTypingUser,
       removeTypingUser,
       resetUnreadCount,
-      incrementUnreadCount,
       isLoading,
-      getUnreadCount,
       updateConversationUnreadCount: updateConvUnreadCount,
       incrementConversationUnreadCount,
       resetConversationUnreadCount,
@@ -60,22 +61,22 @@ const ChatPage = () => {
    // Load conversation and messages when conversation ID changes
    useEffect(() => {
       if (conversationId && user) {
+         isConversationActive.current = true;
+
          setActiveChat(conversationId);
          loadConversationData();
 
          // Join conversation room for socket events
          socketService.joinRoom(conversationId);
 
-         // Auto-mark messages as read when opening conversation
-         markConversationAsRead();
-
-         // Mark conversation as read and reset unread count
+         // Reset local unread count immediately for instant UI feedback
          resetUnreadCount(conversationId);
          resetConversationUnreadCount(conversationId);
       }
 
       return () => {
          if (conversationId) {
+            isConversationActive.current = false;
             socketService.leaveRoom(conversationId);
          }
       };
@@ -87,7 +88,7 @@ const ChatPage = () => {
          const conversation = conversations.find((c) => c.id === conversationId);
          setCurrentConversation(conversation || null);
       }
-   }, [conversationId, conversations]);
+   }, [conversationId]);
 
    // Setup socket event listeners
    useEffect(() => {
@@ -96,10 +97,10 @@ const ChatPage = () => {
       socketService.on('message:updated', handleMessageUpdate);
       socketService.on('message:deleted', handleMessageDelete);
 
-      // Read events
+      // Read events - updated to match new API
       socketService.on('messages:read', handleMessagesRead);
-      socketService.on('messages:read:success', handleMessagesReadSuccess);
-      socketService.on('messages:read:error', handleMessagesReadError);
+      socketService.on('conversation:read:success', handleMessagesReadSuccess);
+      socketService.on('conversation:read:error', handleMessagesReadError);
 
       // Typing events
       socketService.on('typing:start', handleTypingStart);
@@ -110,19 +111,17 @@ const ChatPage = () => {
          socketService.off('message:updated', handleMessageUpdate);
          socketService.off('message:deleted', handleMessageDelete);
          socketService.off('messages:read', handleMessagesRead);
-         socketService.off('messages:read:success', handleMessagesReadSuccess);
-         socketService.off('messages:read:error', handleMessagesReadError);
+         socketService.off('conversation:read:success', handleMessagesReadSuccess);
+         socketService.off('conversation:read:error', handleMessagesReadError);
          socketService.off('typing:start', handleTypingStart);
          socketService.off('typing:stop', handleTypingStop);
       };
-   }, [conversationId, user?.id]);
-
-   // Auto-scroll to bottom when new messages arrive
+   }, [conversationId, user?.id]); // Auto-scroll to bottom when new messages arrive
    useEffect(() => {
       scrollToBottom();
    }, [currentMessages]);
 
-   const loadConversationData = async () => {
+   const loadConversationData = useCallback(async () => {
       if (!conversationId) return;
 
       try {
@@ -137,135 +136,206 @@ const ChatPage = () => {
             const conversationResponse = await messageService.getConversation(conversationId);
             if (conversationResponse.success && conversationResponse.data) {
                setCurrentConversation(conversationResponse.data.conversation);
+               // Add to conversations list if not already there
+               const existingConversation = conversations.find((c) => c.id === conversationId);
+               if (!existingConversation) {
+                  addConversation(conversationResponse.data.conversation);
+               }
             }
          }
       } catch (error) {
          console.error('Failed to load conversation data:', error);
       }
-   };
+   }, [conversationId, setMessages, currentConversation, conversations, addConversation]);
 
-   const markConversationAsRead = async () => {
-      if (!conversationId) return;
+   const markConversationAsRead = useCallback(
+      async (lastMessageId?: string) => {
+         if (!conversationId) {
+            return;
+         }
 
-      try {
-         await messageService.markConversationAsRead(conversationId);
-      } catch (error) {
-         console.error('Failed to mark conversation as read:', error);
+         try {
+            // Get current messages fresh from store
+            const freshMessages = useChatStore.getState().messages[conversationId] || [];
+            const messageId =
+               lastMessageId || (freshMessages.length > 0 ? freshMessages[freshMessages.length - 1].id : undefined);
+
+            // Check socket connection before emitting
+            if (!socketService.isConnected) {
+               return;
+            }
+
+            socketService.markConversationAsRead(conversationId, messageId);
+
+            // Update local state immediately for instant UI feedback
+            resetUnreadCount(conversationId);
+            resetConversationUnreadCount(conversationId);
+         } catch (error) {}
+      },
+      [conversationId, resetUnreadCount, resetConversationUnreadCount]
+   );
+
+   // Track window focus for read receipts
+   useEffect(() => {
+      const handleFocus = () => {
+         isWindowFocused.current = true;
+      };
+      // Mark conversation as read when user focuses back to window
+      if (conversationId && isConversationActive.current) {
+         markConversationAsRead();
       }
-   };
+      const handleBlur = () => {
+         isWindowFocused.current = false;
+      };
+
+      // Set initial focus state
+      isWindowFocused.current = !document.hidden;
+
+      const handleVisibilityChange = () => {
+         if (!document.hidden && conversationId && isConversationActive.current) {
+            isWindowFocused.current = true;
+            markConversationAsRead();
+         } else if (document.hidden) {
+            isWindowFocused.current = false;
+         }
+      };
+
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('blur', handleBlur);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+         window.removeEventListener('focus', handleFocus);
+         window.removeEventListener('blur', handleBlur);
+         document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+   }, [conversationId, markConversationAsRead]);
 
    const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
    };
 
    // Socket event handlers
-   const handleNewMessage = (message: Message) => {
-      if (message.conversationId === conversationId) {
-         addMessage(message);
-         // Debounce marking conversation as read to avoid multiple API calls
-         if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
+   // Simple and effective message handler
+   const handleNewMessage = useCallback(
+      (message: Message) => {
+         if (message.conversationId === conversationId) {
+            addMessage(message);
+
+            if (message.senderId !== user?.id && isWindowFocused.current && isConversationActive.current) {
+               markConversationAsRead(message.id);
+            }
+         } else {
+            // Handle other conversation updates
+            const currentConversations = useChatStore.getState().conversations;
+            const existingConversation = currentConversations.find((c) => c.id === message.conversationId);
+
+            if (!existingConversation) {
+               messageService
+                  .getConversation(message.conversationId)
+                  .then((response) => {
+                     if (response.success && response.data) {
+                        addConversation(response.data.conversation);
+                     }
+                  })
+                  .catch((error) => {
+                     console.error('Failed to fetch conversation:', error);
+                  });
+            }
+
+            incrementConversationUnreadCount(message.conversationId);
+            updateConversation(message.conversationId, {
+               lastMessage: message,
+               updatedAt: message.createdAt,
+            });
          }
-         debounceTimerRef.current = setTimeout(() => {
-            messageService.markConversationAsRead(message.conversationId);
-         }, 1000); // Wait 1 second after the last message
-      } else {
-         // Check if the conversation exists in the store
-         const existingConversation = conversations.find((c) => c.id === message.conversationId);
+      },
+      [
+         conversationId,
+         markConversationAsRead,
+         updateConversation,
+         user?.id,
+         addMessage,
+         addConversation,
+         incrementConversationUnreadCount,
+      ]
+   );
 
-         if (!existingConversation) {
-            // Fetch the conversation if not in store
-            messageService
-               .getConversation(message.conversationId)
-               .then((response) => {
-                  if (response.success && response.data) {
-                     addConversation(response.data.conversation);
-                  }
-               })
-               .catch((error) => {
-                  console.error('Failed to fetch conversation:', error);
-               });
+   const handleMessageUpdate = useCallback(
+      (updatedMessage: Message) => {
+         if (updatedMessage.conversationId === conversationId) {
+            updateMessage(updatedMessage.id, conversationId, updatedMessage);
+         }
+      },
+      [conversationId, updateMessage]
+   );
+
+   const handleMessageDelete = useCallback(
+      (data: { id: string; conversationId: string }) => {
+         if (data.conversationId === conversationId) {
+            removeMessage(data.id, conversationId);
+         }
+      },
+      [conversationId, removeMessage]
+   );
+
+   const handleTypingStart = useCallback(
+      (data: { userId: string; conversationId: string }) => {
+         if (data.conversationId === conversationId && data.userId !== user?.id) {
+            addTypingUser(conversationId, data.userId);
+         }
+      },
+      [conversationId, user?.id, addTypingUser]
+   );
+
+   const handleTypingStop = useCallback(
+      (data: { userId: string; conversationId: string }) => {
+         if (data.conversationId === conversationId) {
+            removeTypingUser(conversationId, data.userId);
+         }
+      },
+      [conversationId, removeTypingUser]
+   );
+
+   // Enhanced read event handlers with performance optimization
+   const handleMessagesRead = useCallback(
+      (data: { userId: string; conversationId: string; lastReadMessageId: string; readAt: string }) => {
+         // Update messages in current conversation
+         if (data.conversationId === conversationId) {
+            // Mark messages as read for the user who read them
+            updateMessagesReadStatus(data.userId, data.readAt);
          }
 
-         // Increment unread count for other conversations
-
-         incrementUnreadCount(message.conversationId);
-         incrementConversationUnreadCount(message.conversationId);
-
-         // Update the conversation's lastMessage in the store
-         updateConversation(message.conversationId, {
-            lastMessage: message,
+         // Update conversation read status efficiently
+         updateConversation(data.conversationId, {
+            lastReadMessageId: data.lastReadMessageId,
          });
-      }
-   };
+      },
+      [conversationId, updateConversation]
+   );
 
-   const handleMessageUpdate = (updatedMessage: Message) => {
-      if (updatedMessage.conversationId === conversationId) {
-         updateMessage(updatedMessage.id, conversationId, updatedMessage);
-      }
-   };
+   const handleMessagesReadSuccess = useCallback(
+      (data: { conversationId: string; unreadCount: number; lastReadMessageId: string }) => {
+         // Update unread count based on server response
+         updateConvUnreadCount(data.conversationId, data.unreadCount);
+      },
+      [updateConvUnreadCount]
+   );
 
-   const handleMessageDelete = (data: { id: string; conversationId: string }) => {
-      if (data.conversationId === conversationId) {
-         removeMessage(data.id, conversationId);
-      }
-   };
-
-   const handleTypingStart = (data: { userId: string; conversationId: string }) => {
-      if (data.conversationId === conversationId && data.userId !== user?.id) {
-         addTypingUser(conversationId, data.userId);
-      }
-   };
-
-   const handleTypingStop = (data: { userId: string; conversationId: string }) => {
-      if (data.conversationId === conversationId) {
-         removeTypingUser(conversationId, data.userId);
-      }
-   };
-
-   // Read event handlers
-   const handleMessagesRead = (data: {
-      conversationId: string;
-      readBy: string;
-      readAt: string;
-      messageCount: number;
-   }) => {
-      // Update messages in current conversation
-      if (data.conversationId === conversationId) {
-         // Mark messages as read for the sender who was read
-         updateMessagesReadStatus(data.readBy, data.readAt);
-      }
-
-      // Update conversation list unread counts
-      updateConversationUnreadCount(data.conversationId, data.messageCount);
-   };
-
-   const handleMessagesReadSuccess = (data: { conversationId: string; updatedCount: number }) => {
-      // This is just a confirmation, no UI update needed
-      console.log(`Successfully marked ${data.updatedCount} messages as read in conversation ${data.conversationId}`);
-   };
-
-   const handleMessagesReadError = (data: { error: string }) => {
-      console.error('Failed to mark messages as read:', data.error);
-   };
+   const handleMessagesReadError = useCallback((data: { error: string }) => {
+      console.error('❌ [ChatPage] Read ERROR event received:', data);
+   }, []);
 
    // Helper functions for read status updates
-   const updateMessagesReadStatus = (readBy: string, readAt: string) => {
-      if (!conversationId) return;
+   const updateMessagesReadStatus = useCallback(
+      (readBy: string, readAt: string) => {
+         if (!conversationId) return;
 
-      // Mark messages as read for the sender who was read
-      markMessagesAsRead(readBy, conversationId, readAt);
-   };
-
-   const updateConversationUnreadCount = (convId: string, messageCount: number) => {
-      // Update conversation unread count using the new helper
-      const conv = conversations.find((c) => c.id === convId);
-      if (conv) {
-         const currentUnread = getUnreadCount(conv);
-         const newCount = Math.max(0, currentUnread - messageCount);
-         updateConvUnreadCount(convId, newCount);
-      }
-   };
+         // Mark messages as read for the user who read them
+         markMessagesAsRead(readBy, conversationId, readAt);
+      },
+      [conversationId, markMessagesAsRead]
+   );
 
    // Message actions
    const handleSendMessage = async (content: string, type: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE' = 'TEXT') => {
@@ -364,15 +434,17 @@ const ChatPage = () => {
          };
       }
 
-      // Direct conversation
+      // Direct conversation - find the other participant
       const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
       if (otherParticipant) {
          return {
-            name: otherParticipant.user.displayName,
+            name: otherParticipant.user.displayName || otherParticipant.user.username,
             avatar: otherParticipant.user.avatar,
             subtitle: otherParticipant.user.isOnline
                ? 'Online'
-               : `Last seen ${new Date(otherParticipant.user.lastSeen || '').toLocaleString()}`,
+               : otherParticipant.user.lastSeen
+               ? `Last seen ${new Date(otherParticipant.user.lastSeen).toLocaleString()}`
+               : 'Offline',
          };
       }
 

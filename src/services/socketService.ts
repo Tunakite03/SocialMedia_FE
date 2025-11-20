@@ -47,13 +47,11 @@ class SocketService {
       if (!this.socket) return;
 
       this.socket.on('connect', () => {
-         console.log('Connected to server');
          this.reconnectAttempts = 0;
          this.isConnecting = false; // Reset flag on successful connection
       });
 
       this.socket.on('disconnect', (reason) => {
-         console.log('Disconnected from server:', reason);
          this.isConnecting = false; // Reset flag on disconnect
 
          if (reason === 'io server disconnect') {
@@ -71,8 +69,7 @@ class SocketService {
          this.handleReconnect();
       });
 
-      this.socket.on('reconnect', (attemptNumber) => {
-         console.log('Reconnected after', attemptNumber, 'attempts');
+      this.socket.on('reconnect', () => {
          this.reconnectAttempts = 0;
       });
 
@@ -91,7 +88,6 @@ class SocketService {
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
       setTimeout(() => {
-         console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
          this.socket?.connect();
       }, delay);
    }
@@ -109,7 +105,7 @@ class SocketService {
       if (this.socket?.connected) {
          this.socket.emit(event, data);
       } else {
-         console.warn('Socket not connected, cannot emit event:', event);
+         console.warn('[SocketService] Socket not connected, cannot emit event:', event, 'data:', data);
       }
    }
 
@@ -174,8 +170,12 @@ class SocketService {
       this.emit('message:read', { messageId });
    }
 
-   markConversationAsRead(conversationId: string): void {
-      this.emit('messages:read', { conversationId });
+   // Mark entire conversation as read with batch operation
+   markConversationAsRead(conversationId: string, lastMessageId?: string): void {
+      this.emit('conversation:markAsRead', {
+         conversationId,
+         lastMessageId,
+      });
    }
 
    startTyping(conversationId: string): void {

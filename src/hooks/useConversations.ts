@@ -1,11 +1,12 @@
 import { messageService } from '@/services/messageService';
 import { useChatStore } from '@/store';
 import type { Conversation } from '@/types';
+import { useCallback } from 'react';
 
 export const useConversations = () => {
    const { conversations, setConversations, addConversation, isLoading, setIsLoading } = useChatStore();
 
-   const loadConversations = async () => {
+   const loadConversations = useCallback(async () => {
       setIsLoading(true);
       try {
          const response = await messageService.getConversations();
@@ -17,38 +18,44 @@ export const useConversations = () => {
       } finally {
          setIsLoading(false);
       }
-   };
+   }, [setConversations, setIsLoading]);
 
-   const createDirectConversation = async (userId: string): Promise<Conversation | null> => {
-      try {
-         const response = await messageService.getOrCreateDirectConversation(userId);
-         if (response.success && response.data) {
-            addConversation(response.data.conversation);
-            return response.data.conversation;
+   const createDirectConversation = useCallback(
+      async (userId: string): Promise<Conversation | null> => {
+         try {
+            const response = await messageService.getOrCreateDirectConversation(userId);
+            if (response.success && response.data) {
+               addConversation(response.data.conversation);
+               return response.data.conversation;
+            }
+         } catch (error) {
+            console.error('Failed to create conversation:', error);
          }
-      } catch (error) {
-         console.error('Failed to create conversation:', error);
-      }
-      return null;
-   };
+         return null;
+      },
+      [addConversation]
+   );
 
-   const createGroupConversation = async (title: string, participantIds: string[]): Promise<Conversation | null> => {
-      try {
-         const response = await messageService.createGroupConversation({
-            title,
-            participantIds,
-         });
-         if (response.success && response.data) {
-            addConversation(response.data.conversation);
-            return response.data.conversation;
+   const createGroupConversation = useCallback(
+      async (title: string, participantIds: string[]): Promise<Conversation | null> => {
+         try {
+            const response = await messageService.createGroupConversation({
+               title,
+               participantIds,
+            });
+            if (response.success && response.data) {
+               addConversation(response.data.conversation);
+               return response.data.conversation;
+            }
+         } catch (error) {
+            console.error('Failed to create group conversation:', error);
          }
-      } catch (error) {
-         console.error('Failed to create group conversation:', error);
-      }
-      return null;
-   };
+         return null;
+      },
+      [addConversation]
+   );
 
-   const sendDirectMessage = async (receiverId: string, content: string) => {
+   const sendDirectMessage = useCallback(async (receiverId: string, content: string) => {
       try {
          const response = await messageService.sendDirectMessage(receiverId, content);
          return response;
@@ -56,7 +63,7 @@ export const useConversations = () => {
          console.error('Failed to send direct message:', error);
          return null;
       }
-   };
+   }, []);
 
    return {
       conversations,
