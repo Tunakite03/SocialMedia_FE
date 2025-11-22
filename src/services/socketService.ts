@@ -8,6 +8,8 @@ class SocketService {
    private reconnectDelay = 1000;
    private isConnecting = false; // Add flag to prevent multiple connections
 
+   private pendingListeners: Array<{ event: string; callback: (...args: any[]) => void; type: 'on' | 'once' }> = [];
+
    connect(token: string): Socket {
       // Return existing connected socket
       if (this.socket?.connected) {
@@ -40,7 +42,28 @@ class SocketService {
       });
 
       this.setupEventListeners();
+      
+      // Flush pending listeners
+      this.flushPendingListeners();
+      
       return this.socket;
+   }
+
+   private flushPendingListeners(): void {
+      if (!this.socket) return;
+      
+      console.log(`[SocketService] Flushing ${this.pendingListeners.length} pending listeners`);
+      
+      this.pendingListeners.forEach(({ event, callback, type }) => {
+         if (type === 'on') {
+            this.socket!.on(event, callback);
+         } else {
+            this.socket!.once(event, callback);
+         }
+      });
+      
+      // Clear queue after attaching
+      this.pendingListeners = [];
    }
 
    private setupEventListeners(): void {
@@ -49,6 +72,10 @@ class SocketService {
       this.socket.on('connect', () => {
          this.reconnectAttempts = 0;
          this.isConnecting = false; // Reset flag on successful connection
+         
+         // Re-attach listeners on reconnect if needed (though flushPendingListeners handles initial connect)
+         // Note: Socket.io usually keeps listeners on reconnect, so we might not need to do anything here
+         // unless we want to support re-adding listeners that were added while disconnected.
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -111,15 +138,34 @@ class SocketService {
 
    // Event listening methods
    on(event: string, callback: (...args: any[]) => void): void {
-      this.socket?.on(event, callback);
+      if (this.socket) {
+         this.socket.on(event, callback);
+      } else {
+         // Queue listener if socket not ready
+         console.log(`[SocketService] Queueing 'on' listener for event: ${event}`);
+         this.pendingListeners.push({ event, callback, type: 'on' });
+      }
    }
 
    off(event: string, callback?: (...args: any[]) => void): void {
-      this.socket?.off(event, callback);
+      if (this.socket) {
+         this.socket.off(event, callback);
+      }
+      
+      // Also remove from pending listeners if present
+      this.pendingListeners = this.pendingListeners.filter(
+         listener => listener.event !== event || (callback && listener.callback !== callback)
+      );
    }
 
    once(event: string, callback: (...args: any[]) => void): void {
-      this.socket?.once(event, callback);
+      if (this.socket) {
+         this.socket.once(event, callback);
+      } else {
+         // Queue listener if socket not ready
+         console.log(`[SocketService] Queueing 'once' listener for event: ${event}`);
+         this.pendingListeners.push({ event, callback, type: 'once' });
+      }
    }
 
    // Connection status
@@ -187,8 +233,8 @@ class SocketService {
    }
 
    // Call methods
-   initiateCall(receiverId: string, type: 'VOICE' | 'VIDEO'): void {
-      this.emit('call:initiate', { receiverId, type });
+   initiateCall(receiverId: string, type: 'VOICE' | 'VIDEO', callId: string): void {
+      this.emit('call:initiate', { receiverId, type, callId });
    }
 
    acceptCall(callId: string): void {

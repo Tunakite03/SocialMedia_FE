@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { socketService, notificationSoundService } from '@/services';
-import { useNotificationStore, useAuthStore, useChatStore } from '@/store';
+import { useNotificationStore, useAuthStore } from '@/store';
 import type { Notification } from '@/types';
 
 interface OnlineUser {
@@ -41,7 +41,6 @@ interface NotificationMetadata {
 }
 export const useNotificationSocket = (): SocketNotificationHookReturn => {
    const { addNotificationFromSocket } = useNotificationStore();
-   const { incrementConversationUnreadCount } = useChatStore();
    const { isAuthenticated, token, user } = useAuthStore();
    const onlineUsersRef = useRef<OnlineUser[]>([]);
    const location = window.location;
@@ -230,8 +229,51 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
          console.log('Call ended by:', data.endedBy, 'Duration:', data.duration);
       };
 
-      const handleCallError = (error: { message: string; code?: string; callId?: string }) => {
-         console.error('Call error:', error.message);
+      const handleCallError = (error: any) => {
+         console.error('Call error:', error);
+
+         // Handle different error formats
+         let errorMessage = 'Unknown call error';
+         let callId = '';
+
+         if (error) {
+            if (typeof error === 'string') {
+               errorMessage = error;
+            } else if (typeof error === 'object') {
+               errorMessage = error.message || error.error || 'Call error occurred';
+               callId = error.callId || '';
+            }
+         }
+
+         // Map specific errors to user-friendly messages
+         const errorMappings: Record<string, string> = {
+            'Call session not found': 'The call session has ended',
+            'User not found': 'The person you are trying to call is not available',
+            'User is busy': 'The person you are calling is currently busy',
+            'Call already exists': 'There is already an active call with this person',
+            'Permission denied': 'Call permission was denied',
+            'Network error': 'Network connection issue. Please check your internet connection',
+            'Call timeout': 'Call request timed out',
+            'Media access denied': 'Camera or microphone access was denied',
+         };
+
+         const userFriendlyMessage = errorMappings[errorMessage] || errorMessage;
+
+         // Create error notification
+         const errorNotification: Notification = {
+            id: `call-error-${Date.now()}`,
+            type: 'CALL',
+            title: 'Call Error',
+            message: userFriendlyMessage,
+            recipientId: user?.id || '',
+            senderId: '',
+            isRead: false,
+            entityId: callId,
+            entityType: 'user',
+            createdAt: new Date().toISOString(),
+         };
+
+         addNotificationFromSocket(errorNotification);
       };
 
       // Message-related handlers

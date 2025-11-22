@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ConversationList, MessageBubble, MessageInput } from '@/components/features/chat';
 import { ArrowLeft, Phone, Video, MoreVertical, Users } from 'lucide-react';
 import { useMobile } from '@/hooks/useMobile';
+import { useCallManager } from '@/hooks/useCallManager';
 import type { Conversation, Message } from '@/types';
 import ChatLayout from '@/components/layout/ChatLayout';
 const ChatPage = () => {
@@ -49,6 +50,8 @@ const ChatPage = () => {
       incrementConversationUnreadCount,
       resetConversationUnreadCount,
    } = useChatStore();
+
+   const { initiateCall } = useCallManager();
 
    const currentMessages = conversationId ? messages[conversationId] || [] : [];
    const currentTypingUsers = conversationId ? typingUsers[conversationId] || [] : [];
@@ -459,6 +462,35 @@ const ChatPage = () => {
 
    const conversationInfo = getConversationInfo();
 
+   // Handle call initiation
+   const handleVoiceCall = async () => {
+      if (!currentConversation || currentConversation.type === 'GROUP') return;
+
+      const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
+      if (otherParticipant) {
+         try {
+            await initiateCall(otherParticipant.user, 'audio');
+            navigate('/call');
+         } catch (error) {
+            console.error('Failed to initiate voice call:', error);
+         }
+      }
+   };
+
+   const handleVideoCall = async () => {
+      if (!currentConversation || currentConversation.type === 'GROUP') return;
+
+      const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
+      if (otherParticipant) {
+         try {
+            await initiateCall(otherParticipant.user, 'video');
+            navigate('/call');
+         } catch (error) {
+            console.error('Failed to initiate video call:', error);
+         }
+      }
+   };
+
    // Empty state when no conversation selected
    if (!conversationId) {
       return (
@@ -534,6 +566,7 @@ const ChatPage = () => {
                         <Button
                            variant='ghost'
                            size='icon'
+                           onClick={handleVoiceCall}
                            className='anime-hover-scale h-8 w-8 sm:h-10 sm:w-10'
                         >
                            <Phone className='h-4 w-4 sm:h-5 sm:w-5' />
@@ -541,6 +574,7 @@ const ChatPage = () => {
                         <Button
                            variant='ghost'
                            size='icon'
+                           onClick={handleVideoCall}
                            className='anime-hover-scale h-8 w-8 sm:h-10 sm:w-10'
                         >
                            <Video className='h-4 w-4 sm:h-5 sm:w-5' />

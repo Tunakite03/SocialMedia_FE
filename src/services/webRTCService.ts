@@ -9,6 +9,12 @@ interface PeerConnection {
 class WebRTCService {
    private peerConnections: Map<string, PeerConnection> = new Map();
    private localStream: MediaStream | null = null;
+
+   // thêm state để biết mình đang ở role nào & call nào
+   private currentCallId: string | null = null;
+   private currentRole: 'caller' | 'callee' | null = null;
+   private currentCallType: 'audio' | 'video' | null = null;
+
    private configuration: RTCConfiguration = {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
    };
@@ -18,7 +24,7 @@ class WebRTCService {
    }
 
    private setupSocketListeners(): void {
-      // Listen for incoming call offers
+      // Nhận offer từ peer (cả caller/callee đều có thể nhận nếu sau này support nhiều người)
       socketService.on(
          'call:offer',
          async (data: { callId: string; offer: RTCSessionDescriptionInit; from: string }) => {
@@ -26,7 +32,7 @@ class WebRTCService {
          }
       );
 
-      // Listen for call answers
+      // Nhận answer
       socketService.on(
          'call:answer',
          async (data: { callId: string; answer: RTCSessionDescriptionInit; from: string }) => {
@@ -34,7 +40,7 @@ class WebRTCService {
          }
       );
 
-      // Listen for ICE candidates
+      // Nhận ICE candidate
       socketService.on(
          'call:ice-candidate',
          async (data: { callId: string; candidate: RTCIceCandidate; from: string }) => {
@@ -42,55 +48,36 @@ class WebRTCService {
          }
       );
 
-      // Listen for call events
-      socketService.on('call:accepted', (data: { callId: string; acceptedBy: string }) => {
-         console.log('Call accepted:', data);
+      // Caller nhận thông báo "call đã được accept" -> lúc này mới bắt đầu tạo offer
+      socketService.on('call:accepted', async (data: { callId: string; acceptedBy: string }) => {
+         console.log('Call accepted (WebRTCService):', data);
+         await this.handleCallAccepted(data.callId, data.acceptedBy);
       });
 
-      socketService.on('call:rejected', (data: { callId: string; rejectedBy: string }) => {
-         console.log('Call rejected:', data);
-         this.endCall(data.callId);
-      });
-
-      socketService.on('call:ended', (data: { callId: string; endedBy: string }) => {
-         console.log('Call ended:', data);
-         this.endCall(data.callId);
-      });
+      // Các event rejected/ended sẽ được handle ở useCallManager
+      // để tránh double-cleanup + double socket emit
    }
 
+   /**
+    * Caller bấm nút Call:
+    * - Không tạo peer connection
+    * - Không tạo offer
+    * - Chỉ gửi request lên server
+    */
    async initializeCall(receiverId: string, callType: 'audio' | 'video'): Promise<string> {
       try {
-         // Get user media
-         const stream = await this.getUserMedia(callType);
-         this.localStream = stream;
+         // Ghi nhớ role + peer + loại call
+         this.currentRole = 'caller';
+         this.currentCallType = callType;
 
-         // Update call store
-         const callStore = useCallStore.getState();
-         callStore.setLocalStream(stream);
-
-         // Create peer connection
+         // FE vẫn tự tạo 1 callId local để store / UI xài
          const callId = this.generateCallId();
-         const peerConnection = this.createPeerConnection(callId, receiverId);
+         this.currentCallId = callId;
 
-         // Add local stream to peer connection
-         stream.getTracks().forEach((track) => {
-            peerConnection.pc.addTrack(track, stream);
-         });
+         // Flow mới: chỉ gửi request lên server, KHÔNG tạo offer/WebRTC ở đây
+         socketService.initiateCall(receiverId, callType === 'video' ? 'VIDEO' : 'VOICE', callId);
 
-         // Create and send offer
-         const offer = await peerConnection.pc.createOffer();
-         await peerConnection.pc.setLocalDescription(offer);
-
-         // Send offer through socket
-         socketService.emit('call:offer', {
-            callId,
-            offer,
-            to: receiverId,
-         });
-
-         // Initiate call through socket
-         socketService.initiateCall(receiverId, callType === 'video' ? 'VIDEO' : 'VOICE');
-
+         // Vẫn return callId cho useCallManager/startCall dùng
          return callId;
       } catch (error) {
          console.error('Error initializing call:', error);
@@ -98,18 +85,30 @@ class WebRTCService {
       }
    }
 
+   /**
+    * Callee bấm Accept:
+    * - Mở cam/mic
+    * - Cập nhật store
+    * - Báo server là đã accept
+    * - WebRTC handshake (offer/answer) sẽ bắt đầu khi:
+    *   + Caller nhận event "call:accepted" -> tạo offer
+    *   + Callee nhận "call:offer" -> tạo answer
+    */
    async acceptCall(callId: string, callType: 'audio' | 'video'): Promise<void> {
       try {
-         // Get user media
+         this.currentRole = 'callee';
+         this.currentCallId = callId;
+         this.currentCallType = callType;
+
+         // Lưu ý: currentPeerId đối với callee sẽ được set khi nhận offer (vì fromUserId là bên kia)
          const stream = await this.getUserMedia(callType);
          this.localStream = stream;
 
-         // Update call store
          const callStore = useCallStore.getState();
          callStore.setLocalStream(stream);
          callStore.acceptCall();
 
-         // Accept call through socket
+         // Báo server là đã accept
          socketService.acceptCall(callId);
       } catch (error) {
          console.error('Error accepting call:', error);
@@ -119,11 +118,15 @@ class WebRTCService {
 
    rejectCall(callId: string): void {
       socketService.rejectCall(callId);
-      this.endCall(callId);
+      this.endCall(callId); // user chủ động reject -> vẫn notify server
    }
 
-   endCall(callId: string): void {
-      // Clean up peer connections
+   /**
+    * Cleanup peer + localStream
+    * notifyServer = false dùng khi remote end, để không spam endCall lên server nữa
+    */
+   endCall(callId: string, notifyServer: boolean = true): void {
+      // Clean up peer connections liên quan đến call này
       this.peerConnections.forEach((connection, id) => {
          if (id.includes(callId)) {
             connection.pc.close();
@@ -137,12 +140,19 @@ class WebRTCService {
          this.localStream = null;
       }
 
+      // Reset internal state
+      this.currentCallId = null;
+      this.currentRole = null;
+      this.currentCallType = null;
+
       // Update call store
       const callStore = useCallStore.getState();
       callStore.resetCallState();
 
-      // Notify through socket
-      socketService.endCall(callId);
+      // Notify through socket nếu là user chủ động end
+      if (notifyServer) {
+         socketService.endCall(callId);
+      }
    }
 
    private async getUserMedia(callType: 'audio' | 'video'): Promise<MediaStream> {
@@ -152,7 +162,9 @@ class WebRTCService {
       };
 
       try {
-         return await navigator.mediaDevices.getUserMedia(constraints);
+         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+         console.log(`[WebRTC] getUserMedia success. Tracks:`, stream.getTracks().map(t => `${t.kind}:${t.enabled}:${t.readyState}`));
+         return stream;
       } catch (error) {
          console.error('Error accessing user media:', error);
          throw new Error('Unable to access camera/microphone');
@@ -176,6 +188,7 @@ class WebRTCService {
 
       // Handle remote stream
       pc.ontrack = (event) => {
+         console.log('[WebRTC] Remote track received:', event.track.kind, event.streams[0]?.id);
          const remoteStream = event.streams[0];
          const callStore = useCallStore.getState();
          callStore.setRemoteStream(remoteStream);
@@ -186,7 +199,9 @@ class WebRTCService {
          console.log('Connection state:', pc.connectionState);
 
          if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-            this.endCall(callId);
+            if (this.currentCallId) {
+               this.endCall(this.currentCallId);
+            }
          }
       };
 
@@ -196,13 +211,63 @@ class WebRTCService {
       return peerConnection;
    }
 
+   /**
+    * Caller nhận accepted -> bắt đầu WebRTC: getUserMedia (nếu chưa có) + createOffer
+    */
+   private async handleCallAccepted(callId: string, acceptedByUserId: string): Promise<void> {
+      try {
+         // Chỉ caller mới xử lý logic này
+         if (this.currentRole !== 'caller') return;
+
+         this.currentCallId = callId;
+
+         // Nếu caller chưa mở cam/mic thì mở tại đây
+         if (!this.localStream) {
+            const callType = this.currentCallType ?? 'audio';
+            const stream = await this.getUserMedia(callType);
+            this.localStream = stream;
+            const callStore = useCallStore.getState();
+            callStore.setLocalStream(stream);
+         }
+
+         if (!this.localStream) {
+            throw new Error('No local media stream available for caller');
+         }
+
+         const peerConnection = this.createPeerConnection(callId, acceptedByUserId);
+
+         // Add local tracks
+         this.localStream.getTracks().forEach((track) => {
+            peerConnection.pc.addTrack(track, this.localStream!);
+         });
+
+         // Create and send offer
+         const offer = await peerConnection.pc.createOffer();
+         await peerConnection.pc.setLocalDescription(offer);
+
+         socketService.emit('call:offer', {
+            callId,
+            offer,
+            to: acceptedByUserId,
+         });
+
+         // Update UI state to "Accepted" for Caller
+         const callStore = useCallStore.getState();
+         callStore.acceptCall();
+      } catch (error) {
+         console.error('Error handling call accepted (creating offer):', error);
+      }
+   }
    private async handleOffer(callId: string, offer: RTCSessionDescriptionInit, fromUserId: string): Promise<void> {
       try {
+         // callee nhận offer (hoặc các peer khác nếu sau này là group)
+         this.currentCallId = callId;
+
          const peerConnection = this.createPeerConnection(callId, fromUserId);
 
          await peerConnection.pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-         // Add local stream if available
+         // Add local stream nếu đã có (callee đã accept & mở cam/mic)
          if (this.localStream) {
             this.localStream.getTracks().forEach((track) => {
                peerConnection.pc.addTrack(track, this.localStream!);
@@ -286,6 +351,10 @@ class WebRTCService {
          return videoTrack ? videoTrack.enabled : false;
       }
       return false;
+   }
+
+   getCurrentCallId(): string | null {
+      return this.currentCallId;
    }
 }
 

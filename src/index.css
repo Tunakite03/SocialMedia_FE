@@ -1150,3 +1150,79 @@ body {
 .scrollbar-feed:hover::-webkit-scrollbar-thumb {
    opacity: 1;
 }
+
+/* ============================================
+   CALL PAGE ANIMATIONS & EFFECTS
+   ============================================ */
+
+/* Animation delays for staggered effects */
+.animation-delay-200 {
+   animation-delay: 200ms;
+}
+
+.animation-delay-400 {
+   animation-delay: 400ms;
+}
+
+.animation-delay-2000 {
+   animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+   animation-delay: 4s;
+}
+
+/* Call-specific animations */
+@keyframes callPulse {
+   0%, 100% {
+      transform: scale(1);
+      opacity: 0.8;
+   }
+   50% {
+      transform: scale(1.1);
+      opacity: 1;
+   }
+}
+
+.call-pulse {
+   animation: callPulse 2s ease-in-out infinite;
+}
+
+/* Audio visualization bars */
+@keyframes audioBar {
+   0%, 100% {
+      height: 8px;
+   }
+   50% {
+      height: 24px;
+   }
+}
+
+.audio-bar {
+   animation: audioBar 0.8s ease-in-out infinite;
+}
+
+/* Enhanced connection quality indicators */
+.connection-excellent {
+   color: #10b981;
+   animation: connectionPulse 2s ease-in-out infinite;
+}
+
+.connection-good {
+   color: #f59e0b;
+}
+
+.connection-poor {
+   color: #ef4444;
+   animation: connectionWarning 1s ease-in-out infinite;
+}
+
+@keyframes connectionPulse {
+   0%, 100% { opacity: 1; }
+   50% { opacity: 0.6; }
+}
+
+@keyframes connectionWarning {
+   0%, 100% { opacity: 1; }
+   50% { opacity: 0.3; }
+}

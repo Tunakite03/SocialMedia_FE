@@ -120,7 +120,7 @@ export interface Conversation {
    lastReadAt?: string;
    createdAt: string;
    updatedAt: string;
-   otherParticipant?: SimpleUser; 
+   otherParticipant?: SimpleUser;
 }
 
 export interface ConversationParticipant {
@@ -222,6 +222,7 @@ export interface Notification {
    entityId?: string; // ID of related entity (post, comment, etc.)
    entityType?: 'post' | 'comment' | 'user';
    metadata?: {
+      errorCode?: string;
       postId?: string;
       commentId?: string;
       callType?: 'VOICE' | 'VIDEO';
@@ -230,16 +231,7 @@ export interface Notification {
    createdAt: string;
 }
 
-export interface CallState {
-   isInCall: boolean;
-   callType: 'audio' | 'video' | null;
-   caller?: User;
-   receiver?: User;
-   localStream?: MediaStream;
-   remoteStream?: MediaStream;
-   isCallAccepted: boolean;
-   callStartTime?: Date;
-}
+
 
 export interface EmotionAnalysis {
    id: string;

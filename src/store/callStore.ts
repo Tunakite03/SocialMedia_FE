@@ -1,6 +1,19 @@
 import { create } from 'zustand';
-import type { CallState, User } from '@/types';
+import type { User } from '@/types';
 
+interface CallState {
+   isInCall: boolean;
+   callType: 'audio' | 'video' | null;
+   caller?: User;
+   receiver?: User;
+   localStream?: MediaStream;
+   remoteStream?: MediaStream;
+   isCallAccepted: boolean;
+   callStartTime?: Date;
+   isConnecting: boolean;
+   isError: boolean;
+   errorMessage?: string;
+}
 interface CallStore extends CallState {
    // Actions
    startCall: (receiver: User, type: 'audio' | 'video') => void;
@@ -11,6 +24,8 @@ interface CallStore extends CallState {
    setRemoteStream: (stream: MediaStream | undefined) => void;
    updateCallState: (updates: Partial<CallState>) => void;
    resetCallState: () => void;
+   setError: (message: string | undefined) => void;
+   setConnecting: (isConnecting: boolean) => void;
 }
 
 const initialState: CallState = {
@@ -22,6 +37,9 @@ const initialState: CallState = {
    remoteStream: undefined,
    isCallAccepted: false,
    callStartTime: undefined,
+   isError: false,
+   errorMessage: undefined,
+   isConnecting: false,
 };
 
 export const useCallStore = create<CallStore>((set, get) => ({
@@ -93,5 +111,14 @@ export const useCallStore = create<CallStore>((set, get) => ({
       }
 
       set(initialState);
+   },
+   setError: (message) => {
+      set({
+         isError: !!message,
+         errorMessage: message,
+      });
+   },
+   setConnecting: (isConnecting) => {
+      set({ isConnecting });
    },
 }));

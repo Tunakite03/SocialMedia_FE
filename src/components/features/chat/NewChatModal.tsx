@@ -402,9 +402,11 @@ const NewChatModal = ({ isOpen, onClose }: NewChatModalProps) => {
                                     {conversation.lastMessage?.content || 'No messages yet'}
                                  </p>
                               </div>
-                              {conversation.unreadCount && conversation.unreadCount > 0 && (
+                              {conversation._count.unreadMessages && conversation._count.unreadMessages > 0 && (
                                  <div className='bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center'>
-                                    {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                                    {conversation._count.unreadMessages > 99
+                                       ? '99+'
+                                       : conversation._count.unreadMessages}
                                  </div>
                               )}
                            </div>
