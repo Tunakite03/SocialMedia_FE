@@ -4,10 +4,23 @@ import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useAuth';
 import { useUser, useUserPosts, useFollow, useFollowStatus } from '@/hooks/useUsers';
 import { useFollowersModal, useFollowingModal } from '@/hooks/useFollowModal';
-import { uploadService } from '@/services/uploadService';
+
 import InstagramLayout from '@/components/layout/InstagramLayout';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
-import { Settings, Grid, Bookmark, Tag, LogOut, Camera, X, UserPlus, UserCheck, MessageCircle } from 'lucide-react';
+import EditProfileModal from '@/components/features/profile/EditProfileModal';
+import {
+   Settings,
+   Grid,
+   Bookmark,
+   Tag,
+   LogOut,
+   Camera,
+   X,
+   UserPlus,
+   UserCheck,
+   MessageCircle,
+   Edit,
+} from 'lucide-react';
 
 const ProfilePage = () => {
    const { logout, user: currentUser } = useAuthStore();
@@ -16,6 +29,7 @@ const ProfilePage = () => {
    const { id } = useParams<{ id: string }>();
    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
    const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +37,7 @@ const ProfilePage = () => {
    const isOwner = !id || id === currentUser?.id;
 
    // Get current user's profile data for personal profile
-   const { profile: currentUserProfile, loading: currentUserLoading, updateProfile } = useProfile();
+   const { profile: currentUserProfile, loading: currentUserLoading, updateAvatar } = useProfile();
 
    // Get other user's profile data for external profiles
    const { user: otherUserProfile, loading: otherUserLoading, error: otherUserError } = useUser(id || '');
@@ -95,18 +109,11 @@ const ProfilePage = () => {
       try {
          setIsUploadingAvatar(true);
 
-         // Upload image to get URL
-         const uploadResponse = await uploadService.uploadImage(file);
+         // Upload avatar directly using useProfile hook
+         const updatedUser = await updateAvatar(file);
 
-         if (uploadResponse.success && uploadResponse.data) {
-            // Update user profile with new avatar URL using useProfile hook
-            const updatedUser = await updateProfile({
-               avatar: uploadResponse.data.url,
-            });
-
-            if (updatedUser) {
-               alert('Avatar updated successfully!');
-            }
+         if (updatedUser) {
+            alert('Avatar updated successfully!');
          }
       } catch (error) {
          console.error('Avatar upload error:', error);
@@ -378,17 +385,19 @@ const ProfilePage = () => {
                         {isOwner ? (
                            // Buttons for own profile
                            <>
-                              <Link
-                                 to='/settings'
-                                 className='flex-1'
+                              <button
+                                 onClick={() => setShowEditProfileModal(true)}
+                                 className='flex-1 card-liquid-glass-accent py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary)) flex items-center justify-center gap-2'
                               >
-                                 <button className='w-full card-liquid-glass-accent py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
-                                    Edit Profile
+                                 <Edit size={20} />
+                                 Edit Profile
+                              </button>
+                              <Link to='/settings'>
+                                 <button className='card-liquid-glass-blue py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary)) flex items-center justify-center gap-2'>
+                                    <Settings size={20} />
+                                    Settings
                                  </button>
                               </Link>
-                              <button className='card-liquid-glass-blue py-3 px-4 rounded-xl font-anime font-semibold anime-hover-lift anime-button-press transition-all text-hsl(var(--primary))'>
-                                 Share
-                              </button>
                            </>
                         ) : (
                            // Buttons for other users' profiles
@@ -429,33 +438,9 @@ const ProfilePage = () => {
                {/* Bio Section */}
                <div className='mt-4 p-4 card-liquid-glass-accent rounded-xl anime-slide-in-left'>
                   <div className='text-sm text-hsl(var(--foreground)) leading-relaxed font-anime'>
-                     {isOwner ? (
-                        // Bio for own profile
-                        <>
-                           <div className='flex items-center gap-2 mb-2'>
-                              <span className='text-lg'>🚀</span>
-                              <span className='font-semibold'>Welcome to Otakomi!</span>
-                           </div>
-                           <div className='text-hsl(var(--muted-foreground))'>
-                              Building connections through communication ✨
-                              <br />
-                              📧 {displayUser.email}
-                           </div>
-                        </>
-                     ) : (
-                        // Bio for other users
-                        <>
-                           <div className='flex items-center gap-2 mb-2'>
-                              <span className='text-lg'>👋</span>
-                              <span className='font-semibold'>{displayUser.displayName || displayUser.username}</span>
-                           </div>
-                           <div className='text-hsl(var(--muted-foreground))'>
-                              {displayUser.bio ? displayUser.bio : <span className='italic'>No bio available</span>}
-                              <br />
-                              <span className='text-xs'>@{displayUser.username}</span>
-                           </div>
-                        </>
-                     )}
+                     <div className='text-hsl(var(--muted-foreground))'>
+                        {displayUser.bio ? displayUser.bio : <span className='italic'>No bio available</span>}
+                     </div>
                   </div>
                </div>
             </div>
@@ -784,6 +769,16 @@ const ProfilePage = () => {
                </div>
             )}
          </div>
+
+         {/* Edit Profile Modal */}
+         <EditProfileModal
+            isOpen={showEditProfileModal}
+            onClose={() => setShowEditProfileModal(false)}
+            onSuccess={() => {
+               // Refresh page or refetch data if needed
+               window.location.reload();
+            }}
+         />
       </InstagramLayout>
    );
 };

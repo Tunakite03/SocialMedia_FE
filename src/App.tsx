@@ -4,6 +4,7 @@ import { router } from '@/router';
 import { useDataInitializer } from '@/hooks/useDataInitializer';
 import ThemeInitializer from '@/components/theme/ThemeInitializer';
 import NotificationPopupManager from '@/components/features/NotificationPopupManager';
+import FloatingAssistantButton from '@/components/features/ai/FloatingAssistantButton';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
       <>
          <ThemeInitializer />
          <NotificationPopupManager />
+         <FloatingAssistantButton />
 
          <Suspense
             fallback={

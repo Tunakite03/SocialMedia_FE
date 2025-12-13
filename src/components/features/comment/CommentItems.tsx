@@ -2,6 +2,7 @@ import type { Comment } from '@/types';
 import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CommentReplies from './CommentReplies';
+import SentimentBadge from './SentimentBadge';
 
 interface CommentItemProps {
    comment: Comment;
@@ -56,7 +57,14 @@ const CommentItem = ({
 
          <div className='flex-1 min-w-0 text-foreground '>
             <div className='rounded-2xl '>
-               <div className='font-semibold text-base '>{comment.author.username}</div>
+               <div className='flex items-center gap-2'>
+                  <div className='font-semibold text-base'>{comment.author.username}</div>
+                  <SentimentBadge
+                     sentiment={comment.sentiment}
+                     confidence={comment.sentimentConfidence}
+                     showConfidence={false}
+                  />
+               </div>
                <div className='text-sm t mt-1 leading-relaxed'>{comment.content}</div>
             </div>
 

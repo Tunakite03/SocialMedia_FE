@@ -4,6 +4,8 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Star, Laugh, 
 import { usePostReactionsStore } from '@/hooks';
 import type { Post } from '@/types';
 import PostMedia from './PostMedia';
+import SentimentBadge from './SentimentBadge';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface PostCardProps {
    post: Post;
@@ -157,15 +159,23 @@ const PostCard = ({ post }: PostCardProps) => {
 
                <div className='flex flex-col'>
                   <span className='font-anime font-semibold text-sm text-foreground'>{post.author.username}</span>
-                  <span className='text-xs text-muted-foreground font-anime'>{post.updatedAt}</span>
+                  <span className='text-xs text-muted-foreground font-anime'>{formatRelativeTime(post.updatedAt)}</span>
                </div>
             </div>
-            <button className='p-2 hover:bg-gray-100 rounded-full transition-colors anime-hover-scale'>
-               <MoreHorizontal
-                  size={20}
-                  className='text-muted-foreground'
-               />
-            </button>
+            <div className='flex items-center gap-2'>
+               {post.sentiment && (
+                  <SentimentBadge
+                     sentiment={post.sentiment}
+                     confidence={post.sentimentConfidence}
+                  />
+               )}
+               <button className='p-2 hover:bg-gray-100 rounded-full transition-colors anime-hover-scale'>
+                  <MoreHorizontal
+                     size={20}
+                     className='text-muted-foreground'
+                  />
+               </button>
+            </div>
          </div>
 
          <PostMedia post={post} />

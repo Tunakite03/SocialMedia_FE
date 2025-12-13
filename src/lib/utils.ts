@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDistanceToNow } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
    return twMerge(clsx(inputs));
@@ -19,4 +20,13 @@ export function isTouchDevice(): boolean {
  */
 export function isMobileDevice(): boolean {
    return isTouchDevice() && window.innerWidth <= 768;
+}
+
+/**
+ * Formats a date to relative time (e.g., "2 hours ago")
+ * @param date - The date to format
+ * @returns Formatted relative time string
+ */
+export function formatRelativeTime(date: string | Date): string {
+   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }

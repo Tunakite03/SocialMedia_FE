@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Check, CheckCheck, MoreVertical, Reply, Edit3, Trash2 } from 'lucide-react';
 import type { Message } from '@/types';
 import { useMobile } from '@/hooks';
+import SentimentBadge from '@/components/features/comment/SentimentBadge';
 
 interface MessageBubbleProps {
    message: Message;
@@ -180,7 +181,9 @@ const MessageBubble = ({
 
                {/* Message bubble */}
                <div
-                  className={` px-4 py-2 relative rounded-2xl shadow-lg backdrop-blur-2xl anime-slide-in-${isOwn ? 'right' : 'left'}
+                  className={` px-4 py-2 relative rounded-2xl shadow-lg backdrop-blur-2xl anime-slide-in-${
+                     isOwn ? 'right' : 'left'
+                  }
                      ${isOwn ? 'text-primary-foreground shadow-lg' : 'bg-muted/70 text-foreground'}
                      cursor-pointer select-none active:scale-95 transition-transform duration-100
                      touch-manipulation
@@ -201,10 +204,15 @@ const MessageBubble = ({
 
                   {/* Message info */}
                   <div
-                     className={`flex items-center justify-end space-x-1 mt-1 text-xs ${
+                     className={`flex items-center justify-between gap-2 mt-1 text-xs ${
                         isOwn ? 'text-muted-foreground' : 'text-muted-foreground'
                      }`}
                   >
+                     <SentimentBadge
+                        sentiment={message.sentiment}
+                        confidence={message.sentimentConfidence}
+                        showConfidence={false}
+                     />
                      <span>{formatTime(message.createdAt)}</span>
 
                      {/* Read receipts for own messages */}

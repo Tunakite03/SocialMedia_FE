@@ -82,6 +82,13 @@ export interface Message {
    attachments: MessageAttachment[];
    isRead: boolean;
    readAt?: string;
+   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+   sentimentConfidence?: number;
+   sentimentScores?: {
+      POSITIVE: number;
+      NEGATIVE: number;
+      NEUTRAL: number;
+   };
    createdAt: string;
    updatedAt: string;
 }
@@ -161,6 +168,13 @@ export interface Post {
    createdAt: string;
    updatedAt: string;
    userReaction?: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
+   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' | null;
+   sentimentConfidence?: number | null;
+   sentimentScores?: {
+      POSITIVE?: number;
+      NEGATIVE?: number;
+      NEUTRAL?: number;
+   } | null;
 }
 
 export interface Comment {
@@ -169,6 +183,13 @@ export interface Comment {
    postId: string;
    authorId: string;
    parentId?: string | null;
+   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+   sentimentConfidence?: number;
+   sentimentScores?: {
+      POSITIVE: number;
+      NEGATIVE: number;
+      NEUTRAL: number;
+   };
    createdAt: string;
    updatedAt: string;
    author: {
@@ -230,8 +251,6 @@ export interface Notification {
    };
    createdAt: string;
 }
-
-
 
 export interface EmotionAnalysis {
    id: string;
@@ -387,3 +406,23 @@ export interface UploadResponse {
 export interface MultipleUploadResponse {
    images: UploadResponse[];
 }
+
+// AI Assistant Types
+export interface AIMessage {
+   id: string;
+   role: 'user' | 'assistant';
+   content: string;
+   timestamp: Date;
+   emotion?: AIEmotionAnalysis;
+}
+
+export interface AIEmotionAnalysis {
+   primary: AIEmotionType;
+   confidence: number;
+   emotions: {
+      [key in AIEmotionType]: number;
+   };
+   suggestions?: string[];
+}
+
+export type AIEmotionType = 'happy' | 'sad' | 'angry' | 'anxious' | 'excited' | 'neutral' | 'confused' | 'stressed';

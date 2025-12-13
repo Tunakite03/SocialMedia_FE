@@ -47,6 +47,16 @@ class AuthService {
       return apiService.put<{ user: User }>(`${this.endpoint}/profile`, userData);
    }
 
+   async updateUserAvatar(file: File): Promise<ApiResponse<{ user: User }>> {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      return apiService.put<{ user: User }>(`${this.endpoint}/avatar`, formData, {
+         headers: {
+            'Content-Type': 'multipart/form-data',
+         },
+      });
+   }
+
    async changePassword(passwordData: PasswordChangeFormData): Promise<ApiResponse<null>> {
       return apiService.put<null>(`${this.endpoint}/password`, passwordData);
    }

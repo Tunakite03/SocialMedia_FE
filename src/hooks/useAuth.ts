@@ -78,6 +78,24 @@ export const useAuth = () => {
       [authStore]
    );
 
+   const updateAvatar = useCallback(
+      async (file: File) => {
+         try {
+            const response = await authService.updateUserAvatar(file);
+            if (response.success && response.data) {
+               authStore.updateUser(response.data.user);
+               return response.data.user;
+            } else {
+               throw new Error(response.error || 'Failed to update avatar');
+            }
+         } catch (err: any) {
+            const errorMessage = err.error || err.message || 'Failed to update avatar';
+            throw new Error(errorMessage);
+         }
+      },
+      [authStore]
+   );
+
    const verifyToken = useCallback(async () => {
       try {
          const response = await authService.verifyToken();
@@ -131,6 +149,7 @@ export const useAuth = () => {
       register,
       logout,
       updateProfile,
+      updateAvatar,
       verifyToken,
       refreshTokens,
       updateUser: authStore.updateUser,
@@ -215,7 +234,7 @@ export const useProfile = () => {
    const [profile, setProfile] = useState<UserProfile | null>(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
-   const { updateProfile: authUpdateProfile, user } = useAuth();
+   const { updateProfile: authUpdateProfile, updateAvatar: authUpdateAvatar, user } = useAuth();
 
    const fetchProfile = useCallback(async () => {
       setLoading(true);
@@ -262,11 +281,28 @@ export const useProfile = () => {
       }
    };
 
+   const updateAvatar = async (file: File) => {
+      setLoading(true);
+      setError(null);
+      try {
+         const updatedUser = await authUpdateAvatar(file);
+         setProfile(updatedUser as UserProfile);
+         return updatedUser;
+      } catch (err: any) {
+         const errorMessage = err.message || 'Failed to update avatar';
+         setError(errorMessage);
+         throw err;
+      } finally {
+         setLoading(false);
+      }
+   };
+
    return {
       profile,
       loading,
       error,
       updateProfile,
+      updateAvatar,
       refetch: fetchProfile,
    };
 };

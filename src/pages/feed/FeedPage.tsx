@@ -167,34 +167,6 @@ const FeedPage = () => {
                      </div>
                   )}
                </div>
-
-               {/* Right sidebar for desktop */}
-               <div className='hidden lg:block'>
-                  <div className='space-y-4'>
-                     <div className='bg-white rounded-4xl p-4 border border-gray-200'>
-                        <h3 className='font-semibold text-gray-900 mb-3 text-sm'>Suggestions for you</h3>
-                        <div className='space-y-3'>
-                           {Array.from({ length: 3 }, (_, i) => (
-                              <div
-                                 key={i}
-                                 className='flex items-start justify-between gap-x-3'
-                              >
-                                 <div className='flex items-center space-x-3'>
-                                    <div className='w-8 h-8 bg-gray-200 rounded-full'></div>
-                                    <div>
-                                       <p className='text-sm font-semibold'>suggested_{i + 1}</p>
-                                       <p className='text-xs text-gray-500'>Follows you</p>
-                                    </div>
-                                 </div>
-                                 <button className='text-blue-500 text-xs font-semibold hover:text-blue-700'>
-                                    <PlusCircle className='w-5 h-5 inline-block mr-1 text-black' />
-                                 </button>
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-               </div>
             </div>
 
             {/* Loading indicator and infinite scroll trigger */}

@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Moon, Sun, Globe, Palette, User, Bell, Shield, ArrowLeft } from 'lucide-react';
+import { Moon, Sun, Globe, Palette, User, Bell, Shield, ArrowLeft, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeStore, useAuthStore } from '@/store';
+import { useProfile } from '@/hooks/useAuth';
+import EditProfileModal from '@/components/features/profile/EditProfileModal';
 
 const SettingsPage = () => {
    const { theme, language, setTheme, setLanguage } = useThemeStore();
    const { user } = useAuthStore();
+   const { profile } = useProfile();
    const navigate = useNavigate();
    const [activeTab, setActiveTab] = useState('general');
+   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
    const tabs = [
       { id: 'general', label: 'Chung', icon: Palette, description: 'Giao diện và ngôn ngữ' },
@@ -171,25 +175,54 @@ const SettingsPage = () => {
                               <div className='bg-gray-50 dark:bg-gray-700 rounded-lg p-6'>
                                  <div className='flex items-center space-x-6'>
                                     <div className='w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden'>
-                                       {user?.avatar ? (
+                                       {profile?.avatar || user?.avatar ? (
                                           <img
-                                             src={user.avatar}
-                                             alt={user.displayName || user.username}
+                                             src={profile?.avatar || user?.avatar}
+                                             alt={
+                                                profile?.displayName ||
+                                                user?.displayName ||
+                                                profile?.username ||
+                                                user?.username
+                                             }
                                              className='w-full h-full object-cover'
                                           />
                                        ) : (
                                           <div className='w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-2xl'>
-                                             {(user?.displayName || user?.username || 'U').charAt(0).toUpperCase()}
+                                             {(
+                                                profile?.displayName ||
+                                                user?.displayName ||
+                                                profile?.username ||
+                                                user?.username ||
+                                                'U'
+                                             )
+                                                .charAt(0)
+                                                .toUpperCase()}
                                           </div>
                                        )}
                                     </div>
                                     <div className='flex-1'>
                                        <h3 className='text-xl font-semibold text-gray-900 dark:text-white'>
-                                          {user?.displayName || user?.username}
+                                          {profile?.displayName ||
+                                             user?.displayName ||
+                                             profile?.username ||
+                                             user?.username}
                                        </h3>
-                                       <p className='text-gray-600 dark:text-gray-400'>@{user?.username}</p>
-                                       <p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>{user?.email}</p>
-                                       <button className='mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+                                       <p className='text-gray-600 dark:text-gray-400'>
+                                          @{profile?.username || user?.username}
+                                       </p>
+                                       <p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
+                                          {profile?.email || user?.email}
+                                       </p>
+                                       {(profile?.bio || user?.bio) && (
+                                          <p className='text-sm text-gray-600 dark:text-gray-300 mt-2 italic'>
+                                             "{profile?.bio || user?.bio}"
+                                          </p>
+                                       )}
+                                       <button
+                                          onClick={() => setShowEditProfileModal(true)}
+                                          className='mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2'
+                                       >
+                                          <Edit size={16} />
                                           Chỉnh sửa hồ sơ
                                        </button>
                                     </div>
@@ -203,10 +236,12 @@ const SettingsPage = () => {
                                     </label>
                                     <input
                                        type='text'
-                                       value={user?.displayName || ''}
-                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                       placeholder='Nhập tên hiển thị'
+                                       value={profile?.displayName || user?.displayName || ''}
+                                       readOnly
+                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed'
+                                       placeholder='Chưa có tên hiển thị'
                                     />
+                                    <p className='text-xs text-gray-500'>Sử dụng nút "Chỉnh sửa hồ sơ" để thay đổi</p>
                                  </div>
                                  <div className='space-y-2'>
                                     <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
@@ -214,10 +249,44 @@ const SettingsPage = () => {
                                     </label>
                                     <input
                                        type='text'
-                                       value={user?.username || ''}
-                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                       placeholder='Nhập tên người dùng'
+                                       value={profile?.username || user?.username || ''}
+                                       readOnly
+                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed'
+                                       placeholder='Chưa có tên người dùng'
                                     />
+                                    <p className='text-xs text-gray-500'>Tên người dùng không thể thay đổi</p>
+                                 </div>
+                                 <div className='space-y-2'>
+                                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                       Email
+                                    </label>
+                                    <input
+                                       type='email'
+                                       value={profile?.email || user?.email || ''}
+                                       readOnly
+                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed'
+                                       placeholder='Chưa có email'
+                                    />
+                                    <p className='text-xs text-gray-500'>Email không thể thay đổi</p>
+                                 </div>
+                                 <div className='space-y-2'>
+                                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                       Ngày sinh
+                                    </label>
+                                    <input
+                                       type='text'
+                                       value={
+                                          profile?.dateOfBirth || user?.dateOfBirth
+                                             ? new Date(
+                                                  profile?.dateOfBirth || user?.dateOfBirth || ''
+                                               ).toLocaleDateString('vi-VN')
+                                             : ''
+                                       }
+                                       readOnly
+                                       className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed'
+                                       placeholder='Chưa có ngày sinh'
+                                    />
+                                    <p className='text-xs text-gray-500'>Sử dụng nút "Chỉnh sửa hồ sơ" để thay đổi</p>
                                  </div>
                               </div>
                            </div>
@@ -343,6 +412,16 @@ const SettingsPage = () => {
                </div>
             </div>
          </div>
+
+         {/* Edit Profile Modal */}
+         <EditProfileModal
+            isOpen={showEditProfileModal}
+            onClose={() => setShowEditProfileModal(false)}
+            onSuccess={() => {
+               // Refresh page or refetch data if needed
+               window.location.reload();
+            }}
+         />
       </div>
    );
 };
