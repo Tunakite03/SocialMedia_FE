@@ -18,8 +18,10 @@ import {
    Signal,
    Wifi,
    WifiOff,
+   Loader,
 } from 'lucide-react';
 import { IncomingCallNotification } from '@/components/features/call/IncomingCallNotification';
+import { CALL_ACCEPTANCE_TIMEOUT } from '@/config';
 import type { User } from '@/types';
 
 const CallPage = () => {
@@ -42,12 +44,15 @@ const CallPage = () => {
    const [isFullscreen, setIsFullscreen] = useState(false);
    const [isSpeakerOn, setIsSpeakerOn] = useState(false);
    const [callDuration, setCallDuration] = useState(0);
+   const [timeoutCountdown, setTimeoutCountdown] = useState<number | null>(null);
    const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>(
       'excellent'
    );
 
    const audioRef = useRef<HTMLAudioElement>(null);
+   const callingRingtoneRef = useRef<HTMLAudioElement | null>(null);
    const intervalRef = useRef<number | null>(null);
+   const countdownIntervalRef = useRef<number | null>(null);
 
    // Call duration timer
    useEffect(() => {
@@ -72,10 +77,73 @@ const CallPage = () => {
       };
    }, [isCallAccepted, callStartTime]);
 
-   // Ringtone and sound effects
+   // Timeout countdown timer
    useEffect(() => {
-      // Ringtone is now handled by IncomingCallNotification component
-   }, [hasIncomingCall, isCallAccepted]);
+      if (isConnecting && !isCallAccepted) {
+         // Bắt đầu countdown từ 30 giây
+         const startTime = Date.now();
+         const timeoutDuration = CALL_ACCEPTANCE_TIMEOUT / 1000; // Convert to seconds
+
+         setTimeoutCountdown(timeoutDuration);
+
+         countdownIntervalRef.current = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const remaining = timeoutDuration - elapsed;
+
+            if (remaining <= 0) {
+               setTimeoutCountdown(0);
+               if (countdownIntervalRef.current) {
+                  clearInterval(countdownIntervalRef.current);
+                  countdownIntervalRef.current = null;
+               }
+            } else {
+               setTimeoutCountdown(remaining);
+            }
+         }, 1000);
+      } else {
+         // Clear countdown khi call được accepted hoặc không còn connecting
+         if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+         }
+         setTimeoutCountdown(null);
+      }
+
+      return () => {
+         if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+         }
+      };
+   }, [isConnecting, isCallAccepted]);
+
+   // Calling ringtone (outgoing call)
+   useEffect(() => {
+      // Initialize audio element if not exists
+      if (!callingRingtoneRef.current) {
+         callingRingtoneRef.current = new Audio('/sounds/phone-calling.mp3');
+         callingRingtoneRef.current.loop = true;
+         callingRingtoneRef.current.volume = 0.5;
+      }
+
+      const ringtone = callingRingtoneRef.current;
+
+      // Play ringtone when connecting (outgoing call)
+      if (isConnecting && !isCallAccepted && !hasIncomingCall) {
+         ringtone.play().catch((error) => {
+            console.error('Failed to play calling ringtone:', error);
+         });
+      } else {
+         // Stop ringtone when call accepted, ended, or error
+         ringtone.pause();
+         ringtone.currentTime = 0;
+      }
+
+      // Cleanup on unmount
+      return () => {
+         ringtone.pause();
+         ringtone.currentTime = 0;
+      };
+   }, [isConnecting, isCallAccepted, hasIncomingCall]);
 
    // Simulate connection quality (in real app, this would be based on WebRTC stats)
    useEffect(() => {
@@ -168,7 +236,9 @@ const CallPage = () => {
          <div className='h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center'>
             <div className='card-liquid-glass p-8 text-center anime-pulse'>
                <div className='animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4'></div>
-               <p className='text-white font-anime text-lg'>Initializing call...</p>
+               <p className='text-white font-anime text-lg'>
+                  <Loader />
+               </p>
             </div>
          </div>
       );
@@ -242,9 +312,6 @@ const CallPage = () => {
                               {(displayUser.displayName || displayUser.username).slice(0, 2).toUpperCase()}
                            </AvatarFallback>
                         </Avatar>
-                        <div className='absolute -bottom-1 -right-1 w-8 h-8 bg-linear-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center anime-bounce'>
-                           <Phone className='w-4 h-4 text-white' />
-                        </div>
                      </div>
                      <h1 className='text-2xl font-anime font-semibold mb-2 text-white'>
                         Calling {displayUser.displayName || displayUser.username}
@@ -255,6 +322,85 @@ const CallPage = () => {
                         <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-400'></div>
                      </div>
                      <p className='text-purple-200 font-anime'>Connecting...</p>
+                     {timeoutCountdown !== null && timeoutCountdown > 0 && (
+                        <div className='mt-6 flex flex-col items-center'>
+                           {/* Circular countdown */}
+                           <div className='relative inline-flex items-center justify-center'>
+                              {/* Background circle */}
+                              <svg
+                                 className='w-10 h-10 transform -rotate-90'
+                                 viewBox='0 0 120 120'
+                              >
+                                 <circle
+                                    cx='60'
+                                    cy='60'
+                                    r='54'
+                                    stroke='currentColor'
+                                    strokeWidth='8'
+                                    fill='none'
+                                    className='text-purple-900/30'
+                                 />
+                                 {/* Progress circle */}
+                                 <circle
+                                    cx='60'
+                                    cy='60'
+                                    r='54'
+                                    stroke='url(#gradient)'
+                                    strokeWidth='8'
+                                    fill='none'
+                                    strokeLinecap='round'
+                                    className='transition-all duration-1000 ease-linear'
+                                    style={{
+                                       strokeDasharray: `${2 * Math.PI * 54}`,
+                                       strokeDashoffset: `${
+                                          2 * Math.PI * 54 * (1 - timeoutCountdown / (CALL_ACCEPTANCE_TIMEOUT / 1000))
+                                       }`,
+                                    }}
+                                 />
+                                 <defs>
+                                    <linearGradient
+                                       id='gradient'
+                                       x1='0%'
+                                       y1='0%'
+                                       x2='100%'
+                                       y2='100%'
+                                    >
+                                       <stop
+                                          offset='0%'
+                                          stopColor={timeoutCountdown <= 10 ? '#ef4444' : '#a855f7'}
+                                       />
+                                       <stop
+                                          offset='100%'
+                                          stopColor={timeoutCountdown <= 10 ? '#dc2626' : '#ec4899'}
+                                       />
+                                    </linearGradient>
+                                 </defs>
+                              </svg>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+               </div>
+            )}
+
+            {/* Error state */}
+            {errorMessage && (
+               <div className='text-center anime-slide-in-bottom'>
+                  <div className='card-liquid-glass p-8 max-w-md mx-auto border-2 border-red-500/30'>
+                     <div className='relative mb-6'>
+                        <div className='h-24 w-24 mx-auto flex items-center justify-center bg-red-500/20 rounded-full'>
+                           <PhoneOff className='w-12 h-12 text-red-400' />
+                        </div>
+                     </div>
+                     <h1 className='text-2xl font-anime font-semibold mb-2 text-white'>Call Failed</h1>
+                     <p className='text-red-300 font-anime mb-6'>{errorMessage}</p>
+                     <Button
+                        onClick={handleEndCall}
+                        variant='destructive'
+                        className='bg-red-600 hover:bg-red-700 font-anime'
+                     >
+                        Close
+                     </Button>
                   </div>
                </div>
             )}

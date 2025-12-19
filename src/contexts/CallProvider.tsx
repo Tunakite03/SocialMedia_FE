@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketService } from '@/services/socketService';
 import { webRTCService } from '@/services/webRTCService';
 import { useCallStore } from '@/store';
+import { CALL_TIMEOUT } from '@/config';
 import IncomingCallPopup from '@/components/features/call/IncomingCallPopup';
 import type { User } from '@/types';
 
@@ -34,10 +35,11 @@ interface CallProviderProps {
 const CallProvider = ({ children }: CallProviderProps) => {
    const navigate = useNavigate();
    const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+   const incomingCallTimeoutRef = useRef<number | null>(null);
 
    // Setup socket listeners for incoming calls
    useEffect(() => {
-      console.log('🔌 CallProvider socket effect - isConnected:', socketService.isConnected);
+      console.log('CallProvider socket effect - isConnected:', socketService.isConnected);
 
       const handleIncomingCall = (data: {
          callId: string;
@@ -46,27 +48,50 @@ const CallProvider = ({ children }: CallProviderProps) => {
          call?: any;
          participants?: any[];
       }) => {
-         console.log('🔔 Incoming call received in CallProvider:', data);
+         console.log(' Incoming call received in CallProvider:', data);
          setIncomingCall({
             callId: data.callId,
             caller: data.caller,
             type: data.type,
             timestamp: new Date(),
          });
+
+         // Thiết lập timeout để tự động từ chối incoming call sau 60s
+         incomingCallTimeoutRef.current = setTimeout(() => {
+            console.log('Incoming call timeout - auto rejecting');
+            webRTCService.rejectCall(data.callId);
+            setIncomingCall(null);
+            incomingCallTimeoutRef.current = null;
+         }, CALL_TIMEOUT);
       };
 
       const handleCallEnded = (data: { callId: string; endedBy: string }) => {
-         console.log('📞 Call ended:', data);
+         console.log('Call ended:', data);
+         // Clear timeout nếu có
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
          setIncomingCall(null);
       };
 
       const handleCallRejected = (data: { callId: string; rejectedBy: string }) => {
-         console.log('❌ Call rejected:', data);
+         console.log(' Call rejected:', data);
+         // Clear timeout nếu có
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
          setIncomingCall(null);
       };
 
       const handleCallAccepted = (data: { callId: string; acceptedBy: string }) => {
-         console.log('✅ Call accepted:', data);
+         console.log('Call accepted:', data);
+         // Clear timeout nếu có
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
          setIncomingCall(null);
       };
 
@@ -78,7 +103,7 @@ const CallProvider = ({ children }: CallProviderProps) => {
 
       // Debug listener for custom events (development only)
       const handleDebugCall = (event: CustomEvent) => {
-         console.log('🧪 Debug event received:', event.detail);
+         console.log('Debug event received:', event.detail);
          handleIncomingCall(event.detail);
       };
 
@@ -86,10 +111,10 @@ const CallProvider = ({ children }: CallProviderProps) => {
          window.addEventListener('debug:incoming-call', handleDebugCall as EventListener);
       }
 
-      console.log('📋 CallProvider listeners registered');
+      console.log('CallProvider listeners registered');
 
       return () => {
-         console.log('🧹 CallProvider cleaning up listeners');
+         console.log('CallProvider cleaning up listeners');
          socketService.off('call:incoming', handleIncomingCall);
          socketService.off('call:ended', handleCallEnded);
          socketService.off('call:rejected', handleCallRejected);
@@ -105,8 +130,14 @@ const CallProvider = ({ children }: CallProviderProps) => {
    const handleAcceptCall = async () => {
       if (!incomingCall) return;
 
+      // Clear timeout khi accept
+      if (incomingCallTimeoutRef.current) {
+         clearTimeout(incomingCallTimeoutRef.current);
+         incomingCallTimeoutRef.current = null;
+      }
+
       try {
-         console.log('🟢 Accepting call:', incomingCall.callId);
+         console.log('Accepting call:', incomingCall.callId);
 
          // Accept call through WebRTC service
          await webRTCService.acceptCall(incomingCall.callId, incomingCall.type);
@@ -130,7 +161,13 @@ const CallProvider = ({ children }: CallProviderProps) => {
    const handleRejectCall = () => {
       if (!incomingCall) return;
 
-      console.log('🔴 Rejecting call:', incomingCall.callId);
+      // Clear timeout khi reject
+      if (incomingCallTimeoutRef.current) {
+         clearTimeout(incomingCallTimeoutRef.current);
+         incomingCallTimeoutRef.current = null;
+      }
+
+      console.log('Rejecting call:', incomingCall.callId);
 
       // Reject call through WebRTC service
       webRTCService.rejectCall(incomingCall.callId);

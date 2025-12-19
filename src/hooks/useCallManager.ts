@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useCallStore } from '@/store';
 import { socketService } from '@/services/socketService';
 import { webRTCService } from '@/services/webRTCService';
+import { CALL_TIMEOUT } from '@/config';
 import type { User } from '@/types';
 
 interface UseCallManagerProps {
@@ -18,6 +19,8 @@ interface IncomingCall {
 export const useCallManager = ({}: UseCallManagerProps = {}) => {
    const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
    const [isCallActive, setIsCallActive] = useState(false);
+   const callTimeoutRef = useRef<number | null>(null);
+   const incomingCallTimeoutRef = useRef<number | null>(null);
 
    const { isInCall, startCall, endCall, setError, setConnecting } = useCallStore();
 
@@ -44,6 +47,15 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       // ===== Call accepted (server notify both sides) =====
       const handleCallAccepted = (data: { callId: string; acceptedBy: string }) => {
          console.log('Call accepted (useCallManager):', data);
+         // Clear timeout khi call được accepted
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
          // Caller side: WebRTCService sẽ tự handle createOffer trong handleCallAccepted()
          // UI side:
          setIncomingCall(null);
@@ -54,6 +66,11 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       // ===== Call rejected (server notify both sides) =====
       const handleCallRejected = (data: { callId: string; rejectedBy: string }) => {
          console.log('Call rejected:', data);
+         // Clear timeout
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
          setIncomingCall(null);
          setIsCallActive(false);
          setError('Call was rejected');
@@ -66,6 +83,11 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       // ===== Call ended (server notify) =====
       const handleCallEnded = (data: { callId: string; endedBy: string }) => {
          console.log('Call ended:', data);
+         // Clear timeout
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
          setIncomingCall(null);
          setIsCallActive(false);
 
@@ -126,6 +148,11 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       // Call cancel (caller hủy trước khi callee accept)
       const handleCallCancel = (data: { callId: string }) => {
          console.log('Call cancelled:', data);
+         // Clear timeout
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
          setIncomingCall(null);
          setIsCallActive(false);
          setError('Call was cancelled');
@@ -162,6 +189,39 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
          endCall();
       };
 
+      // Handle call timeout from Backend
+      const handleCallTimeout = (data: {
+         callId: string;
+         reason: 'no_answer' | 'connection_failed';
+         message?: string;
+      }) => {
+         console.log('Call timeout from server:', data);
+
+         // Clear local timeouts
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
+
+         setIncomingCall(null);
+         setIsCallActive(false);
+
+         // Set error message based on timeout reason
+         const errorMessage =
+            data.reason === 'no_answer' ? 'No answer - Call timed out' : 'Connection failed - Unable to establish call';
+
+         setError(data.message || errorMessage);
+         setConnecting(false);
+
+         // Cleanup WebRTC without notifying server (server already handled it)
+         webRTCService.endCall(data.callId, false);
+         endCall();
+      };
+
       // Đăng ký listener
       socketService.on('call:incoming', handleIncomingCall);
       socketService.on('call:accepted', handleCallAccepted);
@@ -174,6 +234,7 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       socketService.on('call:end', handleCallEnd);
       socketService.on('call:accept', handleCallAccept);
       socketService.on('call:reject', handleCallReject);
+      socketService.on('call:timeout', handleCallTimeout);
 
       return () => {
          socketService.off('call:incoming', handleIncomingCall);
@@ -187,6 +248,7 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
          socketService.off('call:end', handleCallEnd);
          socketService.off('call:accept', handleCallAccept);
          socketService.off('call:reject', handleCallReject);
+         socketService.off('call:timeout', handleCallTimeout);
       };
    }, [socketService.isConnected, endCall, setError, setConnecting]);
 
@@ -203,6 +265,17 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
 
          // Đang ở trạng thái "calling..." – chưa nối WebRTC
          setIsCallActive(false);
+
+         // Thiết lập timeout để tự động hủy call nếu không có response
+         // Note: Backend cũng có timeout 30s, event call:timeout sẽ được emit từ server
+         callTimeoutRef.current = setTimeout(() => {
+            console.log('Call timeout - no response from receiver');
+            setError('No answer - Call timed out after 30 seconds');
+            setConnecting(false);
+            webRTCService.endCall(callId, true);
+            endCall();
+            callTimeoutRef.current = null;
+         }, CALL_TIMEOUT);
 
          return callId;
       } catch (error) {
@@ -243,6 +316,16 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
    };
 
    const endCurrentCall = () => {
+      // Clear timeout nếu có
+      if (callTimeoutRef.current) {
+         clearTimeout(callTimeoutRef.current);
+         callTimeoutRef.current = null;
+      }
+      if (incomingCallTimeoutRef.current) {
+         clearTimeout(incomingCallTimeoutRef.current);
+         incomingCallTimeoutRef.current = null;
+      }
+
       const callId = webRTCService.getCurrentCallId();
       if (callId) {
          // user chủ động end -> notify server

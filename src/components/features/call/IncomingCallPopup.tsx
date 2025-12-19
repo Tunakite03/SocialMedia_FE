@@ -13,20 +13,9 @@ interface IncomingCallPopupProps {
 const IncomingCallPopup = ({ caller, callType, onAccept, onReject }: IncomingCallPopupProps) => {
    return (
       <div className='fixed inset-0 z-9999  backdrop-blur-md flex items-center justify-center animate-in fade-in duration-500'>
-         {/* Background particles effect */}
-         <div className='absolute inset-0 overflow-hidden'>
-            <div className='absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400/30 rounded-full animate-pulse'></div>
-            <div className='absolute top-3/4 right-1/4 w-3 h-3 bg-purple-400/20 rounded-full animate-pulse delay-75'></div>
-            <div className='absolute bottom-1/4 left-1/3 w-1 h-1 bg-green-400/40 rounded-full animate-pulse delay-150'></div>
-         </div>
-
          <div className='relative bg-linear-to-br from-white via-white to-gray-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl border border-gray-200/20 dark:border-gray-700/30 animate-in slide-in-from-bottom-8 duration-500 backdrop-blur-sm'>
             {/* Pulsing rings around avatar */}
             <div className='relative mb-8'>
-               <div className='absolute inset-0 rounded-full bg-linear-to-r from-blue-400 to-purple-500 opacity-20 animate-ping'></div>
-               <div className='absolute inset-2 rounded-full bg-linear-to-r from-blue-400 to-purple-500 opacity-30 animate-ping animation-delay-75'></div>
-               <div className='absolute inset-4 rounded-full bg-linear-to-r from-blue-400 to-purple-500 opacity-40 animate-ping animation-delay-150'></div>
-
                {/* Avatar container with glow */}
                <div className='relative z-10'>
                   <Avatar className='h-24 w-24 mx-auto mb-4 ring-4 ring-white/20 dark:ring-gray-700/50 shadow-2xl'>
@@ -122,11 +111,6 @@ const IncomingCallPopup = ({ caller, callType, onAccept, onReject }: IncomingCal
                      )}
                   </Button>
                </div>
-            </div>
-
-            {/* Swipe indicator */}
-            <div className='mt-6 text-xs text-gray-500 dark:text-gray-400 animate-pulse'>
-               Tap to answer • Hold to decline
             </div>
          </div>
       </div>

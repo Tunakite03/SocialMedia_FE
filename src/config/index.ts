@@ -50,7 +50,12 @@ export const MAX_COMMENT_LENGTH = 500;
 export const SOCKET_IO_PATH = '/socket.io';
 export const SOCKET_IO_TIMEOUT = 20000; // 20 seconds
 export const TYPING_INDICATOR_TIMEOUT = 3000; // 3 seconds
-export const CALL_TIMEOUT = 60000; // 60 seconds
+
+// Call Timeouts (synced with Backend)
+export const CALL_ACCEPTANCE_TIMEOUT = 30000; // 30 seconds - timeout for accepting call
+export const CALL_ESTABLISHMENT_TIMEOUT = 30000; // 30 seconds - timeout for WebRTC connection
+export const CALL_TIMEOUT = CALL_ACCEPTANCE_TIMEOUT; // Default timeout for backward compatibility
+
 export const MEDIA_UPLOAD_LIMIT_MB = 50; // 50 MB
 export const MEDIA_PREVIEW_MAX_WIDTH = 800; // 800 pixels
 export const MEDIA_PREVIEW_MAX_HEIGHT = 800; // 800 pixels
