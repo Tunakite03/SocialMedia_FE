@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, MessageCircle, X, Move } from 'lucide-react';
+import { Bot, X, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AssistantChatPopup from './AssistantChatPopup';
 
@@ -57,12 +57,18 @@ const FloatingAssistantButton = () => {
       const newY = e.clientY - dragStart.y;
 
       // Keep within viewport bounds
-      const maxX = window.innerWidth - 80;
-      const maxY = window.innerHeight - 80;
+      const buttonSize = isMobile ? 56 : 64;
+      const padding = 24; // bottom-6 and right-6 = 24px
+
+      // Calculate max offset to keep button within viewport
+      const minX = -(window.innerWidth - buttonSize - padding);
+      const maxX = padding;
+      const minY = -(window.innerHeight - buttonSize - padding);
+      const maxY = padding;
 
       setPosition({
-         x: Math.max(-maxX, Math.min(maxX, newX)),
-         y: Math.max(-maxY, Math.min(maxY, newY)),
+         x: Math.max(minX, Math.min(maxX, newX)),
+         y: Math.max(minY, Math.min(maxY, newY)),
       });
    };
 
@@ -74,12 +80,18 @@ const FloatingAssistantButton = () => {
       const newY = touch.clientY - dragStart.y;
 
       // Keep within viewport bounds
-      const maxX = window.innerWidth - 80;
-      const maxY = window.innerHeight - 80;
+      const buttonSize = isMobile ? 56 : 64;
+      const padding = 24; // bottom-6 and right-6 = 24px
+
+      // Calculate max offset to keep button within viewport
+      const minX = -(window.innerWidth - buttonSize - padding);
+      const maxX = padding;
+      const minY = -(window.innerHeight - buttonSize - padding);
+      const maxY = padding;
 
       setPosition({
-         x: Math.max(-maxX, Math.min(maxX, newX)),
-         y: Math.max(-maxY, Math.min(maxY, newY)),
+         x: Math.max(minX, Math.min(maxX, newX)),
+         y: Math.max(minY, Math.min(maxY, newY)),
       });
    };
 

@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useFeedStore } from '@/hooks';
 import InstagramLayout from '@/components/layout/InstagramLayout';
-import Stories from '@/components/features/post/Stories';
+import OnlineUsers from '@/components/features/post/OnlineUsers';
 import PostCard from '@/components/features/post/PostCard';
 import { PlusCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import type { Post } from '@/types';
@@ -138,10 +138,10 @@ const FeedPage = () => {
    return (
       <InstagramLayout>
          <div className='space-y-2 w-full max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto scrollbar-feed'>
-            {/* Stories section with anime float */}
+            {/* Online Users section */}
             <div className='flex flex-row gap-4 '>
                <div className='w-full space-y-2 scrollbar-feed'>
-                  <Stories />
+                  <OnlineUsers />
 
                   {/* Posts feed with animations */}
                   <div className='space-y-2 scrollbar-feed'>
