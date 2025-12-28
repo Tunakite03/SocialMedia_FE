@@ -12,6 +12,10 @@ class CallService {
       return apiService.post<null>(`${this.endpoint}/${id}/answer`);
    }
 
+   async notifyConnectionEstablished(id: string): Promise<ApiResponse<null>> {
+      return apiService.post<null>(`${this.endpoint}/${id}/established`);
+   }
+
    async endCall(id: string): Promise<ApiResponse<null>> {
       return apiService.post<null>(`${this.endpoint}/${id}/end`);
    }

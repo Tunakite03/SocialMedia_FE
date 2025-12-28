@@ -1,16 +1,30 @@
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX, Maximize2, Minimize2, Settings } from 'lucide-react';
+import {
+   Mic,
+   MicOff,
+   Video,
+   VideoOff,
+   PhoneOff,
+   Volume2,
+   VolumeX,
+   Maximize2,
+   Minimize2,
+   Settings,
+   FileText,
+} from 'lucide-react';
 
 interface CallControlsProps {
    isAudioEnabled: boolean;
    isVideoEnabled: boolean;
    isSpeakerOn: boolean;
    isFullscreen: boolean;
+   isTranscriptVisible: boolean;
    callType: 'audio' | 'video';
    onToggleAudio: () => void;
    onToggleVideo: () => void;
    onToggleSpeaker: () => void;
    onToggleFullscreen: () => void;
+   onToggleTranscript: () => void;
    onEndCall: () => void;
    className?: string;
 }
@@ -20,11 +34,13 @@ export const CallControls = ({
    isVideoEnabled,
    isSpeakerOn,
    isFullscreen,
+   isTranscriptVisible,
    callType,
    onToggleAudio,
    onToggleVideo,
    onToggleSpeaker,
    onToggleFullscreen,
+   onToggleTranscript,
    onEndCall,
    className = '',
 }: CallControlsProps) => {
@@ -85,6 +101,20 @@ export const CallControls = ({
                {isFullscreen ? <Minimize2 className='h-6 w-6' /> : <Maximize2 className='h-6 w-6' />}
             </Button>
          )}
+
+         {/* Transcript toggle */}
+         <Button
+            onClick={onToggleTranscript}
+            size='lg'
+            title={isTranscriptVisible ? 'Ẩn phiên âm' : 'Hiện phiên âm cuộc gọi'}
+            className={`rounded-full h-14 w-14 transition-all duration-300 anime-hover-lift ${
+               isTranscriptVisible
+                  ? 'bg-green-500/80 hover:bg-green-600/90 text-white border-green-400/50'
+                  : 'bg-white/20 hover:bg-white/30 text-white border-white/20'
+            }`}
+         >
+            <FileText className='h-6 w-6' />
+         </Button>
 
          {/* Settings/More options */}
          <Button

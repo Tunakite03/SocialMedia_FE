@@ -1,53 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Trash2, Brain, TrendingUp, Sparkles, GripVertical, X } from 'lucide-react';
+import { Send, Trash2, Brain, Settings, Sparkles, GripVertical, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
-import aiAssistantService from '@/services/aiAssistantService';
-import type { AIMessage, AIEmotionType } from '@/types';
+import groqService from '@/services/groqService';
+import type { AIMessage } from '@/types';
 
 interface AssistantChatPopupProps {
    isOpen: boolean;
    onClose?: () => void;
    buttonPosition?: { x: number; y: number };
 }
-
-const emotionColors: Record<AIEmotionType, string> = {
-   happy: 'bg-yellow-500',
-   sad: 'bg-blue-500',
-   angry: 'bg-red-500',
-   anxious: 'bg-purple-500',
-   excited: 'bg-orange-500',
-   neutral: 'bg-gray-500',
-   confused: 'bg-indigo-500',
-   stressed: 'bg-pink-500',
-};
-
-const emotionEmojis: Record<AIEmotionType, string> = {
-   happy: '😊',
-   sad: '😢',
-   angry: '😡',
-   anxious: '😰',
-   excited: '🤩',
-   neutral: '😐',
-   confused: '🤔',
-   stressed: '😫',
-};
-
-const emotionLabels: Record<AIEmotionType, string> = {
-   happy: 'Vui vẻ',
-   sad: 'Buồn',
-   angry: 'Tức giận',
-   anxious: 'Lo lắng',
-   excited: 'Phấn khích',
-   neutral: 'Bình thường',
-   confused: 'Bối rối',
-   stressed: 'Căng thẳng',
-};
 
 const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }: AssistantChatPopupProps) => {
    const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -58,6 +24,10 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
    const [isMobile, setIsMobile] = useState(false);
    const [showClearConfirm, setShowClearConfirm] = useState(false);
+   const [showSettings, setShowSettings] = useState(false);
+   const [apiKey, setApiKey] = useState('');
+   const [isInitialized, setIsInitialized] = useState(false);
+   const [error, setError] = useState<string | null>(null);
    const scrollRef = useRef<HTMLDivElement>(null);
    const popupRef = useRef<HTMLDivElement>(null);
 
@@ -71,11 +41,24 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
       return () => window.removeEventListener('resize', checkMobile);
    }, []);
 
-   // Load saved popup position
+   // Load saved popup position and API key
    useEffect(() => {
       const saved = localStorage.getItem('ai-popup-position');
       if (saved) {
          setPopupPosition(JSON.parse(saved));
+      }
+
+      // Load saved API key
+      const savedApiKey = localStorage.getItem('groq-api-key');
+      if (savedApiKey) {
+         setApiKey(savedApiKey);
+         try {
+            groqService.initialize(savedApiKey);
+            setIsInitialized(true);
+         } catch (err) {
+            console.error('Failed to initialize Groq service:', err);
+            setError('Không thể khởi tạo dịch vụ. Vui lòng kiểm tra API key.');
+         }
       }
    }, []);
 
@@ -124,18 +107,18 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
    }, [isDragging, dragStart, popupPosition]);
 
    useEffect(() => {
-      if (isOpen && messages.length === 0) {
+      if (isOpen && messages.length === 0 && isInitialized) {
          // Add greeting message
          const greeting: AIMessage = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: aiAssistantService.getGreeting(),
+            content:
+               'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Tôi sử dụng Groq AI để trò chuyện với bạn. Hãy hỏi tôi bất cứ điều gì! 😊',
             timestamp: new Date(),
          };
          setMessages([greeting]);
-         aiAssistantService.addMessage(greeting);
       }
-   }, [isOpen]);
+   }, [isOpen, isInitialized]);
 
    useEffect(() => {
       // Auto scroll to bottom
@@ -147,6 +130,12 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
    const handleSend = async () => {
       if (!inputValue.trim()) return;
 
+      if (!isInitialized) {
+         setError('Vui lòng cấu hình API key trước!');
+         setShowSettings(true);
+         return;
+      }
+
       const userMessage: AIMessage = {
          id: Date.now().toString(),
          role: 'user',
@@ -156,30 +145,37 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
 
       // Add user message
       setMessages((prev) => [...prev, userMessage]);
-      aiAssistantService.addMessage(userMessage);
       setInputValue('');
       setIsTyping(true);
+      setError(null);
 
-      // Simulate AI thinking delay
-      setTimeout(() => {
-         // Analyze emotion
-         const emotion = aiAssistantService.analyzeEmotion(inputValue);
-
-         // Generate response
-         const responseContent = aiAssistantService.generateResponse(inputValue, emotion);
+      try {
+         // Call Groq API
+         const response = await groqService.sendMessage(inputValue);
 
          const assistantMessage: AIMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: responseContent,
+            content: response,
             timestamp: new Date(),
-            emotion,
          };
 
          setMessages((prev) => [...prev, assistantMessage]);
-         aiAssistantService.addMessage(assistantMessage);
+      } catch (err) {
+         console.error('Error sending message:', err);
+         setError(err instanceof Error ? err.message : 'Đã có lỗi xảy ra');
+
+         // Add error message
+         const errorMessage: AIMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: '❌ Xin lỗi, tôi không thể phản hồi lúc này. Vui lòng thử lại sau.',
+            timestamp: new Date(),
+         };
+         setMessages((prev) => [...prev, errorMessage]);
+      } finally {
          setIsTyping(false);
-      }, 1000 + Math.random() * 1000);
+      }
    };
 
    const handleClearClick = () => {
@@ -188,16 +184,44 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
 
    const handleClearConfirm = () => {
       setMessages([]);
-      aiAssistantService.clearMessages();
-      // Add greeting again
-      const greeting: AIMessage = {
-         id: Date.now().toString(),
-         role: 'assistant',
-         content: aiAssistantService.getGreeting(),
-         timestamp: new Date(),
-      };
-      setMessages([greeting]);
-      aiAssistantService.addMessage(greeting);
+      groqService.clearHistory();
+      // Add greeting again if initialized
+      if (isInitialized) {
+         const greeting: AIMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: 'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Hãy hỏi tôi bất cứ điều gì! 😊',
+            timestamp: new Date(),
+         };
+         setMessages([greeting]);
+      }
+      setShowClearConfirm(false);
+   };
+
+   const handleSaveApiKey = () => {
+      if (!apiKey.trim()) {
+         setError('Vui lòng nhập API key');
+         return;
+      }
+
+      try {
+         localStorage.setItem('groq-api-key', apiKey);
+         groqService.initialize(apiKey);
+         setIsInitialized(true);
+         setShowSettings(false);
+         setError(null);
+
+         // Add greeting message
+         const greeting: AIMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: 'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Tôi đã sẵn sàng trò chuyện với bạn! 😊',
+            timestamp: new Date(),
+         };
+         setMessages([greeting]);
+      } catch (err) {
+         setError(err instanceof Error ? err.message : 'Không thể khởi tạo Groq service');
+      }
    };
 
    if (!isOpen) return null;
@@ -262,14 +286,33 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
                         <Button
                            variant={'outline'}
                            size='icon'
+                           onClick={() => setShowSettings(true)}
+                           className='h-8 w-8'
+                           title='Cài đặt'
+                        >
+                           <Settings className='h-4 w-4' />
+                        </Button>
+                        <Button
+                           variant={'outline'}
+                           size='icon'
                            onClick={handleClearClick}
                            className='h-8 w-8 '
                            title='Xóa lịch sử'
+                           disabled={!isInitialized}
                         >
                            <Trash2 className='h-4 w-4' />
                         </Button>
                      </div>
                   </div>
+                  {error && (
+                     <div className='mt-2 flex items-center gap-2 text-sm text-destructive'>
+                        <AlertCircle className='h-4 w-4' />
+                        <span>{error}</span>
+                     </div>
+                  )}
+                  {!isInitialized && (
+                     <div className='mt-2 text-sm text-muted-foreground'>⚠️ Vui lòng cấu hình API key để sử dụng</div>
+                  )}
                </CardHeader>
 
                {/* Messages */}
@@ -291,50 +334,7 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
                               `}
                               >
                                  {/* Message content */}
-                                 <p className='text-sm whitespace-pre-wrap break-words'>{message.content}</p>
-
-                                 {/* Emotion Analysis */}
-                                 {message.emotion && (
-                                    <div className='mt-3 pt-3 border-t border-border/50'>
-                                       <div className='flex items-center gap-2 mb-2'>
-                                          <TrendingUp className='h-3.5 w-3.5 text-muted-foreground' />
-                                          <span className='text-xs font-semibold text-muted-foreground'>
-                                             Phân tích cảm xúc:
-                                          </span>
-                                       </div>
-
-                                       {/* Primary emotion */}
-                                       <div className='flex items-center gap-2 mb-2'>
-                                          <span className='text-2xl'>{emotionEmojis[message.emotion.primary]}</span>
-                                          <Badge className={`${emotionColors[message.emotion.primary]} text-white`}>
-                                             {emotionLabels[message.emotion.primary]}
-                                          </Badge>
-                                          <span className='text-xs text-muted-foreground'>
-                                             ({Math.round(message.emotion.confidence * 100)}%)
-                                          </span>
-                                       </div>
-
-                                       {/* Suggestions */}
-                                       {message.emotion.suggestions && message.emotion.suggestions.length > 0 && (
-                                          <div className='mt-2'>
-                                             <p className='text-xs font-semibold text-muted-foreground mb-1'>
-                                                💡 Gợi ý:
-                                             </p>
-                                             <ul className='text-xs space-y-1 text-muted-foreground'>
-                                                {message.emotion.suggestions.map((suggestion, idx) => (
-                                                   <li
-                                                      key={idx}
-                                                      className='flex items-start gap-1.5'
-                                                   >
-                                                      <span className='text-primary mt-0.5'>•</span>
-                                                      <span>{suggestion}</span>
-                                                   </li>
-                                                ))}
-                                             </ul>
-                                          </div>
-                                       )}
-                                    </div>
-                                 )}
+                                 <p className='text-sm whitespace-pre-wrap wrap-break-word'>{message.content}</p>
 
                                  {/* Timestamp */}
                                  <p className='text-[10px] opacity-60 mt-1.5'>
@@ -461,6 +461,63 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
             cancelText='Hủy bỏ'
             type='danger'
          />
+
+         {/* Settings Dialog */}
+         {showSettings && (
+            <div className='fixed inset-0 bg-black/50 z-60 flex items-center justify-center p-4'>
+               <Card className='w-full max-w-md'>
+                  <CardHeader>
+                     <CardTitle className='flex items-center gap-2'>
+                        <Settings className='h-5 w-5' />
+                        Cài đặt Groq API
+                     </CardTitle>
+                  </CardHeader>
+                  <CardContent className='space-y-4'>
+                     <div>
+                        <label className='text-sm font-medium mb-2 block'>Groq API Key</label>
+                        <Input
+                           type='password'
+                           placeholder='Nhập Groq API key của bạn'
+                           value={apiKey}
+                           onChange={(e) => setApiKey(e.target.value)}
+                           className='w-full'
+                        />
+                        <p className='text-xs text-muted-foreground mt-2'>
+                           Lấy API key miễn phí tại{' '}
+                           <a
+                              href='https://console.groq.com/keys'
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-primary underline'
+                           >
+                              console.groq.com
+                           </a>
+                        </p>
+                     </div>
+
+                     {error && (
+                        <div className='flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md'>
+                           <AlertCircle className='h-4 w-4' />
+                           <span>{error}</span>
+                        </div>
+                     )}
+
+                     <div className='flex gap-2 justify-end'>
+                        <Button
+                           variant='outline'
+                           onClick={() => {
+                              setShowSettings(false);
+                              setError(null);
+                           }}
+                        >
+                           Hủy
+                        </Button>
+                        <Button onClick={handleSaveApiKey}>Lưu</Button>
+                     </div>
+                  </CardContent>
+               </Card>
+            </div>
+         )}
       </>
    );
 };

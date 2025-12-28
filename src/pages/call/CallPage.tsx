@@ -1,9 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCallStore } from '@/store';
 import { useCallManager } from '@/hooks/useCallManager';
+import { webRTCService } from '@/services/webRTCService';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 import {
    Mic,
    MicOff,
@@ -18,11 +20,52 @@ import {
    Signal,
    Wifi,
    WifiOff,
-   Loader,
+   Loader2,
+   FileText,
+   MoreVertical,
+   Shield,
 } from 'lucide-react';
 import { IncomingCallNotification } from '@/components/features/call/IncomingCallNotification';
+import { CallTranscript } from '@/components/features/call/CallTranscript';
 import { CALL_ACCEPTANCE_TIMEOUT } from '@/config';
 import type { User } from '@/types';
+
+// Connection quality badge
+const ConnectionBadge = ({ quality }: { quality: 'excellent' | 'good' | 'poor' | 'disconnected' }) => {
+   const config = {
+      excellent: {
+         icon: Signal,
+         color: 'text-emerald-400',
+         bg: 'bg-emerald-500/10',
+         border: 'border-emerald-500/20',
+         label: 'Excellent',
+      },
+      good: {
+         icon: Wifi,
+         color: 'text-amber-400',
+         bg: 'bg-amber-500/10',
+         border: 'border-amber-500/20',
+         label: 'Good',
+      },
+      poor: { icon: WifiOff, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Poor' },
+      disconnected: {
+         icon: WifiOff,
+         color: 'text-gray-400',
+         bg: 'bg-gray-500/10',
+         border: 'border-gray-500/20',
+         label: 'Disconnected',
+      },
+   };
+
+   const { icon: Icon, color, bg, border, label } = config[quality];
+
+   return (
+      <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border', bg, border)}>
+         <Icon className={cn('w-3 h-3', color)} />
+         <span className={cn('text-[11px] font-semibold', color)}>{label}</span>
+      </div>
+   );
+};
 
 const CallPage = () => {
    const navigate = useNavigate();
@@ -43,16 +86,48 @@ const CallPage = () => {
    const [isVideoEnabled, setIsVideoEnabled] = useState(callType === 'video');
    const [isFullscreen, setIsFullscreen] = useState(false);
    const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+   const [isTranscriptVisible, setIsTranscriptVisible] = useState(false);
    const [callDuration, setCallDuration] = useState(0);
    const [timeoutCountdown, setTimeoutCountdown] = useState<number | null>(null);
    const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>(
       'excellent'
    );
+   const [showControls, setShowControls] = useState(true);
+   const [audioLevels, setAudioLevels] = useState<number[]>(Array(20).fill(0));
 
    const audioRef = useRef<HTMLAudioElement>(null);
    const callingRingtoneRef = useRef<HTMLAudioElement | null>(null);
    const intervalRef = useRef<number | null>(null);
    const countdownIntervalRef = useRef<number | null>(null);
+   const controlsTimeoutRef = useRef<number | null>(null);
+   const audioAnimationRef = useRef<number | null>(null);
+
+   // Auto-hide controls
+   const resetControlsTimeout = useCallback(() => {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) {
+         clearTimeout(controlsTimeoutRef.current);
+      }
+      if (isCallAccepted && callType === 'video') {
+         controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 4000);
+      }
+   }, [isCallAccepted, callType]);
+
+   // Animate audio waveform
+   useEffect(() => {
+      if (isCallAccepted && isAudioEnabled) {
+         const animate = () => {
+            setAudioLevels((prev) => prev.map((_, i) => Math.abs(Math.sin(Date.now() / 200 + i * 0.5)) * 100));
+            audioAnimationRef.current = requestAnimationFrame(animate);
+         };
+         animate();
+         return () => {
+            if (audioAnimationRef.current) cancelAnimationFrame(audioAnimationRef.current);
+         };
+      } else {
+         setAudioLevels(Array(20).fill(0));
+      }
+   }, [isCallAccepted, isAudioEnabled]);
 
    // Call duration timer
    useEffect(() => {
@@ -63,62 +138,46 @@ const CallPage = () => {
             setCallDuration(duration);
          }, 1000);
       } else {
-         if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-         }
+         if (intervalRef.current) clearInterval(intervalRef.current);
          setCallDuration(0);
       }
-
       return () => {
-         if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-         }
+         if (intervalRef.current) clearInterval(intervalRef.current);
       };
    }, [isCallAccepted, callStartTime]);
 
-   // Timeout countdown timer
+   // Timeout countdown
    useEffect(() => {
       if (isConnecting && !isCallAccepted) {
-         // Bắt đầu countdown từ 30 giây
          const startTime = Date.now();
-         const timeoutDuration = CALL_ACCEPTANCE_TIMEOUT / 1000; // Convert to seconds
-
+         const timeoutDuration = CALL_ACCEPTANCE_TIMEOUT / 1000;
          setTimeoutCountdown(timeoutDuration);
 
          countdownIntervalRef.current = setInterval(() => {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             const remaining = timeoutDuration - elapsed;
-
             if (remaining <= 0) {
                setTimeoutCountdown(0);
                if (countdownIntervalRef.current) {
                   clearInterval(countdownIntervalRef.current);
-                  countdownIntervalRef.current = null;
                }
             } else {
                setTimeoutCountdown(remaining);
             }
          }, 1000);
       } else {
-         // Clear countdown khi call được accepted hoặc không còn connecting
          if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
          }
          setTimeoutCountdown(null);
       }
-
       return () => {
-         if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-         }
+         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       };
    }, [isConnecting, isCallAccepted]);
 
-   // Calling ringtone (outgoing call)
+   // Calling ringtone
    useEffect(() => {
-      // Initialize audio element if not exists
       if (!callingRingtoneRef.current) {
          callingRingtoneRef.current = new Audio('/sounds/phone-calling.mp3');
          callingRingtoneRef.current.loop = true;
@@ -126,42 +185,36 @@ const CallPage = () => {
       }
 
       const ringtone = callingRingtoneRef.current;
-
-      // Play ringtone when connecting (outgoing call)
       if (isConnecting && !isCallAccepted && !hasIncomingCall) {
+         ringtone.currentTime = 0;
          ringtone.play().catch((error) => {
-            console.error('Failed to play calling ringtone:', error);
+            if (error.name !== 'AbortError') console.error('Failed to play ringtone:', error);
          });
       } else {
-         // Stop ringtone when call accepted, ended, or error
          ringtone.pause();
          ringtone.currentTime = 0;
       }
-
-      // Cleanup on unmount
       return () => {
-         ringtone.pause();
-         ringtone.currentTime = 0;
+         if (ringtone) {
+            ringtone.pause();
+            ringtone.currentTime = 0;
+         }
       };
    }, [isConnecting, isCallAccepted, hasIncomingCall]);
 
-   // Simulate connection quality (in real app, this would be based on WebRTC stats)
+   // Simulate connection quality
    useEffect(() => {
       if (isCallAccepted) {
          const interval = setInterval(() => {
             const qualities = ['excellent', 'good', 'poor'] as const;
-            const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
-            setConnectionQuality(randomQuality);
+            setConnectionQuality(qualities[Math.floor(Math.random() * qualities.length)]);
          }, 5000);
-
          return () => clearInterval(interval);
       }
    }, [isCallAccepted]);
 
    useEffect(() => {
-      if (!isInCall && !hasIncomingCall) {
-         navigate('/chat');
-      }
+      if (!isInCall && !hasIncomingCall) navigate('/chat');
    }, [isInCall, hasIncomingCall, navigate]);
 
    const formatDuration = (seconds: number): string => {
@@ -171,95 +224,66 @@ const CallPage = () => {
    };
 
    const handleEndCall = () => {
-      // Ringtone is handled by IncomingCallNotification component
       endCurrentCall();
       navigate('/chat');
    };
 
    const handleToggleAudio = () => {
-      if (localStream) {
-         const audioTrack = localStream.getAudioTracks()[0];
-         if (audioTrack) {
-            audioTrack.enabled = !audioTrack.enabled;
-            setIsAudioEnabled(audioTrack.enabled);
-         }
-      }
+      webRTCService.toggleAudio();
+      setIsAudioEnabled(webRTCService.isAudioEnabled());
    };
 
    const handleToggleVideo = () => {
-      if (localStream) {
-         const videoTrack = localStream.getVideoTracks()[0];
-         if (videoTrack) {
-            videoTrack.enabled = !videoTrack.enabled;
-            setIsVideoEnabled(videoTrack.enabled);
-         }
-      }
+      webRTCService.toggleVideo();
+      setIsVideoEnabled(webRTCService.isVideoEnabled());
    };
 
-   const handleToggleSpeaker = () => {
-      setIsSpeakerOn(!isSpeakerOn);
-      if (audioRef.current) {
-         (audioRef.current as any).setSinkId = isSpeakerOn ? 'default' : 'speaker';
-      }
-   };
-
-   const handleToggleFullscreen = () => {
-      setIsFullscreen(!isFullscreen);
-   };
+   const handleToggleSpeaker = () => setIsSpeakerOn(!isSpeakerOn);
+   const handleToggleFullscreen = () => setIsFullscreen(!isFullscreen);
+   const handleToggleTranscript = () => setIsTranscriptVisible(!isTranscriptVisible);
 
    const getDisplayUser = (): User | null => {
-      if (hasIncomingCall && incomingCall) {
-         return incomingCall.caller;
-      }
+      if (hasIncomingCall && incomingCall) return incomingCall.caller;
       return receiver || null;
    };
 
    const displayUser = getDisplayUser();
 
-   const getConnectionIcon = () => {
-      switch (connectionQuality) {
-         case 'excellent':
-            return <Signal className='w-4 h-4 text-green-400' />;
-         case 'good':
-            return <Wifi className='w-4 h-4 text-yellow-400' />;
-         case 'poor':
-            return <WifiOff className='w-4 h-4 text-red-400' />;
-         case 'disconnected':
-            return <WifiOff className='w-4 h-4 text-gray-400' />;
-         default:
-            return <Signal className='w-4 h-4 text-green-400' />;
-      }
-   };
-
    if (!displayUser) {
       return (
-         <div className='h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center'>
-            <div className='card-liquid-glass p-8 text-center anime-pulse'>
-               <div className='animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4'></div>
-               <p className='text-white font-anime text-lg'>
-                  <Loader />
-               </p>
-            </div>
+         <div className='min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-gray-950 flex items-center justify-center'>
+            <Loader2 className='w-8 h-8 text-blue-400 animate-spin' />
          </div>
       );
    }
 
    return (
-      <div className='h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col relative overflow-hidden'>
-         {/* Animated background particles */}
+      <div
+         className='min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-gray-950 flex flex-col relative overflow-hidden'
+         onMouseMove={resetControlsTimeout}
+         onClick={resetControlsTimeout}
+      >
+         {/* Background orbs */}
          <div className='absolute inset-0 overflow-hidden pointer-events-none'>
-            <div className='absolute -top-4 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse'></div>
-            <div className='absolute -bottom-8 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000'></div>
-            <div className='absolute top-1/2 left-1/2 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000'></div>
+            <div
+               className='absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse'
+               style={{ animationDuration: '4s' }}
+            />
+            <div
+               className='absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse'
+               style={{ animationDuration: '5s', animationDelay: '1s' }}
+            />
+            <div
+               className='absolute top-1/2 left-1/2 w-64 h-64 bg-slate-500/10 rounded-full blur-3xl animate-pulse'
+               style={{ animationDuration: '6s', animationDelay: '2s' }}
+            />
          </div>
 
-         {/* Audio elements */}
          <audio
             ref={audioRef}
             autoPlay
          />
 
-         {/* Incoming Call Notification */}
          <IncomingCallNotification
             caller={displayUser}
             callType={incomingCall?.type || 'audio'}
@@ -268,67 +292,131 @@ const CallPage = () => {
             isVisible={hasIncomingCall && !isCallAccepted}
          />
 
-         {/* Status Bar */}
-         <div className='absolute top-4 left-4 right-4 z-20'>
-            <div className='flex justify-between items-center'>
-               {/* Connection indicator */}
-               <div className='card-liquid-glass px-3 py-2 flex items-center gap-2'>
-                  {getConnectionIcon()}
-                  <span className='text-white text-sm font-anime capitalize'>{connectionQuality}</span>
+         <CallTranscript
+            isVisible={isTranscriptVisible && isCallAccepted}
+            isAudioEnabled={isAudioEnabled}
+            onClose={() => setIsTranscriptVisible(false)}
+         />
+
+         {/* Top bar */}
+         <div
+            className={cn(
+               'absolute top-0 left-0 right-0 z-20 px-6 py-4 transition-all duration-300',
+               showControls || !isCallAccepted ? 'opacity-100' : 'opacity-0'
+            )}
+         >
+            <div className='flex items-center justify-between'>
+               <div className='flex items-center gap-3'>
+                  <ConnectionBadge quality={connectionQuality} />
                </div>
 
-               {/* Call duration */}
                {isCallAccepted && (
-                  <div className='card-liquid-glass px-4 py-2'>
-                     <span className='text-white font-mono text-sm'>{formatDuration(callDuration)}</span>
+                  <div className='flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10'>
+                     <div className='w-2 h-2 rounded-full bg-red-500 animate-pulse' />
+                     <span className='text-white font-mono text-sm font-semibold'>{formatDuration(callDuration)}</span>
                   </div>
                )}
 
-               {/* Call type indicator */}
-               <div className='card-liquid-glass px-3 py-2 flex items-center gap-2'>
-                  {callType === 'video' ? (
-                     <Video className='w-4 h-4 text-blue-400' />
-                  ) : (
-                     <Phone className='w-4 h-4 text-green-400' />
+               <div className='flex items-center gap-3'>
+                  <div
+                     className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border',
+                        callType === 'video'
+                           ? 'bg-blue-500/10 border-blue-500/20'
+                           : 'bg-emerald-500/10 border-emerald-500/20'
+                     )}
+                  >
+                     {callType === 'video' ? (
+                        <Video className='w-3 h-3 text-blue-400' />
+                     ) : (
+                        <Phone className='w-3 h-3 text-emerald-400' />
+                     )}
+                     <span
+                        className={cn(
+                           'text-[11px] font-semibold',
+                           callType === 'video' ? 'text-blue-400' : 'text-emerald-400'
+                        )}
+                     >
+                        {callType === 'video' ? 'Video Call' : 'Voice Call'}
+                     </span>
+                  </div>
+                  {isCallAccepted && (
+                     <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border-0'
+                     >
+                        <MoreVertical className='w-4 h-4' />
+                     </Button>
                   )}
-                  <span className='text-white text-sm font-anime'>{callType === 'video' ? 'Video' : 'Voice'}</span>
                </div>
             </div>
          </div>
 
          {/* Main content */}
-         <div className='flex-1 flex items-center justify-center relative z-10'>
+         <div className='flex-1 flex items-center justify-center px-4 pt-20 pb-32'>
             {/* Connecting state */}
-            {isConnecting && (
-               <div className='text-center anime-slide-in-bottom'>
-                  <div className='card-liquid-glass p-8 max-w-md mx-auto'>
-                     <div className='relative mb-6'>
-                        <Avatar className='h-24 w-24 mx-auto ring-4 ring-purple-400/30 anime-pulse'>
+            {isConnecting && !isCallAccepted && (
+               <div className='w-full max-w-sm mx-auto'>
+                  <div className='relative bg-slate-900/60 backdrop-blur-2xl rounded-4xl border border-slate-700/50 p-8 shadow-2xl'>
+                     {/* Avatar with pulse rings */}
+                     <div className='relative mb-6 flex justify-center'>
+                        <div className='absolute inset-0 flex items-center justify-center'>
+                           <div
+                              className='w-32 h-32 rounded-full border-2 border-blue-400/30 animate-ping'
+                              style={{ animationDuration: '2s' }}
+                           />
+                        </div>
+                        <div className='absolute inset-0 flex items-center justify-center'>
+                           <div
+                              className='w-36 h-36 rounded-full border border-blue-400/20 animate-ping'
+                              style={{ animationDuration: '2.5s' }}
+                           />
+                        </div>
+                        <Avatar className='h-28 w-28 ring-4 ring-white/10 shadow-2xl relative z-10'>
                            <AvatarImage
                               src={displayUser.avatar || ''}
-                              alt={displayUser.displayName || displayUser.username}
+                              className='object-cover'
                            />
-                           <AvatarFallback className='text-2xl bg-linear-to-br from-purple-500 to-pink-500 text-white'>
+                           <AvatarFallback className='text-3xl bg-linear-to-br from-blue-600 to-cyan-600 text-white font-bold'>
                               {(displayUser.displayName || displayUser.username).slice(0, 2).toUpperCase()}
                            </AvatarFallback>
                         </Avatar>
+                        <div
+                           className={cn(
+                              'absolute -bottom-2 left-1/2 -translate-x-1/2 p-2.5 rounded-full shadow-lg',
+                              callType === 'video' ? 'bg-blue-600' : 'bg-cyan-600'
+                           )}
+                        >
+                           {callType === 'video' ? (
+                              <Video className='w-4 h-4 text-white' />
+                           ) : (
+                              <Phone className='w-4 h-4 text-white' />
+                           )}
+                        </div>
                      </div>
-                     <h1 className='text-2xl font-anime font-semibold mb-2 text-white'>
-                        Calling {displayUser.displayName || displayUser.username}
+
+                     <h1 className='text-2xl font-bold text-white text-center mb-1'>
+                        {displayUser.displayName || displayUser.username}
                      </h1>
-                     <div className='flex items-center justify-center gap-2 mb-4'>
-                        <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse'></div>
-                        <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-200'></div>
-                        <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-400'></div>
+                     <p className='text-white/40 text-center text-sm mb-6'>@{displayUser.username}</p>
+
+                     <div className='flex items-center justify-center gap-1 mb-2'>
+                        {[0, 1, 2].map((i) => (
+                           <div
+                              key={i}
+                              className='w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce'
+                              style={{ animationDelay: `${i * 0.15}s` }}
+                           />
+                        ))}
                      </div>
-                     <p className='text-purple-200 font-anime'>Connecting...</p>
+                     <p className='text-white/60 text-center text-sm mb-6'>Calling...</p>
+
                      {timeoutCountdown !== null && timeoutCountdown > 0 && (
-                        <div className='mt-6 flex flex-col items-center'>
-                           {/* Circular countdown */}
-                           <div className='relative inline-flex items-center justify-center'>
-                              {/* Background circle */}
+                        <div className='flex justify-center'>
+                           <div className='relative inline-flex'>
                               <svg
-                                 className='w-10 h-10 transform -rotate-90'
+                                 className='w-20 h-20 transform -rotate-90'
                                  viewBox='0 0 120 120'
                               >
                                  <circle
@@ -336,46 +424,34 @@ const CallPage = () => {
                                     cy='60'
                                     r='54'
                                     stroke='currentColor'
-                                    strokeWidth='8'
+                                    strokeWidth='4'
                                     fill='none'
-                                    className='text-purple-900/30'
+                                    className='text-white/10'
                                  />
-                                 {/* Progress circle */}
                                  <circle
                                     cx='60'
                                     cy='60'
                                     r='54'
-                                    stroke='url(#gradient)'
-                                    strokeWidth='8'
+                                    stroke={timeoutCountdown <= 10 ? '#ef4444' : '#3b82f6'}
+                                    strokeWidth='4'
                                     fill='none'
                                     strokeLinecap='round'
-                                    className='transition-all duration-1000 ease-linear'
+                                    className='transition-all duration-1000'
                                     style={{
-                                       strokeDasharray: `${2 * Math.PI * 54}`,
-                                       strokeDashoffset: `${
-                                          2 * Math.PI * 54 * (1 - timeoutCountdown / (CALL_ACCEPTANCE_TIMEOUT / 1000))
-                                       }`,
+                                       strokeDasharray: 2 * Math.PI * 54,
+                                       strokeDashoffset:
+                                          2 * Math.PI * 54 * (1 - timeoutCountdown / (CALL_ACCEPTANCE_TIMEOUT / 1000)),
                                     }}
                                  />
-                                 <defs>
-                                    <linearGradient
-                                       id='gradient'
-                                       x1='0%'
-                                       y1='0%'
-                                       x2='100%'
-                                       y2='100%'
-                                    >
-                                       <stop
-                                          offset='0%'
-                                          stopColor={timeoutCountdown <= 10 ? '#ef4444' : '#a855f7'}
-                                       />
-                                       <stop
-                                          offset='100%'
-                                          stopColor={timeoutCountdown <= 10 ? '#dc2626' : '#ec4899'}
-                                       />
-                                    </linearGradient>
-                                 </defs>
                               </svg>
+                              <span
+                                 className={cn(
+                                    'absolute inset-0 flex items-center justify-center text-xl font-bold',
+                                    timeoutCountdown <= 10 ? 'text-red-400' : 'text-white/80'
+                                 )}
+                              >
+                                 {timeoutCountdown}s
+                              </span>
                            </div>
                         </div>
                      )}
@@ -384,20 +460,17 @@ const CallPage = () => {
             )}
 
             {/* Error state */}
-            {errorMessage && (
-               <div className='text-center anime-slide-in-bottom'>
-                  <div className='card-liquid-glass p-8 max-w-md mx-auto border-2 border-red-500/30'>
-                     <div className='relative mb-6'>
-                        <div className='h-24 w-24 mx-auto flex items-center justify-center bg-red-500/20 rounded-full'>
-                           <PhoneOff className='w-12 h-12 text-red-400' />
-                        </div>
+            {errorMessage && !isConnecting && (
+               <div className='w-full max-w-sm mx-auto'>
+                  <div className='bg-slate-900/70 backdrop-blur-2xl rounded-4xl border border-red-500/30 p-8 text-center'>
+                     <div className='w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center'>
+                        <PhoneOff className='w-8 h-8 text-red-400' />
                      </div>
-                     <h1 className='text-2xl font-anime font-semibold mb-2 text-white'>Call Failed</h1>
-                     <p className='text-red-300 font-anime mb-6'>{errorMessage}</p>
+                     <h1 className='text-2xl font-bold text-white mb-2'>Call Failed</h1>
+                     <p className='text-red-300/80 mb-6'>{errorMessage}</p>
                      <Button
                         onClick={handleEndCall}
-                        variant='destructive'
-                        className='bg-red-600 hover:bg-red-700 font-anime'
+                        className='bg-linear-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-8 py-2 rounded-full'
                      >
                         Close
                      </Button>
@@ -405,176 +478,222 @@ const CallPage = () => {
                </div>
             )}
 
-            {/* Active call state */}
+            {/* Active call */}
             {isCallAccepted && (
-               <div className={`w-full h-full relative ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
-                  {/* Remote Video */}
+               <div className={cn('w-full h-full', isFullscreen ? 'fixed inset-0 z-50' : '')}>
+                  {/* Video call */}
                   {remoteStream && callType === 'video' && (
-                     <div className='w-full h-full relative group'>
+                     <div className='w-full h-full relative'>
                         <video
                            autoPlay
                            playsInline
-                           className='w-full h-full object-cover rounded-lg'
+                           className='w-full h-full object-cover'
                            ref={(video) => {
-                              if (video && remoteStream) {
-                                 video.srcObject = remoteStream;
-                              }
+                              if (video && remoteStream) video.srcObject = remoteStream;
                            }}
                         />
+                        <div className='absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-black/20 pointer-events-none' />
 
-                        {/* Video overlay info */}
-                        <div className='absolute top-4 left-4 card-liquid-glass px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                           <span className='text-white text-sm font-anime'>
-                              {displayUser.displayName || displayUser.username}
-                           </span>
-                        </div>
+                        {remoteStream && (
+                           <audio
+                              autoPlay
+                              ref={(audio) => {
+                                 if (audio && remoteStream) audio.srcObject = remoteStream;
+                              }}
+                           />
+                        )}
 
-                        {/* Fullscreen toggle */}
+                        {/* Local video PiP */}
+                        {localStream && isVideoEnabled && (
+                           <div className='absolute top-20 right-6 w-40 aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20'>
+                              <video
+                                 autoPlay
+                                 playsInline
+                                 muted
+                                 className='w-full h-full object-cover'
+                                 ref={(video) => {
+                                    if (video && localStream) video.srcObject = localStream;
+                                 }}
+                              />
+                              <div className='absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm'>
+                                 <span className='text-white text-[10px] font-medium'>You</span>
+                              </div>
+                           </div>
+                        )}
+
+                        {localStream && !isVideoEnabled && (
+                           <div className='absolute top-20 right-6 w-40 aspect-video rounded-2xl bg-slate-900/90 border-2 border-white/10 flex items-center justify-center'>
+                              <VideoOff className='w-6 h-6 text-white/40' />
+                           </div>
+                        )}
+
                         <Button
                            onClick={handleToggleFullscreen}
-                           variant='ghost'
-                           size='icon'
-                           className='absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white'
+                           className={cn(
+                              'absolute top-20 right-52 h-10 w-10 rounded-xl bg-black/30 hover:bg-black/50 text-white border border-white/10 transition-opacity',
+                              showControls ? 'opacity-100' : 'opacity-0'
+                           )}
                         >
-                           {isFullscreen ? <Minimize2 className='w-5 h-5' /> : <Maximize2 className='w-5 h-5' />}
+                           {isFullscreen ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
                         </Button>
                      </div>
                   )}
 
-                  {/* Hidden Audio Element */}
-                  {remoteStream && (
-                     <audio
-                        autoPlay
-                        ref={(audio) => {
-                           if (audio && remoteStream) {
-                              audio.srcObject = remoteStream;
-                           }
-                        }}
-                     />
-                  )}
-
-                  {/* Local Video (Picture-in-Picture) */}
-                  {localStream && callType === 'video' && isVideoEnabled && (
-                     <div className='absolute top-6 right-6 w-40 h-32 group'>
-                        <video
-                           autoPlay
-                           playsInline
-                           muted
-                           className='w-full h-full object-cover rounded-xl border-2 border-white/30 shadow-xl'
-                           ref={(video) => {
-                              if (video && localStream) {
-                                 video.srcObject = localStream;
-                              }
-                           }}
-                        />
-                        <div className='absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                           <div className='bg-black/50 rounded-full px-2 py-1'>You</div>
-                        </div>
-                     </div>
-                  )}
-
-                  {/* Audio Call UI */}
+                  {/* Audio call */}
                   {callType === 'audio' && (
-                     <div className='text-center anime-slide-in-bottom'>
-                        <div className='card-liquid-glass p-8 max-w-lg mx-auto'>
-                           <div className='relative mb-8'>
-                              <Avatar className='h-40 w-40 mx-auto ring-8 ring-purple-400/30'>
+                     <div className='w-full max-w-md mx-auto'>
+                        <div className='bg-slate-900/60 backdrop-blur-2xl rounded-[28px] border border-slate-700/50 p-8 shadow-2xl'>
+                           <div className='relative mb-8 flex justify-center'>
+                              <div
+                                 className='absolute inset-0 flex items-center justify-center'
+                                 style={{
+                                    filter: `blur(20px)`,
+                                    opacity: isAudioEnabled ? 0.6 : 0.2,
+                                 }}
+                              >
+                                 <div className='w-40 h-40 rounded-full bg-linear-to-r from-blue-500 via-cyan-500 to-blue-600' />
+                              </div>
+
+                              <Avatar className='h-32 w-32 ring-4 ring-white/10 shadow-2xl relative z-10'>
                                  <AvatarImage
                                     src={displayUser.avatar || ''}
-                                    alt={displayUser.displayName || displayUser.username}
+                                    className='object-cover'
                                  />
-                                 <AvatarFallback className='text-6xl bg-linear-to-br from-purple-500 to-pink-500 text-white'>
+                                 <AvatarFallback className='text-5xl bg-linear-to-br from-blue-600 to-cyan-600 text-white font-bold'>
                                     {(displayUser.displayName || displayUser.username).slice(0, 2).toUpperCase()}
                                  </AvatarFallback>
                               </Avatar>
 
-                              {/* Audio visualization */}
-                              <div className='absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1'>
-                                 {[...Array(5)].map((_, i) => (
-                                    <div
-                                       key={i}
-                                       className={`w-1 bg-linear-to-t from-green-400 to-blue-500 rounded-full animate-pulse`}
-                                       style={{
-                                          height: `${Math.random() * 16 + 8}px`,
-                                          animationDelay: `${i * 0.1}s`,
-                                       }}
-                                    />
-                                 ))}
+                              <div className='absolute -bottom-1 right-1/2 translate-x-12'>
+                                 <div className='w-5 h-5 rounded-full bg-emerald-500 border-4 border-slate-900 shadow-lg' />
                               </div>
                            </div>
-                           <h1 className='text-3xl font-anime font-bold mb-3 text-white'>
+
+                           <h1 className='text-2xl font-bold text-white text-center mb-1'>
                               {displayUser.displayName || displayUser.username}
                            </h1>
-                           <p className='text-purple-200 font-anime text-lg'>📞 Voice call active</p>
+                           <p className='text-white/40 text-center text-sm mb-8'>@{displayUser.username}</p>
+
+                           {/* Waveform */}
+                           <div className='flex items-center justify-center gap-0.5 h-12 mb-4'>
+                              {audioLevels.map((level, i) => (
+                                 <div
+                                    key={i}
+                                    className='w-1 rounded-full bg-linear-to-t from-blue-500 via-cyan-400 to-blue-600 transition-all duration-75'
+                                    style={{
+                                       height: isAudioEnabled ? `${(level / 100) * 40 + 4}px` : '4px',
+                                       opacity: isAudioEnabled ? 0.8 : 0.3,
+                                    }}
+                                 />
+                              ))}
+                           </div>
+
+                           <div className='flex items-center justify-center gap-2 text-cyan-400'>
+                              <Phone className='w-3.5 h-3.5' />
+                              <span className='text-sm font-medium'>Voice call in progress</span>
+                           </div>
                         </div>
                      </div>
                   )}
                </div>
             )}
-
-            {/* Error Message */}
-            {errorMessage && (
-               <div className='absolute top-20 left-1/2 transform -translate-x-1/2 z-30 anime-shake'>
-                  <div className='bg-red-500/90 backdrop-blur-sm text-white px-6 py-3 rounded-xl shadow-lg border border-red-400/30'>
-                     <p className='font-anime'>{errorMessage}</p>
-                  </div>
-               </div>
-            )}
          </div>
 
-         {/* Call Controls */}
+         {/* Bottom controls */}
          {(isCallAccepted || isConnecting) && (
-            <div className='absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20'>
-               <div className='card-liquid-glass px-6 py-4 flex items-center gap-4'>
-                  {/* Audio toggle */}
-                  <Button
-                     onClick={handleToggleAudio}
-                     size='lg'
-                     className={`rounded-full h-14 w-14 transition-all duration-300 anime-hover-lift ${
-                        isAudioEnabled
-                           ? 'bg-white/20 hover:bg-white/30 text-white'
-                           : 'bg-red-500/80 hover:bg-red-600/90 text-white'
-                     }`}
-                  >
-                     {isAudioEnabled ? <Mic className='h-6 w-6' /> : <MicOff className='h-6 w-6' />}
-                  </Button>
-
-                  {/* Video toggle (only for video calls) */}
-                  {callType === 'video' && (
+            <div
+               className={cn(
+                  'absolute bottom-0 left-0 right-0 z-20 pb-8 pt-16 bg-linear-to-t from-black/60 via-black/30 to-transparent transition-opacity duration-300',
+                  showControls || !isCallAccepted ? 'opacity-100' : 'opacity-0'
+               )}
+            >
+               <div className='flex items-center justify-center gap-4'>
+                  {/* Mute */}
+                  <div className='flex flex-col items-center gap-2'>
                      <Button
-                        onClick={handleToggleVideo}
-                        size='lg'
-                        className={`rounded-full h-14 w-14 transition-all duration-300 anime-hover-lift ${
-                           isVideoEnabled
-                              ? 'bg-white/20 hover:bg-white/30 text-white'
-                              : 'bg-red-500/80 hover:bg-red-600/90 text-white'
-                        }`}
+                        onClick={handleToggleAudio}
+                        className={cn(
+                           'h-14 w-14 rounded-full transition-all duration-200',
+                           !isAudioEnabled
+                              ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
+                              : 'bg-slate-800/80 hover:bg-slate-700/80 text-white border border-white/10'
+                        )}
                      >
-                        {isVideoEnabled ? <Video className='h-6 w-6' /> : <VideoOff className='h-6 w-6' />}
+                        {isAudioEnabled ? <Mic className='w-5 h-5' /> : <MicOff className='w-5 h-5' />}
                      </Button>
+                     <span className='text-xs text-white/70 font-medium'>Mute</span>
+                  </div>
+
+                  {/* Video */}
+                  {callType === 'video' && (
+                     <div className='flex flex-col items-center gap-2'>
+                        <Button
+                           onClick={handleToggleVideo}
+                           className={cn(
+                              'h-14 w-14 rounded-full transition-all duration-200',
+                              !isVideoEnabled
+                                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
+                                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-white border border-white/10'
+                           )}
+                        >
+                           {isVideoEnabled ? <Video className='w-5 h-5' /> : <VideoOff className='w-5 h-5' />}
+                        </Button>
+                        <span className='text-xs text-white/70 font-medium'>Video</span>
+                     </div>
                   )}
 
-                  {/* Speaker toggle */}
-                  <Button
-                     onClick={handleToggleSpeaker}
-                     size='lg'
-                     className={`rounded-full h-14 w-14 transition-all duration-300 anime-hover-lift ${
-                        isSpeakerOn
-                           ? 'bg-blue-500/80 hover:bg-blue-600/90 text-white'
-                           : 'bg-white/20 hover:bg-white/30 text-white'
-                     }`}
-                  >
-                     {isSpeakerOn ? <Volume2 className='h-6 w-6' /> : <VolumeX className='h-6 w-6' />}
-                  </Button>
+                  {/* Speaker */}
+                  <div className='flex flex-col items-center gap-2'>
+                     <Button
+                        onClick={handleToggleSpeaker}
+                        className={cn(
+                           'h-14 w-14 rounded-full transition-all duration-200',
+                           isSpeakerOn
+                              ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                              : 'bg-slate-800/80 hover:bg-slate-700/80 text-white border border-white/10'
+                        )}
+                     >
+                        {isSpeakerOn ? <Volume2 className='w-5 h-5' /> : <VolumeX className='w-5 h-5' />}
+                     </Button>
+                     <span className='text-xs text-white/70 font-medium'>Speaker Off</span>
+                  </div>
 
                   {/* End call */}
-                  <Button
-                     onClick={handleEndCall}
-                     size='lg'
-                     className='rounded-full h-14 w-14 bg-linear-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-300 anime-hover-lift shadow-lg hover:shadow-xl'
-                  >
-                     <PhoneOff className='h-6 w-6' />
-                  </Button>
+                  <div className='flex flex-col items-center gap-2'>
+                     <Button
+                        onClick={handleEndCall}
+                        className='h-16 w-16 rounded-full bg-linear-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-xl shadow-red-500/40 transition-all'
+                     >
+                        <PhoneOff className='w-6 h-6' />
+                     </Button>
+                     <span className='text-xs text-white/70 font-medium'>End Call</span>
+                  </div>
+
+                  {/* Transcript */}
+                  {isCallAccepted && (
+                     <div className='flex flex-col items-center gap-2'>
+                        <Button
+                           onClick={handleToggleTranscript}
+                           className={cn(
+                              'h-14 w-14 rounded-full transition-all duration-200',
+                              isTranscriptVisible
+                                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                                 : 'bg-slate-800/80 hover:bg-slate-700/80 text-white border border-white/10'
+                           )}
+                        >
+                           <FileText className='w-5 h-5' />
+                        </Button>
+                        <span className='text-xs text-white/70 font-medium'>Transcript</span>
+                     </div>
+                  )}
+
+                  {/* More */}
+                  <div className='flex flex-col items-center gap-2'>
+                     <Button className='h-14 w-14 rounded-full bg-slate-800/80 hover:bg-slate-700/80 text-white border border-white/10'>
+                        <MoreVertical className='w-5 h-5' />
+                     </Button>
+                     <span className='text-xs text-white/70 font-medium'>More</span>
+                  </div>
                </div>
             </div>
          )}

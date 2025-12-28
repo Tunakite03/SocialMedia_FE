@@ -13,6 +13,8 @@ export { socketService } from './socketService';
 export { webRTCService } from './webRTCService';
 export { storyService } from './storyService';
 export { notificationSoundService } from './notificationSoundService';
+export { speechToTextService } from './speechToTextService';
+export { sentimentService } from './sentimentService';
 
 // Export utilities
 export { TokenManager } from '@/utils/tokenManager';

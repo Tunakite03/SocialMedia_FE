@@ -1,4 +1,5 @@
 import { socketService } from './socketService';
+import { callService } from './callService';
 import { useCallStore } from '@/store';
 
 interface PeerConnection {
@@ -14,6 +15,7 @@ class WebRTCService {
    private currentCallId: string | null = null;
    private currentRole: 'caller' | 'callee' | null = null;
    private currentCallType: 'audio' | 'video' | null = null;
+   private lastEmittedConnectionState: Map<string, RTCPeerConnectionState> = new Map();
 
    private configuration: RTCConfiguration = {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
@@ -21,6 +23,70 @@ class WebRTCService {
 
    constructor() {
       this.setupSocketListeners();
+      this.setupWindowListeners();
+   }
+
+   /**
+    * Setup window event listeners to handle page unload
+    */
+   private setupWindowListeners(): void {
+      // Handle page refresh (F5) or browser close
+      window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
+
+      // Handle visibility change (tab switch, minimize)
+      document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+   }
+
+   /**
+    * Cleanup call when user refreshes or closes the page
+    */
+   private handleBeforeUnload(event: BeforeUnloadEvent): void {
+      if (this.currentCallId) {
+         console.log('[WebRTC] Page unloading, ending call:', this.currentCallId);
+         // End call immediately without notifying server (socket will disconnect anyway)
+         // Use sendBeacon for reliable last-minute API call
+         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+         const callId = this.currentCallId;
+
+         // Try to notify server through socket first (may not work if connection lost)
+         socketService.endCall(callId);
+
+         // Cleanup local resources
+         this.cleanup();
+      }
+   }
+
+   /**
+    * Handle visibility change - detect when user switches tabs
+    */
+   private handleVisibilityChange(): void {
+      // We don't end call on visibility change, just log it
+      if (document.hidden && this.currentCallId) {
+         console.log('[WebRTC] Page hidden, call still active:', this.currentCallId);
+      }
+   }
+
+   /**
+    * Internal cleanup method without server notification
+    */
+   private cleanup(): void {
+      // Clean up peer connections
+      this.peerConnections.forEach((connection) => {
+         connection.pc.close();
+      });
+      this.peerConnections.clear();
+      this.lastEmittedConnectionState.clear();
+
+      // Stop local stream
+      if (this.localStream) {
+         this.localStream.getTracks().forEach((track) => track.stop());
+         this.localStream = null;
+      }
+
+      // Reset internal state
+      this.currentCallId = null;
+      this.currentRole = null;
+      this.currentCallType = null;
    }
 
    private setupSocketListeners(): void {
@@ -126,33 +192,17 @@ class WebRTCService {
     * notifyServer = false dùng khi remote end, để không spam endCall lên server nữa
     */
    endCall(callId: string, notifyServer: boolean = true): void {
-      // Clean up peer connections liên quan đến call này
-      this.peerConnections.forEach((connection, id) => {
-         if (id.includes(callId)) {
-            connection.pc.close();
-            this.peerConnections.delete(id);
-         }
-      });
-
-      // Stop local stream
-      if (this.localStream) {
-         this.localStream.getTracks().forEach((track) => track.stop());
-         this.localStream = null;
-      }
-
-      // Reset internal state
-      this.currentCallId = null;
-      this.currentRole = null;
-      this.currentCallType = null;
-
-      // Update call store
-      const callStore = useCallStore.getState();
-      callStore.resetCallState();
-
       // Notify through socket nếu là user chủ động end
       if (notifyServer) {
          socketService.endCall(callId);
       }
+
+      // Cleanup local resources
+      this.cleanup();
+
+      // Update call store
+      const callStore = useCallStore.getState();
+      callStore.resetCallState();
    }
 
    private async getUserMedia(callType: 'audio' | 'video'): Promise<MediaStream> {
@@ -163,7 +213,10 @@ class WebRTCService {
 
       try {
          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-         console.log(`[WebRTC] getUserMedia success. Tracks:`, stream.getTracks().map(t => `${t.kind}:${t.enabled}:${t.readyState}`));
+         console.log(
+            `[WebRTC] getUserMedia success. Tracks:`,
+            stream.getTracks().map((t) => `${t.kind}:${t.enabled}:${t.readyState}`)
+         );
          return stream;
       } catch (error) {
          console.error('Error accessing user media:', error);
@@ -196,9 +249,51 @@ class WebRTCService {
 
       // Handle connection state changes
       pc.onconnectionstatechange = () => {
-         console.log('Connection state:', pc.connectionState);
+         const state = pc.connectionState;
+         console.log('[WebRTC] Connection state changed:', state, 'for call:', this.currentCallId);
 
-         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+         // Notify server about connection state to clear establishment timeout
+         if (this.currentCallId) {
+            const connectionId = `${callId}_${userId}`;
+            const lastState = this.lastEmittedConnectionState.get(connectionId);
+
+            // Only emit if state actually changed (prevent spam)
+            if (lastState !== state) {
+               console.log('[WebRTC] Emitting connection state to server:', state);
+
+               socketService.emit('webrtc:connection-state', {
+                  callId: this.currentCallId,
+                  connectionState: state,
+                  timestamp: new Date().toISOString(), // Backend requires timestamp
+               });
+
+               // Track last emitted state
+               this.lastEmittedConnectionState.set(connectionId, state);
+            }
+
+            // Update call store when connected
+            if (state === 'connected') {
+               console.log('✅ [WebRTC] Connection established successfully - Backend should clear timeout now!');
+               const callStore = useCallStore.getState();
+               // Ensure call is marked as accepted when connection is stable
+               if (!callStore.isCallAccepted) {
+                  callStore.acceptCall();
+               }
+
+               // Dispatch custom window event to notify Frontend to clear timeout
+               // (Cannot use socket event since Backend doesn't broadcast it back)
+               const event = new CustomEvent('webrtc:established', {
+                  detail: {
+                     callId: this.currentCallId,
+                     timestamp: new Date().toISOString(),
+                  },
+               });
+               window.dispatchEvent(event);
+               console.log('✅ [WebRTC] Dispatched webrtc:established event to clear Frontend timeout');
+            }
+         }
+
+         if (state === 'disconnected' || state === 'failed') {
             if (this.currentCallId) {
                this.endCall(this.currentCallId);
             }
@@ -283,6 +378,20 @@ class WebRTCService {
             answer,
             to: fromUserId,
          });
+
+         // WORKAROUND: Also call REST API to ensure Backend clears establishment timeout
+         // Backend should clear timeout when receiving call:answer socket event,
+         // but we're calling REST API as backup until Backend is fixed
+         callService.answerCall(callId).catch((error) => {
+            console.warn('REST API answer call failed (non-critical):', error);
+         });
+
+         // Notify server that answer has been sent (helps clear establishment timeout)
+         socketService.emit('webrtc:connection-state', {
+            callId,
+            connectionState: 'connecting',
+            timestamp: new Date().toISOString(),
+         });
       } catch (error) {
          console.error('Error handling offer:', error);
       }
@@ -295,6 +404,13 @@ class WebRTCService {
 
          if (peerConnection) {
             await peerConnection.pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+            // Notify server that answer has been received (helps clear establishment timeout)
+            socketService.emit('webrtc:connection-state', {
+               callId,
+               connectionState: 'connecting',
+               timestamp: new Date().toISOString(),
+            });
          }
       } catch (error) {
          console.error('Error handling answer:', error);

@@ -27,6 +27,30 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
    useEffect(() => {
       if (!socketService.isConnected) return;
 
+      // ===== Handle page unload (F5, close tab) =====
+      const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+         const currentCallId = webRTCService.getCurrentCallId();
+         if (currentCallId && isCallActive) {
+            console.log('[useCallManager] Page unloading during active call, ending call');
+            // End call synchronously
+            webRTCService.endCall(currentCallId, true);
+         }
+      };
+
+      // ===== Handle socket disconnect =====
+      const handleSocketDisconnect = (event: CustomEvent) => {
+         console.log('[useCallManager] Socket disconnected:', event.detail);
+         const currentCallId = webRTCService.getCurrentCallId();
+         if (currentCallId && isCallActive) {
+            console.log('[useCallManager] Socket disconnected during active call, cleaning up');
+            // Cleanup local state without notifying server (socket already disconnected)
+            webRTCService.endCall(currentCallId, false);
+            setIsCallActive(false);
+            endCall();
+            setError('Connection lost');
+         }
+      };
+
       // ===== Incoming call (callee side) =====
       const handleIncomingCall = (data: {
          callId: string;
@@ -189,6 +213,15 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
          endCall();
       };
 
+      // Handle WebRTC connection established - clear Frontend timeout
+      const handleWebRTCEstablished = () => {
+         // Clear the acceptance timeout since connection is successful
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
+      };
+
       // Handle call timeout from Backend
       const handleCallTimeout = (data: {
          callId: string;
@@ -236,7 +269,22 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
       socketService.on('call:reject', handleCallReject);
       socketService.on('call:timeout', handleCallTimeout);
 
+      // Listen to window custom event for WebRTC connection established
+      window.addEventListener('webrtc:established', handleWebRTCEstablished);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('socket:disconnect', handleSocketDisconnect as EventListener);
+
       return () => {
+         // Clear any pending timeouts on cleanup
+         if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+         }
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
+
          socketService.off('call:incoming', handleIncomingCall);
          socketService.off('call:accepted', handleCallAccepted);
          socketService.off('call:rejected', handleCallRejected);
@@ -249,8 +297,13 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
          socketService.off('call:accept', handleCallAccept);
          socketService.off('call:reject', handleCallReject);
          socketService.off('call:timeout', handleCallTimeout);
+
+         // Remove window event listeners
+         window.removeEventListener('webrtc:established', handleWebRTCEstablished);
+         window.removeEventListener('beforeunload', handleBeforeUnload);
+         window.removeEventListener('socket:disconnect', handleSocketDisconnect as EventListener);
       };
-   }, [socketService.isConnected, endCall, setError, setConnecting]);
+   }, [socketService.isConnected, endCall, setError, setConnecting, isCallActive]);
 
    const initiateCall = async (receiver: User, callType: 'audio' | 'video') => {
       try {
@@ -268,14 +321,20 @@ export const useCallManager = ({}: UseCallManagerProps = {}) => {
 
          // Thiết lập timeout để tự động hủy call nếu không có response
          // Note: Backend cũng có timeout 30s, event call:timeout sẽ được emit từ server
-         callTimeoutRef.current = setTimeout(() => {
-            console.log('Call timeout - no response from receiver');
+         const timeoutId = setTimeout(() => {
+            // Check if this specific timeout was already cleared by comparing IDs
+            if (callTimeoutRef.current !== timeoutId) {
+               return;
+            }
+
             setError('No answer - Call timed out after 30 seconds');
             setConnecting(false);
             webRTCService.endCall(callId, true);
             endCall();
             callTimeoutRef.current = null;
          }, CALL_TIMEOUT);
+
+         callTimeoutRef.current = timeoutId;
 
          return callId;
       } catch (error) {

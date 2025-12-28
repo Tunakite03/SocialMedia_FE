@@ -115,6 +115,13 @@ const CallProvider = ({ children }: CallProviderProps) => {
 
       return () => {
          console.log('CallProvider cleaning up listeners');
+
+         // Clear any pending timeouts
+         if (incomingCallTimeoutRef.current) {
+            clearTimeout(incomingCallTimeoutRef.current);
+            incomingCallTimeoutRef.current = null;
+         }
+
          socketService.off('call:incoming', handleIncomingCall);
          socketService.off('call:ended', handleCallEnded);
          socketService.off('call:rejected', handleCallRejected);

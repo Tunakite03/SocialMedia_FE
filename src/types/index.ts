@@ -414,6 +414,7 @@ export interface AIMessage {
    content: string;
    timestamp: Date;
    emotion?: AIEmotionAnalysis;
+   isStreaming?: boolean;
 }
 
 export interface AIEmotionAnalysis {
@@ -426,3 +427,11 @@ export interface AIEmotionAnalysis {
 }
 
 export type AIEmotionType = 'happy' | 'sad' | 'angry' | 'anxious' | 'excited' | 'neutral' | 'confused' | 'stressed';
+
+// Groq Service Types
+export interface GroqConfig {
+   apiKey: string;
+   model?: string;
+   temperature?: number;
+   maxTokens?: number;
+}

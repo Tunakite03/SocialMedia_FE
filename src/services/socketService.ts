@@ -42,18 +42,18 @@ class SocketService {
       });
 
       this.setupEventListeners();
-      
+
       // Flush pending listeners
       this.flushPendingListeners();
-      
+
       return this.socket;
    }
 
    private flushPendingListeners(): void {
       if (!this.socket) return;
-      
+
       console.log(`[SocketService] Flushing ${this.pendingListeners.length} pending listeners`);
-      
+
       this.pendingListeners.forEach(({ event, callback, type }) => {
          if (type === 'on') {
             this.socket!.on(event, callback);
@@ -61,7 +61,7 @@ class SocketService {
             this.socket!.once(event, callback);
          }
       });
-      
+
       // Clear queue after attaching
       this.pendingListeners = [];
    }
@@ -72,14 +72,21 @@ class SocketService {
       this.socket.on('connect', () => {
          this.reconnectAttempts = 0;
          this.isConnecting = false; // Reset flag on successful connection
-         
+
          // Re-attach listeners on reconnect if needed (though flushPendingListeners handles initial connect)
          // Note: Socket.io usually keeps listeners on reconnect, so we might not need to do anything here
          // unless we want to support re-adding listeners that were added while disconnected.
       });
 
       this.socket.on('disconnect', (reason) => {
+         console.log('[SocketService] Disconnected:', reason);
          this.isConnecting = false; // Reset flag on disconnect
+
+         // Emit custom event to notify call manager about disconnect
+         const event = new CustomEvent('socket:disconnect', {
+            detail: { reason },
+         });
+         window.dispatchEvent(event);
 
          if (reason === 'io server disconnect') {
             // Server initiated disconnect, don't auto-reconnect
@@ -151,10 +158,10 @@ class SocketService {
       if (this.socket) {
          this.socket.off(event, callback);
       }
-      
+
       // Also remove from pending listeners if present
       this.pendingListeners = this.pendingListeners.filter(
-         listener => listener.event !== event || (callback && listener.callback !== callback)
+         (listener) => listener.event !== event || (callback && listener.callback !== callback)
       );
    }
 
