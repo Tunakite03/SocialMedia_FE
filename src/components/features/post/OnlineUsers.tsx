@@ -49,17 +49,19 @@ const OnlineUsers = () => {
                      <Avatar className='w-14 h-14 ring-2 ring-green-500'>
                         <AvatarImage
                            src={user.avatar || undefined}
-                           alt={user.displayName}
+                           alt={user.displayName || user.username}
                         />
-                        <AvatarFallback className='bg-gradient-to-br from-purple-500 to-pink-500 text-white'>
-                           {user.displayName.charAt(0).toUpperCase()}
+                        <AvatarFallback className='bg-linear-to-br from-purple-500 to-pink-500 text-white'>
+                           {(user.displayName || user.username || '?').charAt(0).toUpperCase()}
                         </AvatarFallback>
                      </Avatar>
                      {/* Online indicator dot */}
                      <div className='absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-card rounded-full'></div>
                   </div>
                   <div className='text-center max-w-[60px]'>
-                     <p className='text-xs font-medium text-card-foreground truncate'>{user.displayName}</p>
+                     <p className='text-xs font-medium text-card-foreground truncate'>
+                        {user.displayName || user.username}
+                     </p>
                      <p className='text-xs text-muted-foreground truncate'>@{user.username}</p>
                   </div>
                </div>

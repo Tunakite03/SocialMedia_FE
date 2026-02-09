@@ -35,7 +35,7 @@ const MessageBubble = ({
       if (showActions && isMobile) {
          timeoutRef.current = setTimeout(() => {
             setShowActions(false);
-         }, 5000);
+         }, 5000) as any as number;
       }
 
       return () => {

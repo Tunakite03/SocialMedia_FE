@@ -127,11 +127,9 @@ export const useChatStore = create<ChatStore>((set) => ({
          // Check if message already exists to prevent duplicates
          const existingMessage = roomMessages.find((msg) => msg.id === message.id);
          if (existingMessage) {
-            console.log('🚨 [ChatStore] Message already exists, skipping duplicate:', message.id);
             return state; // Return unchanged state if message already exists
          }
 
-         console.log('✅ [ChatStore] Adding new message:', message.id);
          return {
             messages: {
                ...state.messages,

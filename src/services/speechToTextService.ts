@@ -58,14 +58,19 @@ class SpeechToTextService {
          return false;
       }
 
+      // Stop trước khi re-initialize để tránh conflicts
+      this.stop();
+
       // Cấu hình recognition
       this.recognition.continuous = options.continuous ?? true;
       this.recognition.interimResults = options.interimResults ?? true;
       this.recognition.maxAlternatives = options.maxAlternatives ?? 1;
       this.recognition.lang = options.language ?? 'vi-VN'; // Vietnamese by default
 
-      // Setup event listeners
+      // Setup event listeners (sẽ overwrite listeners cũ)
       this.setupEventListeners();
+
+      console.log('[SpeechToTextService] Initialized with language:', this.recognition.lang);
 
       return true;
    }
@@ -110,20 +115,25 @@ class SpeechToTextService {
 
       // Khi bắt đầu
       this.recognition.onstart = () => {
+         console.log('[SpeechToTextService] Recognition started (onstart event)');
          this.isListening = true;
       };
 
       // Khi kết thúc
       this.recognition.onend = () => {
+         console.log('[SpeechToTextService] Recognition ended (onend event), shouldRestart:', this.shouldRestart);
          this.isListening = false;
 
          // Tự động restart nếu shouldRestart = true (mic đang bật)
          if (this.shouldRestart && this.recognition && this.recognition.continuous) {
+            console.log('[SpeechToTextService] Auto-restarting recognition...');
             try {
                this.recognition.start();
             } catch (error) {
-               console.error('Error restarting recognition:', error);
+               console.error('[SpeechToTextService] Error restarting recognition:', error);
             }
+         } else {
+            console.log('[SpeechToTextService] Not restarting (shouldRestart is false or not continuous)');
          }
       };
 
@@ -146,24 +156,26 @@ class SpeechToTextService {
     */
    start(): boolean {
       if (!this.isSupported || !this.recognition) {
-         console.warn('Cannot start: Speech recognition not supported');
+         console.warn('[SpeechToTextService] Cannot start: Speech recognition not supported');
          return false;
       }
 
       // Nếu đã đang listening thì không start lại
       if (this.isListening) {
-         console.log('Speech recognition already active');
+         console.log('[SpeechToTextService] Speech recognition already active, updating shouldRestart flag');
          this.shouldRestart = true; // Vẫn update flag
          return true;
       }
 
       this.shouldRestart = true; // Cho phép auto-restart
+      console.log('[SpeechToTextService] Starting speech recognition...');
 
       try {
          this.recognition.start();
+         console.log('[SpeechToTextService] Recognition started successfully');
          return true;
       } catch (error) {
-         console.error('Error starting recognition:', error);
+         console.error('[SpeechToTextService] Error starting recognition:', error);
          // Reset listening state nếu có lỗi
          this.isListening = false;
          return false;
@@ -174,22 +186,23 @@ class SpeechToTextService {
     * Dừng nhận dạng giọng nói
     */
    stop(): void {
+      console.log('[SpeechToTextService] Stopping recognition...');
       this.shouldRestart = false; // Ngăn auto-restart
 
-      if (!this.recognition) return;
-
-      // Chỉ stop nếu đang listening
-      if (!this.isListening) {
-         console.log('Speech recognition already stopped');
+      if (!this.recognition) {
+         console.log('[SpeechToTextService] No recognition instance');
          return;
       }
 
+      // Luôn gọi stop() để chắc chắn, không check isListening
+      // Vì có thể có race condition giữa state và thực tế
       try {
          this.recognition.stop();
          this.isListening = false;
+         console.log('[SpeechToTextService] Recognition stopped successfully');
       } catch (error) {
-         console.error('Error stopping recognition:', error);
-         // Reset state nếu có lỗi
+         // Ignore lỗi nếu recognition chưa start hoặc đã stop
+         console.log('[SpeechToTextService] Stop called but recognition may not be active:', error);
          this.isListening = false;
       }
    }
@@ -383,9 +396,16 @@ class SpeechToTextService {
 
    /**
     * Lấy sentiment summary cho cuộc gọi
+    * @param speakerFilter - 'all' | 'local' | 'remote' - chỉ phân tích entries của speaker nào
     */
-   async getCallSentimentSummary() {
-      const finalEntries = this.transcript.filter((entry) => entry.isFinal);
+   async getCallSentimentSummary(speakerFilter: 'all' | 'local' | 'remote' = 'all') {
+      let finalEntries = this.transcript.filter((entry) => entry.isFinal);
+
+      // Filter theo speaker nếu cần
+      if (speakerFilter !== 'all') {
+         finalEntries = finalEntries.filter((entry) => entry.speaker === speakerFilter);
+      }
+
       const texts = finalEntries.map((e) => e.text);
 
       if (texts.length === 0) {
@@ -393,11 +413,54 @@ class SpeechToTextService {
       }
 
       try {
-         return await sentimentService.analyzeCallOverall(texts);
+         const result = await sentimentService.analyzeCallOverall(texts);
+         // Thêm thông tin về speaker được phân tích
+         return {
+            ...result,
+            speakerAnalyzed: speakerFilter,
+            entriesCount: finalEntries.length,
+         };
       } catch (error) {
          console.error('Error getting call sentiment summary:', error);
          return null;
       }
+   }
+
+   /**
+    * Thêm transcript entry từ external source (ví dụ: backend transcription service)
+    * Dùng để thêm remote entries khi có transcription từ người khác
+    */
+   addExternalEntry(text: string, speaker: 'local' | 'remote', timestamp?: Date): void {
+      const entry: TranscriptEntry = {
+         id: `external-${speaker}-${Date.now()}`,
+         text,
+         timestamp: timestamp || new Date(),
+         isFinal: true,
+         speaker,
+      };
+
+      this.transcript.push(entry);
+
+      // Phân tích sentiment nếu được bật
+      if (this.sentimentAnalysisEnabled && text.trim()) {
+         this.analyzeSentiment(entry);
+      }
+
+      // Trigger callback để update UI
+      if (this.onTranscriptCallback) {
+         this.onTranscriptCallback(entry);
+      }
+
+      console.log(`[SpeechToTextService] Added external ${speaker} entry:`, text.substring(0, 50) + '...');
+   }
+
+   /**
+    * Lấy số lượng entries theo speaker
+    */
+   getEntriesCount(): { local: number; remote: number; total: number } {
+      const local = this.transcript.filter((e) => e.isFinal && e.speaker === 'local').length;
+      const remote = this.transcript.filter((e) => e.isFinal && e.speaker === 'remote').length;
+      return { local, remote, total: local + remote };
    }
 }
 

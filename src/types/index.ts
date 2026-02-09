@@ -82,13 +82,9 @@ export interface Message {
    attachments: MessageAttachment[];
    isRead: boolean;
    readAt?: string;
-   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+   sentiment?: SentimentType;
    sentimentConfidence?: number;
-   sentimentScores?: {
-      POSITIVE: number;
-      NEGATIVE: number;
-      NEUTRAL: number;
-   };
+   sentimentScores?: SentimentScores;
    createdAt: string;
    updatedAt: string;
 }
@@ -148,6 +144,18 @@ export interface ChatRoom {
    name?: string;
 }
 
+export type SentimentType = 'FEAR' | 'ANGER' | 'OTHER' | 'DISGUST' | 'SADNESS' | 'SURPRISE' | 'ENJOYMENT';
+
+export interface SentimentScores {
+   FEAR: number;
+   ANGER: number;
+   OTHER: number;
+   DISGUST: number;
+   SADNESS: number;
+   SURPRISE: number;
+   ENJOYMENT: number;
+}
+
 export interface Post {
    id: string;
    content: string;
@@ -168,13 +176,9 @@ export interface Post {
    createdAt: string;
    updatedAt: string;
    userReaction?: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
-   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL' | null;
-   sentimentConfidence?: number | null;
-   sentimentScores?: {
-      POSITIVE?: number;
-      NEGATIVE?: number;
-      NEUTRAL?: number;
-   } | null;
+   sentiment?: SentimentType;
+   sentimentConfidence?: number;
+   sentimentScores?: SentimentScores;
 }
 
 export interface Comment {
@@ -183,13 +187,9 @@ export interface Comment {
    postId: string;
    authorId: string;
    parentId?: string | null;
-   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+   sentiment?: SentimentType;
    sentimentConfidence?: number;
-   sentimentScores?: {
-      POSITIVE: number;
-      NEGATIVE: number;
-      NEUTRAL: number;
-   };
+   sentimentScores?: SentimentScores;
    createdAt: string;
    updatedAt: string;
    author: {

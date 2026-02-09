@@ -1,7 +1,8 @@
-import { Smile, Frown, Meh } from 'lucide-react';
+import { Smile, Frown, Meh, Angry, Sparkles, Skull } from 'lucide-react';
+import type { SentimentType } from '@/types';
 
 interface SentimentBadgeProps {
-   sentiment?: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+   sentiment?: SentimentType;
    confidence?: number;
    showConfidence?: boolean;
 }
@@ -11,26 +12,54 @@ const SentimentBadge = ({ sentiment, confidence, showConfidence = false }: Senti
 
    const getSentimentConfig = () => {
       switch (sentiment) {
-         case 'POSITIVE':
+         case 'ENJOYMENT':
             return {
                icon: Smile,
                color: 'text-green-600',
                bgColor: 'bg-green-100',
-               label: 'Tích cực',
+               label: 'Enjoyment',
             };
-         case 'NEGATIVE':
+         case 'SADNESS':
             return {
                icon: Frown,
+               color: 'text-blue-600',
+               bgColor: 'bg-blue-100',
+               label: 'Sadness',
+            };
+         case 'ANGER':
+            return {
+               icon: Angry,
                color: 'text-red-600',
                bgColor: 'bg-red-100',
-               label: 'Tiêu cực',
+               label: 'Anger',
             };
-         case 'NEUTRAL':
+         case 'FEAR':
+            return {
+               icon: Skull,
+               color: 'text-purple-600',
+               bgColor: 'bg-purple-100',
+               label: 'Fear',
+            };
+         case 'DISGUST':
+            return {
+               icon: Frown,
+               color: 'text-yellow-700',
+               bgColor: 'bg-yellow-100',
+               label: 'Disgust',
+            };
+         case 'SURPRISE':
+            return {
+               icon: Sparkles,
+               color: 'text-pink-600',
+               bgColor: 'bg-pink-100',
+               label: 'Surprise',
+            };
+         case 'OTHER':
             return {
                icon: Meh,
                color: 'text-gray-600',
                bgColor: 'bg-gray-100',
-               label: 'Trung lập',
+               label: 'Other',
             };
          default:
             return null;

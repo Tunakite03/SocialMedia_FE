@@ -10,11 +10,15 @@ export { messageService } from './messageService';
 export { notificationService } from './notificationService';
 export { callService } from './callService';
 export { socketService } from './socketService';
-export { webRTCService } from './webRTCService';
+export { livekitService } from './livekitService';
 export { storyService } from './storyService';
 export { notificationSoundService } from './notificationSoundService';
 export { speechToTextService } from './speechToTextService';
 export { sentimentService } from './sentimentService';
+export { dualAudioTranscriptService } from './dualAudioTranscriptService';
+export { sentimentQueue } from './sentimentQueue';
+export { livekitTranscriptionService } from './livekitTranscriptionService';
+export { emotionDetectionService } from './emotionDetectionService';
 
 // Export utilities
 export { TokenManager } from '@/utils/tokenManager';

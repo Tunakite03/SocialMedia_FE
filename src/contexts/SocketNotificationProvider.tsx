@@ -21,7 +21,7 @@ interface SocketNotificationContextType {
       type: string,
       message: string,
       entityId?: string,
-      entityType?: string
+      entityType?: string,
    ) => void;
 
    // Call management
@@ -55,7 +55,7 @@ interface SocketNotificationProviderProps {
 export const SocketNotificationProvider: React.FC<SocketNotificationProviderProps> = ({ children }) => {
    const { isAuthenticated, token } = useAuthStore();
    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>(
-      'disconnected'
+      'disconnected',
    );
    const [lastPing, setLastPing] = useState<Date | null>(null);
 
@@ -94,12 +94,13 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
    const initiateCall = useCallback(
       (receiverId: string, type: 'VOICE' | 'VIDEO') => {
          if (isConnected) {
-            socketService.initiateCall(receiverId, type);
+            const callId = crypto.randomUUID();
+            socketService.initiateCall(receiverId, type, callId);
          } else {
             console.warn('Cannot initiate call: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const acceptCall = useCallback(
@@ -110,7 +111,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot accept call: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const rejectCall = useCallback(
@@ -121,7 +122,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot reject call: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const endCall = useCallback(
@@ -132,7 +133,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot end call: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    // Messaging methods
@@ -149,7 +150,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot send message: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const markMessageAsRead = useCallback(
@@ -160,7 +161,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot mark message as read: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const startTyping = useCallback(
@@ -169,7 +170,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             socketService.startTyping(conversationId);
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const stopTyping = useCallback(
@@ -178,7 +179,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             socketService.stopTyping(conversationId);
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    // Room management methods
@@ -190,7 +191,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot join room: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const leaveRoom = useCallback(
@@ -201,7 +202,7 @@ export const SocketNotificationProvider: React.FC<SocketNotificationProviderProp
             console.warn('Cannot leave room: Socket not connected');
          }
       },
-      [isConnected]
+      [isConnected],
    );
 
    const contextValue: SocketNotificationContextType = {

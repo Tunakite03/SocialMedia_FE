@@ -18,18 +18,15 @@ export const useThemeStore = create<ThemeState>()(
          theme: 'light',
          language: 'vi',
          setTheme: (theme) => {
-            console.log('Setting theme to:', theme); // Debug log
             set({ theme });
             // Apply theme to document with multiple methods for compatibility
             const root = document.documentElement;
             if (theme === 'dark') {
                root.classList.add('dark');
                root.setAttribute('data-theme', 'dark');
-               console.log('Applied dark theme, classes:', root.className); // Debug log
             } else {
                root.classList.remove('dark');
                root.setAttribute('data-theme', 'light');
-               console.log('Applied light theme, classes:', root.className); // Debug log
             }
          },
          setLanguage: (language) => set({ language }),

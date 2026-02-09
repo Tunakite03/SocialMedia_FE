@@ -88,7 +88,6 @@ const MessageInput = ({
       // Send message
       if (selectedFile) {
          // TODO: Handle file upload
-         console.log('File upload:', selectedFile);
          // For now, just send as text with filename
          onSendMessage(`📎 ${selectedFile.name}`, 'FILE');
          setSelectedFile(null);

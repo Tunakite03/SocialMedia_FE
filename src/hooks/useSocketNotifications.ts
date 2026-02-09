@@ -28,7 +28,7 @@ export const useSocketNotifications = (): UseSocketNotificationsReturn => {
 
       // Start polling when callback is set
       if (callbackRef.current && !intervalRef.current) {
-         intervalRef.current = setInterval(pollForNotifications, 100); // Check every 100ms
+         intervalRef.current = setInterval(pollForNotifications, 100) as any as number; // Check every 100ms
       }
 
       // Cleanup interval when component unmounts
@@ -52,7 +52,7 @@ export const useSocketNotifications = (): UseSocketNotificationsReturn => {
             if (notification) {
                callbackRef.current(notification);
             }
-         }, 100);
+         }, 100) as any as number;
       }
    };
 

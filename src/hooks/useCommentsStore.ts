@@ -14,7 +14,6 @@ export const usePostComments = (postId: string) => {
    // Auto-fetch comments when component mounts
    useEffect(() => {
       if (postId && !loading && !hasInitiallyFetched.current.has(postId)) {
-         console.log('Fetching comments for post:', postId);
          hasInitiallyFetched.current.add(postId);
          fetchComments(postId);
       }

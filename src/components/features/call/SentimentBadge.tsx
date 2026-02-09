@@ -20,7 +20,7 @@ export const SentimentBadge = ({
       return (
          <div className='inline-flex items-center gap-1 text-white/50'>
             <Loader className='h-3 w-3 animate-spin' />
-            {showLabel && <span className='text-xs'>Đang phân tích...</span>}
+            {showLabel && <span className='text-xs'>Analyzing...</span>}
          </div>
       );
    }

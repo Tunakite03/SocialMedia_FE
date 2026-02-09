@@ -1,0 +1,570 @@
+/**
+ * Web Speech Transcription Hook
+ * Sử dụng Web Speech API + Socket.IO để real-time transcription
+ * Tích hợp với backend transcription service
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { socketService } from '@/services/socketService';
+
+// Web Speech API Type Definitions (minimal for TypeScript)
+interface SpeechRecognitionEvent extends Event {
+   results: SpeechRecognitionResultList;
+   resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+   error: string;
+   message: string;
+}
+
+interface TranscriptionData {
+   id?: string;
+   callId: string;
+   transcript: string;
+   speakerId: string;
+   speakerName: string;
+   speakerAvatar?: string;
+   isFinal: boolean;
+   confidence?: number;
+   timestamp: string;
+   segmentId?: string;
+   source: string;
+}
+
+interface UseWebSpeechTranscriptionOptions {
+   callId: string;
+   userId: string;
+   userName: string;
+   userAvatar?: string;
+   language?: string;
+   autoStart?: boolean;
+   onTranscript?: (data: TranscriptionData) => void;
+   onError?: (error: string) => void;
+}
+
+export const useWebSpeechTranscription = ({
+   callId,
+   userId,
+   userName,
+   userAvatar,
+   language = 'vi-VN',
+   autoStart = false,
+   onTranscript,
+   onError,
+}: UseWebSpeechTranscriptionOptions) => {
+   const [isConnected, setIsConnected] = useState(false);
+   const [isListening, setIsListening] = useState(false);
+   const [transcripts, setTranscripts] = useState<TranscriptionData[]>([]);
+   const [error, setError] = useState<string | null>(null);
+   const [isEnabled, setIsEnabled] = useState(false);
+
+   const recognitionRef = useRef<any>(null);
+   const isListeningRef = useRef(false);
+   const isStartingRef = useRef(false);
+   const currentSegmentIdRef = useRef<string>('');
+   const restartTimeoutRef = useRef<number | null>(null);
+   const restartAttemptRef = useRef(0);
+   const onTranscriptRef = useRef<UseWebSpeechTranscriptionOptions['onTranscript']>(onTranscript);
+   const onErrorRef = useRef<UseWebSpeechTranscriptionOptions['onError']>(onError);
+
+   // Keep latest callbacks without re-registering listeners
+   useEffect(() => {
+      onTranscriptRef.current = onTranscript;
+      onErrorRef.current = onError;
+   }, [onTranscript, onError]);
+
+   // Stop listening
+   const stopListening = useCallback(() => {
+      console.log('🛑 [useWebSpeechTranscription] stopListening() called');
+      console.log('🛑 [useWebSpeechTranscription] Setting isListeningRef.current = false to prevent auto-restart');
+      isListeningRef.current = false;
+      isStartingRef.current = false;
+      restartAttemptRef.current = 0;
+
+      // Clear any pending restart timeout
+      if (restartTimeoutRef.current) {
+         console.log('🛑 [useWebSpeechTranscription] Clearing restart timeout');
+         clearTimeout(restartTimeoutRef.current);
+         restartTimeoutRef.current = null;
+      }
+
+      if (recognitionRef.current) {
+         try {
+            console.log('🛑 [useWebSpeechTranscription] Calling recognition.stop()');
+            recognitionRef.current.stop();
+         } catch (error) {
+            console.error('❌ [useWebSpeechTranscription] Error stopping recognition:', error);
+         }
+         recognitionRef.current = null;
+         setIsListening(false);
+         currentSegmentIdRef.current = '';
+         console.log('✅ [useWebSpeechTranscription] Recognition stopped and cleaned up');
+      } else {
+         console.log('⚠️ [useWebSpeechTranscription] No recognition instance to stop');
+      }
+   }, []);
+
+   // Check browser support
+   const isSupportedBrowser = useCallback(() => {
+      return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+   }, []);
+
+   // Join call room once when callId changes
+   useEffect(() => {
+      if (!callId || !socketService.isConnected) return;
+
+      console.log('🔄 [Socket] Setting up transcription listeners for call:', callId);
+      socketService.joinCallRoom(callId);
+
+      // Only join once, don't cleanup/rejoin on every render
+      return () => {
+         console.log('🧹 [Socket] Cleaning up transcription listeners for call:', callId);
+         socketService.leaveCallRoom(callId);
+      };
+   }, [callId]); // Only re-run when callId changes
+
+   // Initialize Socket.IO listeners
+   useEffect(() => {
+      if (!callId) return;
+
+      // Check socket connection
+      setIsConnected(socketService.isConnected);
+
+      // Listen for room joined confirmation
+      const handleRoomJoined = (data: any) => {
+         console.log('✅ [Socket] Joined call room:', data.room);
+      };
+
+      // Listen for transcription history
+      const handleTranscriptionHistory = (data: any) => {
+         console.log('📜 [Socket] Received history:', data.transcripts?.length || 0, 'transcripts');
+         if (data.transcripts && data.transcripts.length > 0) {
+            // Load history in reverse order (oldest first)
+            setTranscripts(data.transcripts.reverse());
+         }
+      };
+
+      // Listen for transcription events
+      const handleTranscriptionEnabled = () => {
+         setIsEnabled(true);
+         setError(null);
+      };
+
+      const handleTranscriptionDisabled = () => {
+         setIsEnabled(false);
+         stopListening();
+      };
+
+      const handleTranscriptionData = (data: TranscriptionData) => {
+         console.log('📥 [Socket] Received transcript:', {
+            transcript: data.transcript.substring(0, 50),
+            isFinal: data.isFinal,
+            speakerId: data.speakerId,
+            source: data.source,
+            isFromMe: data.speakerId === userId,
+         });
+
+         // Skip if this is our own transcript (already added optimistically)
+         if (data.speakerId === userId && data.source === 'web_speech_api') {
+            console.log('⏭️ [Socket] Skipping own transcript (already added optimistically)');
+            return;
+         }
+
+         // Only keep final transcripts from backend
+         if (!data.isFinal) {
+            console.log('⏭️ [Socket] Skipping interim transcript (not final)');
+            return;
+         }
+
+         setTranscripts((prev) => {
+            // Add new final transcript to the end so newest is at the bottom
+            const next = [...prev, data];
+            return next.length > 100 ? next.slice(next.length - 100) : next;
+         });
+
+         onTranscriptRef.current?.(data);
+      };
+
+      const handleTranscriptionError = (data: any) => {
+         const errorMsg = data.error || data.message || 'Unknown error';
+         console.error('Transcription error:', errorMsg);
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+      };
+
+      // Listen for call room errors
+      const handleCallError = (data: any) => {
+         console.error('❌ [Socket] Call error:', data.error);
+         const errorMsg = data.error || 'Call room error';
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+      };
+
+      // Listen for room left confirmation
+      const handleRoomLeft = (data: any) => {
+         console.log('👋 [Socket] Left call room:', data.room);
+      };
+
+      // Register listeners
+      socketService.on('call:room-joined', handleRoomJoined);
+      socketService.on('call:transcription-history', handleTranscriptionHistory);
+      socketService.on('call:transcription:enabled', handleTranscriptionEnabled);
+      socketService.on('call:transcription:disabled', handleTranscriptionDisabled);
+      socketService.on('call:transcription', handleTranscriptionData);
+      socketService.on('call:transcription:error', handleTranscriptionError);
+      socketService.on('call:error', handleCallError);
+      socketService.on('call:room-left', handleRoomLeft);
+
+      // Cleanup
+      return () => {
+         // Don't leave room here - handled by separate effect above
+         socketService.off('call:room-joined', handleRoomJoined);
+         socketService.off('call:transcription-history', handleTranscriptionHistory);
+         socketService.off('call:transcription:enabled', handleTranscriptionEnabled);
+         socketService.off('call:transcription:disabled', handleTranscriptionDisabled);
+         socketService.off('call:transcription', handleTranscriptionData);
+         socketService.off('call:transcription:error', handleTranscriptionError);
+         socketService.off('call:error', handleCallError);
+         socketService.off('call:room-left', handleRoomLeft);
+      };
+   }, [callId, userId, stopListening]);
+
+   // Enable transcription on backend
+   const enableTranscription = useCallback(() => {
+      if (!socketService.isConnected) {
+         const errorMsg = 'Socket chưa kết nối';
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+         return false;
+      }
+
+      socketService.emit('call:transcription:enable', {
+         callId,
+         language,
+      });
+
+      return true;
+   }, [callId, language]);
+
+   // Disable transcription on backend
+   const disableTranscription = useCallback(() => {
+      if (!socketService.isConnected) return;
+
+      socketService.emit('call:transcription:disable', {
+         callId,
+      });
+   }, [callId]);
+
+   // Start listening
+   const startListening = useCallback(() => {
+      // Prevent duplicate starts
+      if (isStartingRef.current || isListeningRef.current) {
+         console.log('Recognition already starting or started, skipping');
+         return true; // Return true to indicate it's already running
+      }
+
+      if (!isSupportedBrowser()) {
+         const errorMsg = 'Browser không hỗ trợ Web Speech API. Vui lòng sử dụng Chrome, Edge, hoặc Safari.';
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+         return false;
+      }
+
+      if (!socketService.isConnected) {
+         const errorMsg = 'Socket chưa kết nối tới server';
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+         return false;
+      }
+
+      if (!isEnabled) {
+         // Auto enable if not enabled
+         const enabled = enableTranscription();
+         if (!enabled) return false;
+      }
+
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = language;
+      recognitionRef.current.maxAlternatives = 1;
+
+      recognitionRef.current.onstart = () => {
+         console.log('🎤 Started listening');
+         setIsListening(true);
+         isListeningRef.current = true;
+         isStartingRef.current = false;
+         setError(null);
+         // Reset restart attempt counter on successful start
+         restartAttemptRef.current = 0;
+      };
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+         const last = event.results.length - 1;
+         const result = event.results[last];
+         const transcript = result[0].transcript.trim();
+         const isFinal = result.isFinal;
+         const confidence = result[0].confidence;
+
+         console.log('🎤 [Recognition] Received:', {
+            transcript: transcript.substring(0, 50),
+            isFinal,
+            confidence,
+            length: transcript.length,
+         });
+
+         // Generate or reuse segment ID
+         if (isFinal || !currentSegmentIdRef.current) {
+            currentSegmentIdRef.current = `webspeech_${userId}_${Date.now()}`;
+         }
+
+         const segmentId = currentSegmentIdRef.current;
+
+         const transcriptData = {
+            callId,
+            transcript,
+            isFinal,
+            confidence,
+            language,
+            segmentId,
+            speakerId: userId,
+            speakerName: userName,
+            speakerAvatar: userAvatar,
+            source: 'web_speech_api',
+            timestamp: new Date().toISOString(),
+         };
+
+         // Chỉ xử lý và gửi transcript khi Web Speech API kết thúc câu (isFinal = true)
+         if (isFinal) {
+            console.log('📤 [Socket] Emitting FINAL transcript:', {
+               transcript: transcript.substring(0, 50),
+               isFinal,
+               segmentId,
+            });
+
+            // Optimistic update: chỉ lưu final transcripts vào state local
+            setTranscripts((prev) => {
+               const next = [...prev, transcriptData as TranscriptionData];
+               return next.length > 100 ? next.slice(next.length - 100) : next;
+            });
+
+            // Gửi lên backend qua Socket.IO sau khi câu đã hoàn thành
+            socketService.emit('call:transcription:text', transcriptData);
+
+            // Clear segment ID khi đã xong câu hiện tại
+            currentSegmentIdRef.current = '';
+         }
+      };
+
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+         console.error('Recognition error:', event.error);
+
+         // Reset starting flag on error
+         isStartingRef.current = false;
+
+         // Ignore no-speech and aborted errors (common and recoverable)
+         if (event.error === 'no-speech' || event.error === 'aborted') {
+            // These are normal, just log and continue
+            console.log('Recoverable error, will auto-restart');
+            return;
+         }
+
+         // Handle serious errors
+         const errorMsg = `Speech recognition error: ${event.error}`;
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+
+         // Only stop on serious errors
+         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            isListeningRef.current = false;
+            stopListening();
+         }
+      };
+
+      recognitionRef.current.onend = () => {
+         console.log('🔚 [useWebSpeechTranscription] Recognition ended (onend event)');
+         console.log('🔚 [useWebSpeechTranscription] Current state:', {
+            isListeningRef: isListeningRef.current,
+            isEnabled,
+            restartAttempts: restartAttemptRef.current,
+         });
+
+         // Reset starting flag
+         isStartingRef.current = false;
+
+         // Clear any pending restart timeout
+         if (restartTimeoutRef.current) {
+            clearTimeout(restartTimeoutRef.current);
+            restartTimeoutRef.current = null;
+         }
+
+         // Auto-restart if still supposed to be listening
+         if (isListeningRef.current && isEnabled) {
+            // Limit restart attempts to prevent infinite loops
+            if (restartAttemptRef.current > 10) {
+               console.error('❌ Too many restart attempts, stopping recognition');
+               isListeningRef.current = false;
+               setIsListening(false);
+               setError('Recognition stopped due to too many restart attempts');
+               restartAttemptRef.current = 0;
+               return;
+            }
+
+            console.log(`🔄 [useWebSpeechTranscription] WILL AUTO-RESTART in 500ms... (attempt ${restartAttemptRef.current + 1})`);
+            restartAttemptRef.current++;
+            
+            restartTimeoutRef.current = setTimeout(() => {
+               // Double check we still want to listen and not already starting
+               if (isListeningRef.current && recognitionRef.current && !isStartingRef.current) {
+                  try {
+                     console.log('✅ [useWebSpeechTranscription] Auto-restarting recognition NOW...');
+                     isStartingRef.current = true;
+                     recognitionRef.current.start();
+                  } catch (error) {
+                     console.error('❌ Error restarting recognition:', error);
+                     isStartingRef.current = false;
+                     // If restart fails, mark as not listening
+                     isListeningRef.current = false;
+                     setIsListening(false);
+                     restartAttemptRef.current = 0;
+                  }
+               } else {
+                  console.log('⏭️ [useWebSpeechTranscription] Skip restart - already starting or stopped');
+               }
+            }, 500) as any as number; // Increased delay to 500ms for better stability
+         } else {
+            console.log('⏸️ [useWebSpeechTranscription] NOT restarting - isListeningRef.current or isEnabled is false');
+            setIsListening(false);
+            restartAttemptRef.current = 0;
+         }
+      };
+
+      try {
+         isStartingRef.current = true;
+         recognitionRef.current.start();
+         return true;
+      } catch (error) {
+         console.error('Error starting recognition:', error);
+         isStartingRef.current = false;
+         const errorMsg = error instanceof Error ? error.message : 'Failed to start recognition';
+         setError(errorMsg);
+         onErrorRef.current?.(errorMsg);
+         return false;
+      }
+   }, [callId, userId, userName, userAvatar, language, isEnabled, isSupportedBrowser, enableTranscription, stopListening]);
+
+   // Clear transcripts
+   const clearTranscripts = useCallback(() => {
+      setTranscripts([]);
+   }, []);
+
+   /**
+    * Lấy sentiment summary cho cuộc gọi
+    * @param speakerFilter - 'all' | 'local' | 'remote'
+    * Mặc định 'remote' để phân tích cảm xúc của NGƯỜI ĐỐI DIỆN
+    */
+   const getCallSentimentSummary = useCallback(async (speakerFilter: 'all' | 'local' | 'remote' = 'remote') => {
+      let filteredTranscripts = transcripts.filter(t => t.isFinal);
+
+      // Filter theo speaker
+      if (speakerFilter === 'remote') {
+         // Chỉ lấy transcript của người khác (không phải mình)
+         filteredTranscripts = filteredTranscripts.filter(t => t.speakerId !== userId);
+      } else if (speakerFilter === 'local') {
+         // Chỉ lấy transcript của mình
+         filteredTranscripts = filteredTranscripts.filter(t => t.speakerId === userId);
+      }
+
+      const texts = filteredTranscripts.map(t => t.transcript);
+
+      if (texts.length === 0) {
+         console.log(`[useWebSpeechTranscription] Không có transcript nào cho speaker: ${speakerFilter}`);
+         return null;
+      }
+
+      try {
+         const { sentimentService } = await import('@/services/sentimentService');
+         const result = await sentimentService.analyzeCallOverall(texts);
+         
+         return {
+            ...result,
+            speakerAnalyzed: speakerFilter,
+            entriesCount: filteredTranscripts.length,
+            speakerNames: [...new Set(filteredTranscripts.map(t => t.speakerName))],
+         };
+      } catch (error) {
+         console.error('Error getting call sentiment summary:', error);
+         return null;
+      }
+   }, [transcripts, userId]);
+
+   /**
+    * Lấy số lượng transcript theo speaker
+    */
+   const getTranscriptCounts = useCallback(() => {
+      const local = transcripts.filter(t => t.isFinal && t.speakerId === userId).length;
+      const remote = transcripts.filter(t => t.isFinal && t.speakerId !== userId).length;
+      return { local, remote, total: local + remote };
+   }, [transcripts, userId]);
+
+   /**
+    * Lấy transcripts của người đối diện
+    */
+   const getRemoteTranscripts = useCallback(() => {
+      return transcripts.filter(t => t.isFinal && t.speakerId !== userId);
+   }, [transcripts, userId]);
+
+   // Auto-enable transcription and start listening
+   useEffect(() => {
+      if (isConnected && !isEnabled) {
+         // Auto-enable transcription
+         enableTranscription();
+      }
+   }, [isConnected, isEnabled, enableTranscription]);
+
+   // Auto-start if enabled
+   useEffect(() => {
+      if (autoStart && isConnected && isEnabled && !isListening && !isStartingRef.current) {
+         const timer = setTimeout(() => {
+            startListening();
+         }, 1000);
+         return () => clearTimeout(timer);
+      }
+   }, [autoStart, isConnected, isEnabled, isListening, startListening]);
+
+   // Cleanup on unmount
+   useEffect(() => {
+      return () => {
+         stopListening();
+         if (isEnabled) {
+            disableTranscription();
+         }
+      };
+   }, [isEnabled, stopListening, disableTranscription]);
+
+   return {
+      // Status
+      isConnected,
+      isListening,
+      isEnabled,
+      isSupportedBrowser: isSupportedBrowser(),
+      error,
+
+      // Data
+      transcripts,
+
+      // Actions
+      enableTranscription,
+      disableTranscription,
+      startListening,
+      stopListening,
+      clearTranscripts,
+
+      // Sentiment Analysis (phân tích cảm xúc)
+      getCallSentimentSummary, // Mặc định phân tích REMOTE (người đối diện)
+      getTranscriptCounts,
+      getRemoteTranscripts,
+   };
+};

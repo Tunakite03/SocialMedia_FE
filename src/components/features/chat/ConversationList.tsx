@@ -203,7 +203,6 @@ const ConversationList = ({}: ConversationListProps) => {
                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
                <input
                   type='text'
-                  placeholder='Search conversations...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className='w-full pl-9 pr-3 py-2 bg-muted/50 border border-border rounded-lg'
@@ -235,9 +234,7 @@ const ConversationList = ({}: ConversationListProps) => {
                      {searchTerm.trim() ? 'No conversations found' : 'No conversations yet'}
                   </h3>
                   <p className='text-muted-foreground mb-4'>
-                     {searchTerm.trim()
-                        ? 'Try adjusting your search terms'
-                        : 'Start a conversation to connect with others ✨'}
+                     {searchTerm.trim() ? 'Try adjusting your search terms' : ''}
                   </p>
                   {!searchTerm.trim() && (
                      <Button

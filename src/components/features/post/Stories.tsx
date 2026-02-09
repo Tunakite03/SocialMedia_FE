@@ -13,12 +13,10 @@ const Stories = ({}: StoriesProps) => {
    const handleStoryClick = (storyId: string) => {
       markAsViewed(storyId);
       // TODO: Open story viewer modal
-      console.log('Open story:', storyId);
    };
 
    const handleCreateStory = () => {
       // TODO: Open create story modal
-      console.log('Create new story');
    };
 
    if (loading) {

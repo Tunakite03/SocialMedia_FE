@@ -1,12 +1,11 @@
 import { Outlet } from 'react-router-dom';
-import CallProvider from '@/contexts/CallProvider';
+import { LiveKitCallProvider } from '@/contexts/LiveKitCallProvider';
 
 const AppLayout = () => {
    return (
-      <CallProvider>
+      <LiveKitCallProvider>
          <Outlet />
-      
-      </CallProvider>
+      </LiveKitCallProvider>
    );
 };
 

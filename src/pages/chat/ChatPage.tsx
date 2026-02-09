@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ConversationList, MessageBubble, MessageInput } from '@/components/features/chat';
 import { ArrowLeft, Phone, Video, MoreVertical, Users } from 'lucide-react';
 import { useMobile } from '@/hooks/useMobile';
-import { useCallManager } from '@/hooks/useCallManager';
+import { useLiveKitCall } from '@/contexts/LiveKitCallProvider';
 import type { Conversation, Message } from '@/types';
 import ChatLayout from '@/components/layout/ChatLayout';
 const ChatPage = () => {
@@ -51,7 +51,7 @@ const ChatPage = () => {
       resetConversationUnreadCount,
    } = useChatStore();
 
-   const { initiateCall } = useCallManager();
+   const { initiateCall } = useLiveKitCall();
 
    const currentMessages = conversationId ? messages[conversationId] || [] : [];
    const currentTypingUsers = conversationId ? typingUsers[conversationId] || [] : [];
@@ -180,7 +180,7 @@ const ChatPage = () => {
             resetConversationUnreadCount(conversationId);
          } catch (error) {}
       },
-      [conversationId, resetUnreadCount, resetConversationUnreadCount]
+      [conversationId, resetUnreadCount, resetConversationUnreadCount],
    );
 
    // Track window focus for read receipts
@@ -266,7 +266,7 @@ const ChatPage = () => {
          addMessage,
          addConversation,
          incrementConversationUnreadCount,
-      ]
+      ],
    );
 
    const handleMessageUpdate = useCallback(
@@ -275,7 +275,7 @@ const ChatPage = () => {
             updateMessage(updatedMessage.id, conversationId, updatedMessage);
          }
       },
-      [conversationId, updateMessage]
+      [conversationId, updateMessage],
    );
 
    const handleMessageDelete = useCallback(
@@ -284,7 +284,7 @@ const ChatPage = () => {
             removeMessage(data.id, conversationId);
          }
       },
-      [conversationId, removeMessage]
+      [conversationId, removeMessage],
    );
 
    const handleTypingStart = useCallback(
@@ -293,7 +293,7 @@ const ChatPage = () => {
             addTypingUser(conversationId, data.userId);
          }
       },
-      [conversationId, user?.id, addTypingUser]
+      [conversationId, user?.id, addTypingUser],
    );
 
    const handleTypingStop = useCallback(
@@ -302,7 +302,7 @@ const ChatPage = () => {
             removeTypingUser(conversationId, data.userId);
          }
       },
-      [conversationId, removeTypingUser]
+      [conversationId, removeTypingUser],
    );
 
    // Enhanced read event handlers with performance optimization
@@ -319,7 +319,7 @@ const ChatPage = () => {
             lastReadMessageId: data.lastReadMessageId,
          });
       },
-      [conversationId, updateConversation]
+      [conversationId, updateConversation],
    );
 
    const handleMessagesReadSuccess = useCallback(
@@ -327,7 +327,7 @@ const ChatPage = () => {
          // Update unread count based on server response
          updateConvUnreadCount(data.conversationId, data.unreadCount);
       },
-      [updateConvUnreadCount]
+      [updateConvUnreadCount],
    );
 
    const handleMessagesReadError = useCallback((data: { error: string }) => {
@@ -342,7 +342,7 @@ const ChatPage = () => {
          // Mark messages as read for the user who read them
          markMessagesAsRead(readBy, conversationId, readAt);
       },
-      [conversationId, markMessagesAsRead]
+      [conversationId, markMessagesAsRead],
    );
 
    // Message actions
@@ -452,8 +452,8 @@ const ChatPage = () => {
             subtitle: otherParticipant.user.isOnline
                ? 'Online'
                : otherParticipant.user.lastSeen
-               ? `Last seen ${new Date(otherParticipant.user.lastSeen).toLocaleString()}`
-               : 'Offline',
+                 ? `Last seen ${new Date(otherParticipant.user.lastSeen).toLocaleString()}`
+                 : 'Offline',
          };
       }
 
@@ -469,8 +469,17 @@ const ChatPage = () => {
       const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
       if (otherParticipant) {
          try {
-            await initiateCall(otherParticipant.user, 'audio');
-            navigate('/call');
+            const callId = await initiateCall(currentConversation.id, 'audio');
+            if (callId) {
+               const params = new URLSearchParams({
+                  callId,
+                  type: 'audio',
+                  receiver: otherParticipant.user.displayName || otherParticipant.user.username,
+                  receiverAvatar: otherParticipant.user.avatar || '',
+                  receiverId: otherParticipant.user.id,
+               });
+               navigate(`/call/livekit?${params.toString()}`);
+            }
          } catch (error) {
             console.error('Failed to initiate voice call:', error);
          }
@@ -483,8 +492,17 @@ const ChatPage = () => {
       const otherParticipant = currentConversation.participants.find((p) => p.user.id !== user?.id);
       if (otherParticipant) {
          try {
-            await initiateCall(otherParticipant.user, 'video');
-            navigate('/call');
+            const callId = await initiateCall(currentConversation.id, 'video');
+            if (callId) {
+               const params = new URLSearchParams({
+                  callId,
+                  type: 'video',
+                  receiver: otherParticipant.user.displayName || otherParticipant.user.username,
+                  receiverAvatar: otherParticipant.user.avatar || '',
+                  receiverId: otherParticipant.user.id,
+               });
+               navigate(`/call/livekit?${params.toString()}`);
+            }
          } catch (error) {
             console.error('Failed to initiate video call:', error);
          }

@@ -13,6 +13,8 @@ export default defineConfig({
    },
    server: {
       port: 3000,
+      // Removed CORS headers - not needed for face-api.js
+      // These headers were blocking Cloudinary images
    },
    build: {
       outDir: path.resolve(__dirname, './dist'),
@@ -20,5 +22,9 @@ export default defineConfig({
    css: {
       devSourcemap: true,
    },
-   
+   // Optimize WASM and ONNX model files
+   optimizeDeps: {
+      exclude: ['onnxruntime-web'],
+   },
+   assetsInclude: ['**/*.onnx', '**/*.wasm'],
 });

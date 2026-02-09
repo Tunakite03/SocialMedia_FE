@@ -137,13 +137,13 @@ const ProfilePage = () => {
             <div className='p-4 text-center'>
                <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
                   <div className='relative mb-6'>
-                     <div className='anime-spinner w-12 h-12 border-4 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4 anime-bounce'></div>
+                     <div className='anime-spinner w-12 h-12 border-4 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4'></div>
                      <div className='absolute inset-0 flex items-center justify-center'>
                         <div className='text-3xl anime-pulse'>👤</div>
                      </div>
                   </div>
                   <div className='space-y-3'>
-                     <h3 className='font-anime font-bold text-lg text-hsl(var(--primary)) anime-float'>
+                     <h3 className='font-anime font-bold text-lg text-hsl(var(--primary)) '>
                         {isOwner ? 'Loading your profile...' : 'Loading profile...'}
                      </h3>
                      <p className='text-sm text-hsl(var(--muted-foreground)) font-anime'>Please wait a moment ✨</p>
@@ -160,7 +160,7 @@ const ProfilePage = () => {
          <InstagramLayout>
             <div className='p-4 text-center'>
                <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
-                  <div className='text-6xl mb-6 anime-bounce'>😔</div>
+                  <div className='text-6xl mb-6'>😔</div>
                   <div className='space-y-4'>
                      <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>User not found</h3>
                      <p className='text-hsl(var(--muted-foreground)) font-anime'>
@@ -193,7 +193,7 @@ const ProfilePage = () => {
          <InstagramLayout>
             <div className='p-4 text-center'>
                <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
-                  <div className='text-6xl mb-6 anime-bounce'>🔍</div>
+                  <div className='text-6xl mb-6'>🔍</div>
                   <div className='space-y-4'>
                      <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>User not found</h3>
                      <p className='text-hsl(var(--muted-foreground)) font-anime'>
@@ -226,7 +226,7 @@ const ProfilePage = () => {
          <InstagramLayout>
             <div className='p-4 text-center'>
                <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
-                  <div className='text-6xl mb-6 anime-bounce'>⚠️</div>
+                  <div className='text-6xl mb-6'>⚠️</div>
                   <div className='space-y-4'>
                      <h3 className='font-anime font-bold text-xl text-hsl(var(--primary))'>Profile Error</h3>
                      <p className='text-hsl(var(--muted-foreground)) font-anime'>
@@ -255,8 +255,8 @@ const ProfilePage = () => {
 
    // Get real data from API - profile có _count, currentUser thì không
    const userPosts = posts || [];
-   const followersCount = (displayUser as any)?._count?.followers || 0;
-   const followingCount = (displayUser as any)?._count?.following || 0;
+   const followersCount = (displayUser as any)?._count?.following || 0;
+   const followingCount = (displayUser as any)?._count?.followers || 0;
    const postsCount = (displayUser as any)?._count?.posts || userPosts.length || 0;
 
    return (
@@ -296,7 +296,7 @@ const ProfilePage = () => {
                <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 items-start'>
                   {/* Avatar Section */}
                   <div className='flex flex-col items-center sm:items-start'>
-                     <div className='relative w-24 h-24 rounded-full overflow-hidden shrink-0 ring-4 ring-white shadow-lg anime-float'>
+                     <div className='relative w-24 h-24 rounded-full overflow-hidden shrink-0 ring-4 ring-white shadow-lg '>
                         {displayUser.avatar ? (
                            <img
                               src={displayUser.avatar}
@@ -357,25 +357,21 @@ const ProfilePage = () => {
                   <div className='sm:col-span-2'>
                      <div className='grid grid-cols-3 gap-4 mb-4'>
                         <div className='text-center card-liquid-glass-blue p-3 rounded-xl anime-hover-scale cursor-pointer transition-all'>
-                           <div className='text-xl font-bold text-hsl(var(--primary)) anime-bounce'>{postsCount}</div>
+                           <div className='text-xl font-bold text-hsl(var(--primary))'>{postsCount}</div>
                            <div className='text-sm text-hsl(var(--muted-foreground)) font-anime'>Posts</div>
                         </div>
                         <div
                            className='text-center card-liquid-glass-purple p-3 rounded-xl anime-hover-scale cursor-pointer transition-all'
                            onClick={followersModal.openModal}
                         >
-                           <div className='text-xl font-bold text-hsl(var(--primary)) anime-bounce'>
-                              {followersCount}
-                           </div>
+                           <div className='text-xl font-bold text-hsl(var(--primary))'>{followersCount}</div>
                            <div className='text-sm text-hsl(var(--muted-foreground)) font-anime'>Followers</div>
                         </div>
                         <div
                            className='text-center card-liquid-glass-accent p-3 rounded-xl anime-hover-scale cursor-pointer transition-all'
                            onClick={followingModal.openModal}
                         >
-                           <div className='text-xl font-bold text-hsl(var(--primary)) anime-bounce'>
-                              {followingCount}
-                           </div>
+                           <div className='text-xl font-bold text-hsl(var(--primary))'>{followingCount}</div>
                            <div className='text-sm text-hsl(var(--muted-foreground)) font-anime'>Following</div>
                         </div>
                      </div>
@@ -436,7 +432,7 @@ const ProfilePage = () => {
                </div>
 
                {/* Bio Section */}
-               <div className='mt-4 p-4 card-liquid-glass-accent rounded-xl anime-slide-in-left'>
+               <div className='mt-4 p-4 card-liquid-glass-accent rounded-xl '>
                   <div className='text-sm text-hsl(var(--foreground)) leading-relaxed font-anime'>
                      <div className='text-hsl(var(--muted-foreground))'>
                         {displayUser.bio ? displayUser.bio : <span className='italic'>No bio available</span>}
@@ -518,13 +514,13 @@ const ProfilePage = () => {
                         <div className='col-span-3 py-16 text-center'>
                            <div className='card-liquid-glass-animate max-w-sm mx-auto p-8 rounded-2xl'>
                               <div className='relative mb-6'>
-                                 <div className='anime-spinner w-12 h-12 border-4 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4 anime-bounce'></div>
+                                 <div className='anime-spinner w-12 h-12 border-4 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4'></div>
                                  <div className='absolute inset-0 flex items-center justify-center'>
                                     <div className='text-3xl anime-pulse'>📸</div>
                                  </div>
                               </div>
                               <div className='space-y-3'>
-                                 <h3 className='font-anime font-bold text-lg text-hsl(var(--primary)) anime-float'>
+                                 <h3 className='font-anime font-bold text-lg text-hsl(var(--primary)) '>
                                     Loading your posts...
                                  </h3>
                                  <p className='text-sm text-hsl(var(--muted-foreground)) font-anime'>
@@ -532,15 +528,15 @@ const ProfilePage = () => {
                                  </p>
                                  <div className='flex justify-center space-x-1 mt-4'>
                                     <div
-                                       className='w-2 h-2 bg-hsl(var(--primary)) rounded-full anime-bounce'
+                                       className='w-2 h-2 bg-hsl(var(--primary)) rounded-full'
                                        style={{ animationDelay: '0ms' }}
                                     ></div>
                                     <div
-                                       className='w-2 h-2 bg-hsl(var(--secondary)) rounded-full anime-bounce'
+                                       className='w-2 h-2 bg-hsl(var(--secondary)) rounded-full'
                                        style={{ animationDelay: '200ms' }}
                                     ></div>
                                     <div
-                                       className='w-2 h-2 bg-hsl(var(--accent)) rounded-full anime-bounce'
+                                       className='w-2 h-2 bg-hsl(var(--accent)) rounded-full'
                                        style={{ animationDelay: '400ms' }}
                                     ></div>
                                  </div>
@@ -583,8 +579,8 @@ const ProfilePage = () => {
                            </div>
                         ))
                      ) : (
-                        <div className='col-span-3 py-16 text-center anime-float'>
-                           <div className='text-6xl mb-6 anime-bounce'>📸</div>
+                        <div className='col-span-4 py-16 text-center '>
+                           <div className='text-6xl mb-6'>📸</div>
                            <h3 className='text-xl font-anime font-bold text-hsl(var(--primary)) mb-2'>
                               {isOwner
                                  ? 'No posts yet'
@@ -596,7 +592,7 @@ const ProfilePage = () => {
                            {isOwner && (
                               <Link to='/create'>
                                  <button className='card-liquid-glass-blue py-3 px-6 rounded-xl font-anime font-semibold anime-hover-lift transition-all'>
-                                    ✨ Create Post
+                                     Create Post
                                  </button>
                               </Link>
                            )}
@@ -606,7 +602,7 @@ const ProfilePage = () => {
                )}
 
                {activeTab === 'saved' && (
-                  <div className='col-span-3 py-16 text-center anime-float'>
+                  <div className='col-span-3 py-16 text-center '>
                      <div className='w-20 h-20 mx-auto mb-6 card-liquid-glass-purple rounded-full flex items-center justify-center'>
                         <Bookmark
                            size={40}
@@ -619,7 +615,7 @@ const ProfilePage = () => {
                )}
 
                {activeTab === 'tagged' && (
-                  <div className='col-span-3 py-16 text-center anime-float'>
+                  <div className='col-span-3 py-16 text-center '>
                      <div className='w-20 h-20 mx-auto mb-6 card-liquid-glass-accent rounded-full flex items-center justify-center'>
                         <Tag
                            size={40}
@@ -648,7 +644,7 @@ const ProfilePage = () => {
 
             {/* Followers Modal with enhanced styling */}
             {followersModal.isOpen && (
-               <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 anime-slide-in-left'>
+               <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 '>
                   <div className='card-liquid-glass-animate w-full max-w-md max-h-[70vh] overflow-hidden rounded-2xl border-2 border-white/20'>
                      <div className='flex items-center justify-between p-6 border-b border-white/10'>
                         <h2 className='text-xl font-anime font-bold text-white flex items-center gap-2'>Followers</h2>
@@ -664,7 +660,7 @@ const ProfilePage = () => {
                      </div>
                      <div className='p-4 overflow-y-auto max-h-96'>
                         {followersModal.loading ? (
-                           <div className='text-center py-12 anime-float'>
+                           <div className='text-center py-12 '>
                               <div className='anime-spinner w-8 h-8 border-3 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4'></div>
                               <p className='text-hsl(var(--muted-foreground)) font-anime text-lg'>
                                  Loading followers...
@@ -700,7 +696,7 @@ const ProfilePage = () => {
                               </div>
                            ))
                         ) : (
-                           <div className='text-center py-12 text-hsl(var(--muted-foreground)) anime-float'>
+                           <div className='text-center py-12 text-hsl(var(--muted-foreground)) '>
                               <div className='text-4xl mb-4'>👤</div>
                               <p className='font-anime'>No followers yet</p>
                            </div>
@@ -712,7 +708,7 @@ const ProfilePage = () => {
 
             {/* Following Modal with enhanced styling */}
             {followingModal.isOpen && (
-               <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 anime-slide-in-right'>
+               <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 '>
                   <div className='card-liquid-glass-animate w-full max-w-md max-h-[70vh] overflow-hidden rounded-2xl border-2 border-white/20'>
                      <div className='flex items-center justify-between p-6 border-b border-white/10'>
                         <h2 className='text-xl font-anime font-bold text-white flex items-center gap-2'>Following</h2>
@@ -728,7 +724,7 @@ const ProfilePage = () => {
                      </div>
                      <div className='p-4 overflow-y-auto max-h-96 '>
                         {followingModal.loading ? (
-                           <div className='text-center py-12 anime-float'>
+                           <div className='text-center py-12 '>
                               <div className='anime-spinner w-8 h-8 border-3 border-hsl(var(--primary)) border-t-transparent rounded-full mx-auto mb-4'></div>
                               <p className='text-muted-foreground font-anime text-lg'>Loading following...</p>
                            </div>
@@ -760,7 +756,7 @@ const ProfilePage = () => {
                               </div>
                            ))
                         ) : (
-                           <div className='text-center py-12 text-hsl(var(--muted-foreground)) anime-float'>
+                           <div className='text-center py-12 text-hsl(var(--muted-foreground)) '>
                               <p className='font-anime'>Not following anyone yet</p>
                            </div>
                         )}

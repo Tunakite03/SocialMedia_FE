@@ -183,7 +183,6 @@ class NotificationSoundService {
    public async preloadSounds(): Promise<void> {
       try {
          await this.initAudioContext();
-         console.log('🔊 Notification sounds preloaded');
       } catch (error) {
          console.warn('Failed to preload sounds:', error);
       }

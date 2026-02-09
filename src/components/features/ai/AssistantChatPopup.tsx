@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Trash2, Brain, Settings, Sparkles, GripVertical, X, AlertCircle } from 'lucide-react';
+import { Send, Trash2, Brain, GripVertical, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,8 +24,6 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
    const [isMobile, setIsMobile] = useState(false);
    const [showClearConfirm, setShowClearConfirm] = useState(false);
-   const [showSettings, setShowSettings] = useState(false);
-   const [apiKey, setApiKey] = useState('');
    const [isInitialized, setIsInitialized] = useState(false);
    const [error, setError] = useState<string | null>(null);
    const scrollRef = useRef<HTMLDivElement>(null);
@@ -41,24 +39,26 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
       return () => window.removeEventListener('resize', checkMobile);
    }, []);
 
-   // Load saved popup position and API key
+   // Load saved popup position and initialize Groq with env API key
    useEffect(() => {
       const saved = localStorage.getItem('ai-popup-position');
       if (saved) {
          setPopupPosition(JSON.parse(saved));
       }
 
-      // Load saved API key
-      const savedApiKey = localStorage.getItem('groq-api-key');
-      if (savedApiKey) {
-         setApiKey(savedApiKey);
+      // Load API key from environment variable
+      const envApiKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (envApiKey) {
          try {
-            groqService.initialize(savedApiKey);
+            groqService.initialize(envApiKey);
             setIsInitialized(true);
          } catch (err) {
             console.error('Failed to initialize Groq service:', err);
-            setError('Không thể khởi tạo dịch vụ. Vui lòng kiểm tra API key.');
+
+            setError('Không thể khởi tạo dịch vụ. Vui lòng kiểm tra VITE_GROQ_API_KEY trong .env');
          }
+      } else {
+         setError('Chưa cấu hình API KEY');
       }
    }, []);
 
@@ -112,8 +112,7 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
          const greeting: AIMessage = {
             id: Date.now().toString(),
             role: 'assistant',
-            content:
-               'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Tôi sử dụng Groq AI để trò chuyện với bạn. Hãy hỏi tôi bất cứ điều gì! 😊',
+            content: 'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Hãy hỏi tôi bất cứ điều gì! 😊',
             timestamp: new Date(),
          };
          setMessages([greeting]);
@@ -132,7 +131,6 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
 
       if (!isInitialized) {
          setError('Vui lòng cấu hình API key trước!');
-         setShowSettings(true);
          return;
       }
 
@@ -198,32 +196,6 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
       setShowClearConfirm(false);
    };
 
-   const handleSaveApiKey = () => {
-      if (!apiKey.trim()) {
-         setError('Vui lòng nhập API key');
-         return;
-      }
-
-      try {
-         localStorage.setItem('groq-api-key', apiKey);
-         groqService.initialize(apiKey);
-         setIsInitialized(true);
-         setShowSettings(false);
-         setError(null);
-
-         // Add greeting message
-         const greeting: AIMessage = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: 'Xin chào! Tôi là Otakumi Kunn, trợ lý AI của bạn. Tôi đã sẵn sàng trò chuyện với bạn! 😊',
-            timestamp: new Date(),
-         };
-         setMessages([greeting]);
-      } catch (err) {
-         setError(err instanceof Error ? err.message : 'Không thể khởi tạo Groq service');
-      }
-   };
-
    if (!isOpen) return null;
 
    return (
@@ -280,18 +252,8 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
                      <CardTitle className='flex items-center gap-2 text-lg'>
                         <Brain className='h-5 w-5' />
                         Otakumi Kunn
-                        <Sparkles className='h-4 w-4 animate-pulse' />
                      </CardTitle>
                      <div className='flex items-center gap-2'>
-                        <Button
-                           variant={'outline'}
-                           size='icon'
-                           onClick={() => setShowSettings(true)}
-                           className='h-8 w-8'
-                           title='Cài đặt'
-                        >
-                           <Settings className='h-4 w-4' />
-                        </Button>
                         <Button
                            variant={'outline'}
                            size='icon'
@@ -311,7 +273,10 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
                      </div>
                   )}
                   {!isInitialized && (
-                     <div className='mt-2 text-sm text-muted-foreground'>⚠️ Vui lòng cấu hình API key để sử dụng</div>
+                     <div className='mt-2 text-sm text-muted-foreground'>
+                        Vui lòng cấu hình <code className='bg-muted px-1 rounded text-xs'>VITE_GROQ_API_KEY</code> trong
+                        .env
+                     </div>
                   )}
                </CardHeader>
 
@@ -461,63 +426,6 @@ const AssistantChatPopup = ({ isOpen, onClose, buttonPosition = { x: 0, y: 0 } }
             cancelText='Hủy bỏ'
             type='danger'
          />
-
-         {/* Settings Dialog */}
-         {showSettings && (
-            <div className='fixed inset-0 bg-black/50 z-60 flex items-center justify-center p-4'>
-               <Card className='w-full max-w-md'>
-                  <CardHeader>
-                     <CardTitle className='flex items-center gap-2'>
-                        <Settings className='h-5 w-5' />
-                        Cài đặt Groq API
-                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className='space-y-4'>
-                     <div>
-                        <label className='text-sm font-medium mb-2 block'>Groq API Key</label>
-                        <Input
-                           type='password'
-                           placeholder='Nhập Groq API key của bạn'
-                           value={apiKey}
-                           onChange={(e) => setApiKey(e.target.value)}
-                           className='w-full'
-                        />
-                        <p className='text-xs text-muted-foreground mt-2'>
-                           Lấy API key miễn phí tại{' '}
-                           <a
-                              href='https://console.groq.com/keys'
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-primary underline'
-                           >
-                              console.groq.com
-                           </a>
-                        </p>
-                     </div>
-
-                     {error && (
-                        <div className='flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md'>
-                           <AlertCircle className='h-4 w-4' />
-                           <span>{error}</span>
-                        </div>
-                     )}
-
-                     <div className='flex gap-2 justify-end'>
-                        <Button
-                           variant='outline'
-                           onClick={() => {
-                              setShowSettings(false);
-                              setError(null);
-                           }}
-                        >
-                           Hủy
-                        </Button>
-                        <Button onClick={handleSaveApiKey}>Lưu</Button>
-                     </div>
-                  </CardContent>
-               </Card>
-            </div>
-         )}
       </>
    );
 };

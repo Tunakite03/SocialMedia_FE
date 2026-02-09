@@ -18,7 +18,9 @@ const ChatPage = lazy(() => import('@/pages/chat/ChatPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const PostDetailPage = lazy(() => import('@/pages/post/PostDetailPage'));
-const CallPage = lazy(() => import('@/pages/call/CallPage'));
+const LiveKitCallPage = lazy(() =>
+   import('@/pages/call/LiveKitCallPage').then((m) => ({ default: m.LiveKitCallPage }))
+);
 const NotFoundPage = lazy(() => import('@/pages/error/NotFoundPage'));
 
 export const router = createBrowserRouter([
@@ -117,11 +119,12 @@ export const router = createBrowserRouter([
                </ProtectedRoute>
             ),
          },
+
          {
-            path: 'call',
+            path: 'call/livekit',
             element: (
                <ProtectedRoute>
-                  <CallPage />
+                  <LiveKitCallPage />
                </ProtectedRoute>
             ),
          },

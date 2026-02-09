@@ -25,7 +25,6 @@ export {
 // Notification hooks
 export * from './useNotifications';
 export * from './useNotificationSocket';
-export * from './useNewNotifications';
 export * from './useSocketNotifications';
 
 // Reaction hooks
@@ -49,3 +48,14 @@ export * from './useCollapse';
 
 // Debounce hook
 export * from './useDebounce';
+
+// LiveKit call hooks
+export * from './useLiveKitCallManager';
+
+// Transcription hooks
+export * from './useWebSpeechTranscription';
+export * from './useCallTranscript';
+export * from './useLiveKitTranscription';
+
+// Emotion detection hooks
+export * from './useEmotionDetection';

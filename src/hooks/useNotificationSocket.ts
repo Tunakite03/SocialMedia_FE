@@ -345,9 +345,7 @@ export const useNotificationSocket = (): SocketNotificationHookReturn => {
       };
 
       // Connection health
-      const handlePong = () => {
-         console.log('Pong received - connection healthy');
-      };
+      const handlePong = () => {};
 
       // Register all event listeners
       socketService.on('notification:new', handleNewNotification);

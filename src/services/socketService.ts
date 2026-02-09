@@ -52,8 +52,6 @@ class SocketService {
    private flushPendingListeners(): void {
       if (!this.socket) return;
 
-      console.log(`[SocketService] Flushing ${this.pendingListeners.length} pending listeners`);
-
       this.pendingListeners.forEach(({ event, callback, type }) => {
          if (type === 'on') {
             this.socket!.on(event, callback);
@@ -79,7 +77,6 @@ class SocketService {
       });
 
       this.socket.on('disconnect', (reason) => {
-         console.log('[SocketService] Disconnected:', reason);
          this.isConnecting = false; // Reset flag on disconnect
 
          // Emit custom event to notify call manager about disconnect
@@ -149,7 +146,6 @@ class SocketService {
          this.socket.on(event, callback);
       } else {
          // Queue listener if socket not ready
-         console.log(`[SocketService] Queueing 'on' listener for event: ${event}`);
          this.pendingListeners.push({ event, callback, type: 'on' });
       }
    }
@@ -161,7 +157,7 @@ class SocketService {
 
       // Also remove from pending listeners if present
       this.pendingListeners = this.pendingListeners.filter(
-         (listener) => listener.event !== event || (callback && listener.callback !== callback)
+         (listener) => listener.event !== event || (callback && listener.callback !== callback),
       );
    }
 
@@ -170,7 +166,6 @@ class SocketService {
          this.socket.once(event, callback);
       } else {
          // Queue listener if socket not ready
-         console.log(`[SocketService] Queueing 'once' listener for event: ${event}`);
          this.pendingListeners.push({ event, callback, type: 'once' });
       }
    }
@@ -254,6 +249,30 @@ class SocketService {
 
    endCall(callId: string): void {
       this.emit('call:end', { callId });
+   }
+
+   // Emotion detection methods
+   sendEmotion(callId: string, receiverId: string, emotion: string, confidence: number): void {
+      this.emit('call:emotion', { callId, receiverId, emotion, confidence });
+   }
+
+   // Join call room to receive transcriptions
+   joinCallRoom(callId: string): void {
+      if (!this.socket?.connected) {
+         console.warn('[Socket] Cannot join room - not connected');
+         return;
+      }
+      console.log('📌 [Socket] Joining call room:', callId);
+      this.emit('call:join-room', { callId });
+   }
+
+   // Leave call room
+   leaveCallRoom(callId: string): void {
+      if (!this.socket?.connected) {
+         return;
+      }
+      console.log('👋 [Socket] Leaving call room:', callId);
+      this.emit('call:leave-room', { callId });
    }
 
    // WebRTC Signaling methods

@@ -132,7 +132,9 @@ const PostDetailPage = () => {
                      <MoreHorizontal size={20} />
                   </div>
                </div>
-
+               <div className='w-full px-4 py-2'>
+                  <p className='text-base text-foreground font-anime'>{post.content}</p>
+               </div>
                {/* Comments List - Scrollable */}
                <div className='flex-1 overflow-y-auto scrollbar-hide p-2 min-h-0 rounded-2xl liquid-glass'>
                   <div className='space-y-1'>

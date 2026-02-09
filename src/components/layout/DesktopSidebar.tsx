@@ -32,16 +32,11 @@ const DesktopSidebar = () => {
                   alt='Otakomi Logo'
                   className='h-15 object-contain'
                />
-               <img
-                  src='/logo_text.png'
-                  alt='Otakomi Logo'
-                  className='h-10 w-auto object-contain hidden xl:block'
-               />
             </Link>
          </div>
 
          {/* Navigation */}
-         <nav className='flex-1'>
+         <nav className='flex-1 overflow-y-auto scrollbar-thin'>
             <ul className='space-y-2'>
                {navItems.map((item) => {
                   const IconComponent = item.icon;
