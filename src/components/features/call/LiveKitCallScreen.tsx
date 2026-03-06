@@ -120,6 +120,12 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
    const [showTranscript, setShowTranscript] = useState(false);
    const [remoteEmotion, setRemoteEmotion] = useState<EmotionData | null>(null);
    const [receiverInfo, setReceiverInfo] = useState<{ id: string; identity: string } | null>(null);
+   const [localVideoElement, setLocalVideoElement] = useState<HTMLVideoElement | null>(null);
+
+   // Sync ref to state so useEmotionDetection gets the actual element
+   useEffect(() => {
+      setLocalVideoElement(localVideoRef.current);
+   }, [localVideoRef.current]);
 
    // Emotion detection for local video
    const {
@@ -127,9 +133,9 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
       isDetecting: isEmotionDetecting,
       faceDetected,
       canvasRef: emotionCanvasRef,
-   } = useEmotionDetection(localVideoRef.current, {
+   } = useEmotionDetection(localVideoElement, {
       enabled: isVideoEnabled && connectionStatus === 'connected',
-      intervalMs: 1000,
+      intervalMs: 500,
       onEmotionChange: (emotion) => {
          // Gửi emotion qua socket cho người nhận
          if (receiverInfo?.id && callId) {
@@ -309,6 +315,18 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
 
       socketService.on('call:accepted', handleCallAccepted);
 
+      // Listen for call:ended to handle cases where the other user ends the call
+      // (e.g., caller cancels during RINGING, or backend ends the call)
+      const handleCallEndedSocket = (data: { callId: string; call?: { id: string } }) => {
+         const endedCallId = data.call?.id || data.callId;
+         if (endedCallId === callId && mountedRef.current) {
+            console.log('[LiveKitCallScreen] Call ended via socket, navigating away');
+            onCallEnd?.();
+         }
+      };
+      socketService.on('call:ended', handleCallEndedSocket);
+      socketService.on('call:end', handleCallEndedSocket);
+
       const initCall = async () => {
          // Prevent duplicate connections from React Strict Mode
          if (isConnectingRef.current) {
@@ -387,7 +405,6 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
             console.error('Failed to join call:', error);
             if (mountedRef.current) {
                setConnectionStatus('failed');
-               alert('Không thể kết nối cuộc gọi. Vui lòng thử lại.');
                onCallEnd?.();
             }
          } finally {
@@ -400,6 +417,8 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
       return () => {
          mountedRef.current = false;
          socketService.off('call:accepted', handleCallAccepted);
+         socketService.off('call:ended', handleCallEndedSocket);
+         socketService.off('call:end', handleCallEndedSocket);
          if (durationIntervalRef.current) {
             clearInterval(durationIntervalRef.current);
          }

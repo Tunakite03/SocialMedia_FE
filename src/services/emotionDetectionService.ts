@@ -61,17 +61,20 @@ class EmotionDetectionService {
    private minConfidence = 0.25;
    private minFaceSize = 50;
    private emaEmotions: Record<string, number> | null = null;
-   private emaAlpha = 0.35;
+   private emaAlpha = 0.5; // Higher alpha = faster reaction to new expressions
    private currentStableEmotion: string | null = null;
-   private hysteresisThreshold = 0.08;
+   private stableEmotionSince = 0; // Timestamp when current stable emotion started
+   private hysteresisThreshold = 0.12; // Higher threshold = less flickering
+   private minHoldTimeMs = 600; // Minimum time to hold an emotion before switching
+   private confidenceGate = 0.15; // Min confidence to accept an emotion detection
    private modelPath = '/models';
-   private detectorType: DetectorType = 'face-api'; // Using face-api.js (has trained model)
+   private detectorType: DetectorType = 'face-api';
 
    // face-api.js optimization settings
-   private faceApiInputSize = 512; // Tăng từ 416 lên 512 để chính xác hơn (options: 128, 160, 224, 320, 416, 512, 608)
-   private faceApiScoreThreshold = 0.3; // Giảm threshold để detect được nhiều expression hơn
-   private useMediaPipeBlendshapes = true; // Kết hợp với MediaPipe blendshapes
-   private faceDetectorModel: FaceDetectorModel = 'ssd'; // Mặc định dùng SSD MobileNet (chính xác hơn)
+   private faceApiInputSize = 512;
+   private faceApiScoreThreshold = 0.3;
+   private useMediaPipeBlendshapes = true;
+   private faceDetectorModel: FaceDetectorModel = 'ssd';
 
    async loadModels(): Promise<void> {
       if (this.modelsLoaded || this.isLoading) {
@@ -84,16 +87,14 @@ class EmotionDetectionService {
       try {
          console.log('[EmotionDetection] Loading models with detector:', this.detectorType);
          console.log('[EmotionDetection] Face detector model:', this.faceDetectorModel);
-         
+
          // Always load MediaPipe for face detection
          await mediaPipeService.initialize();
-         
+
          // Load face-api.js models
          console.log('[EmotionDetection] Using face-api.js (trained model)');
-         
-         const modelsToLoad: Promise<void>[] = [
-            faceapi.nets.faceExpressionNet.loadFromUri(this.modelPath),
-         ];
+
+         const modelsToLoad: Promise<void>[] = [faceapi.nets.faceExpressionNet.loadFromUri(this.modelPath)];
 
          // Load face detector based on setting
          if (this.faceDetectorModel === 'ssd') {
@@ -105,7 +106,7 @@ class EmotionDetectionService {
          }
 
          await Promise.all(modelsToLoad);
-         
+
          this.modelsLoaded = true;
          console.log('[EmotionDetection] All models loaded successfully');
       } catch (error) {
@@ -166,17 +167,20 @@ class EmotionDetectionService {
          case 'fast':
             this.faceApiInputSize = 320;
             this.faceApiScoreThreshold = 0.4;
-            this.emaAlpha = 0.5; // React faster
+            this.emaAlpha = 0.6;
+            this.minHoldTimeMs = 400;
             break;
          case 'balanced':
             this.faceApiInputSize = 416;
             this.faceApiScoreThreshold = 0.35;
-            this.emaAlpha = 0.4;
+            this.emaAlpha = 0.5;
+            this.minHoldTimeMs = 600;
             break;
          case 'accurate':
             this.faceApiInputSize = 512;
             this.faceApiScoreThreshold = 0.3;
-            this.emaAlpha = 0.3; // Smoother, more stable
+            this.emaAlpha = 0.45;
+            this.minHoldTimeMs = 800;
             break;
       }
       console.log(`[EmotionDetection] Quality preset: ${quality} (inputSize=${this.faceApiInputSize})`);
@@ -232,36 +236,47 @@ class EmotionDetectionService {
             surprised: emotionResult.allEmotions.surprised / 100,
          };
 
-         // EMA Smoothing
+         // EMA Smoothing with adaptive alpha
          if (!this.emaEmotions) {
-            this.emaEmotions = expressions;
+            this.emaEmotions = { ...expressions };
          } else {
             for (const key of Object.keys(expressions)) {
+               // Use higher alpha for large changes (faster reaction)
+               const diff = Math.abs(expressions[key] - (this.emaEmotions[key] || 0));
+               const adaptiveAlpha = diff > 0.3 ? Math.min(this.emaAlpha + 0.2, 0.8) : this.emaAlpha;
                this.emaEmotions[key] =
-                  this.emaEmotions[key] * (1 - this.emaAlpha) + expressions[key] * this.emaAlpha;
+                  (this.emaEmotions[key] || 0) * (1 - adaptiveAlpha) + expressions[key] * adaptiveAlpha;
             }
          }
 
-         const finalExpressions = this.emaEmotions;
+         const finalExpressions = { ...this.emaEmotions };
 
-         // Hysteresis Logic
+         // Hysteresis + Temporal Stability
          const sorted = Object.entries(finalExpressions).sort((a, b) => b[1] - a[1]);
          const [topEmotion, topConfidence] = sorted[0];
 
          let finalEmotion = topEmotion;
          let finalConfidence = topConfidence;
 
-         if (this.currentStableEmotion && this.currentStableEmotion !== topEmotion) {
+         // Gate: ignore if top confidence is too low
+         if (topConfidence < this.confidenceGate) {
+            finalEmotion = this.currentStableEmotion || 'neutral';
+            finalConfidence = finalExpressions[finalEmotion] || 0;
+         } else if (this.currentStableEmotion && this.currentStableEmotion !== topEmotion) {
             const currentEmotionScore = finalExpressions[this.currentStableEmotion] || 0;
+            const holdElapsed = Date.now() - this.stableEmotionSince;
 
-            if (topConfidence > currentEmotionScore + this.hysteresisThreshold) {
+            // Only switch if: new emotion exceeds threshold AND minimum hold time elapsed
+            if (topConfidence > currentEmotionScore + this.hysteresisThreshold && holdElapsed >= this.minHoldTimeMs) {
                this.currentStableEmotion = topEmotion;
+               this.stableEmotionSince = Date.now();
             } else {
                finalEmotion = this.currentStableEmotion;
-               finalConfidence = finalExpressions[finalEmotion];
+               finalConfidence = finalExpressions[finalEmotion] || 0;
             }
-         } else {
+         } else if (!this.currentStableEmotion) {
             this.currentStableEmotion = topEmotion;
+            this.stableEmotionSince = Date.now();
          }
 
          const emotionData: EmotionData = {
@@ -309,18 +324,14 @@ class EmotionDetectionService {
             const ssdOptions = new faceapi.SsdMobilenetv1Options({
                minConfidence: this.faceApiScoreThreshold,
             });
-            faceApiResult = await faceapi
-               .detectSingleFace(videoElement, ssdOptions)
-               .withFaceExpressions();
+            faceApiResult = await faceapi.detectSingleFace(videoElement, ssdOptions).withFaceExpressions();
          } else {
             // TinyFaceDetector - Nhanh hơn, kém chính xác hơn
             const tinyOptions = new faceapi.TinyFaceDetectorOptions({
                inputSize: this.faceApiInputSize,
                scoreThreshold: this.faceApiScoreThreshold,
             });
-            faceApiResult = await faceapi
-               .detectSingleFace(videoElement, tinyOptions)
-               .withFaceExpressions();
+            faceApiResult = await faceapi.detectSingleFace(videoElement, tinyOptions).withFaceExpressions();
          }
 
          if (!faceApiResult || !faceApiResult.expressions) {
@@ -334,19 +345,29 @@ class EmotionDetectionService {
             expressions = this.enhanceWithBlendshapes(expressions, blendshapes);
          }
 
-         // Apply neutral suppression (giảm bias về neutral)
-         expressions.neutral = expressions.neutral * 0.8;
+         // Adaptive neutral suppression: suppress more when other emotions are present
+         const nonNeutralMax = Math.max(
+            expressions.happy || 0,
+            expressions.sad || 0,
+            expressions.angry || 0,
+            expressions.fearful || 0,
+            expressions.disgusted || 0,
+            expressions.surprised || 0,
+         );
+         const neutralFactor = nonNeutralMax > 0.15 ? 0.6 : 0.85;
+         expressions.neutral = (expressions.neutral || 0) * neutralFactor;
 
-         // Boost subtle emotions (tăng độ nhạy cho các emotion yếu)
-         expressions.sad = expressions.sad * 1.15;
-         expressions.angry = expressions.angry * 1.1;
-         expressions.fearful = expressions.fearful * 1.1;
+         // Proportional boost for subtle emotions based on their current strength
+         expressions.sad = (expressions.sad || 0) * 1.2;
+         expressions.angry = (expressions.angry || 0) * 1.15;
+         expressions.fearful = (expressions.fearful || 0) * 1.15;
+         expressions.disgusted = (expressions.disgusted || 0) * 1.1;
 
          // Normalize
          expressions = this.normalize(expressions);
 
-         // Apply softmax for sharpening (temperature thấp hơn = sharper)
-         expressions = this.softmax(expressions, 0.4);
+         // Softmax with moderate temperature — high enough to preserve mixed emotions
+         expressions = this.softmax(expressions, 0.65);
 
          // Get top emotion
          const sorted = Object.entries(expressions).sort((a, b) => b[1] - a[1]);
@@ -375,55 +396,102 @@ class EmotionDetectionService {
     * Enhance face-api.js expressions với MediaPipe blendshapes
     * MediaPipe có 52 blendshapes chi tiết hơn, ta map sang 7 emotions
     */
+   /**
+    * Enhanced blendshape-to-emotion mapping using weighted facial action units.
+    * Each shape has an individual weight reflecting its importance to the emotion.
+    */
    private enhanceWithBlendshapes(
       expressions: Record<string, number>,
       blendshapes: Record<string, number>,
    ): Record<string, number> {
-      // MediaPipe blendshape weights cho mỗi emotion
-      const blendshapeEmotionMap: Record<string, { shapes: string[]; weight: number }> = {
+      const blendshapeEmotionMap: Record<string, { shapes: { name: string; w: number }[]; blendWeight: number }> = {
          happy: {
-            shapes: ['mouthSmileLeft', 'mouthSmileRight', 'cheekSquintLeft', 'cheekSquintRight'],
-            weight: 0.3,
+            shapes: [
+               { name: 'mouthSmileLeft', w: 0.35 },
+               { name: 'mouthSmileRight', w: 0.35 },
+               { name: 'cheekSquintLeft', w: 0.15 },
+               { name: 'cheekSquintRight', w: 0.15 },
+               { name: 'mouthDimpleLeft', w: 0.05 },
+               { name: 'mouthDimpleRight', w: 0.05 },
+            ],
+            blendWeight: 0.4,
          },
          sad: {
-            shapes: ['mouthFrownLeft', 'mouthFrownRight', 'browDownLeft', 'browDownRight', 'mouthPucker'],
-            weight: 0.25,
+            shapes: [
+               { name: 'mouthFrownLeft', w: 0.25 },
+               { name: 'mouthFrownRight', w: 0.25 },
+               { name: 'browDownLeft', w: 0.15 },
+               { name: 'browDownRight', w: 0.15 },
+               { name: 'browInnerUp', w: 0.15 },
+               { name: 'mouthPucker', w: 0.05 },
+            ],
+            blendWeight: 0.35,
          },
          angry: {
-            shapes: ['browDownLeft', 'browDownRight', 'eyeSquintLeft', 'eyeSquintRight', 'jawForward'],
-            weight: 0.25,
+            shapes: [
+               { name: 'browDownLeft', w: 0.2 },
+               { name: 'browDownRight', w: 0.2 },
+               { name: 'eyeSquintLeft', w: 0.15 },
+               { name: 'eyeSquintRight', w: 0.15 },
+               { name: 'jawForward', w: 0.1 },
+               { name: 'mouthPressLeft', w: 0.1 },
+               { name: 'mouthPressRight', w: 0.1 },
+            ],
+            blendWeight: 0.35,
          },
          surprised: {
-            shapes: ['browOuterUpLeft', 'browOuterUpRight', 'eyeWideLeft', 'eyeWideRight', 'jawOpen'],
-            weight: 0.3,
+            shapes: [
+               { name: 'browOuterUpLeft', w: 0.2 },
+               { name: 'browOuterUpRight', w: 0.2 },
+               { name: 'eyeWideLeft', w: 0.2 },
+               { name: 'eyeWideRight', w: 0.2 },
+               { name: 'jawOpen', w: 0.15 },
+               { name: 'browInnerUp', w: 0.05 },
+            ],
+            blendWeight: 0.4,
          },
          fearful: {
-            shapes: ['browInnerUp', 'eyeWideLeft', 'eyeWideRight', 'mouthOpen'],
-            weight: 0.2,
+            shapes: [
+               { name: 'browInnerUp', w: 0.25 },
+               { name: 'eyeWideLeft', w: 0.2 },
+               { name: 'eyeWideRight', w: 0.2 },
+               { name: 'mouthOpen', w: 0.15 },
+               { name: 'jawOpen', w: 0.1 },
+               { name: 'mouthStretchLeft', w: 0.05 },
+               { name: 'mouthStretchRight', w: 0.05 },
+            ],
+            blendWeight: 0.3,
          },
          disgusted: {
-            shapes: ['noseSneerLeft', 'noseSneerRight', 'mouthUpperUpLeft', 'mouthUpperUpRight'],
-            weight: 0.2,
+            shapes: [
+               { name: 'noseSneerLeft', w: 0.25 },
+               { name: 'noseSneerRight', w: 0.25 },
+               { name: 'mouthUpperUpLeft', w: 0.15 },
+               { name: 'mouthUpperUpRight', w: 0.15 },
+               { name: 'mouthShrugLower', w: 0.1 },
+               { name: 'browDownLeft', w: 0.05 },
+               { name: 'browDownRight', w: 0.05 },
+            ],
+            blendWeight: 0.3,
          },
       };
 
       const enhanced = { ...expressions };
 
       for (const [emotion, config] of Object.entries(blendshapeEmotionMap)) {
-         let blendshapeScore = 0;
-         let validShapes = 0;
+         let weightedScore = 0;
+         let totalWeight = 0;
 
-         for (const shape of config.shapes) {
-            if (blendshapes[shape] !== undefined) {
-               blendshapeScore += blendshapes[shape];
-               validShapes++;
+         for (const { name, w } of config.shapes) {
+            if (blendshapes[name] !== undefined) {
+               weightedScore += blendshapes[name] * w;
+               totalWeight += w;
             }
          }
 
-         if (validShapes > 0) {
-            const avgScore = blendshapeScore / validShapes;
-            // Blend face-api score với blendshape score
-            enhanced[emotion] = enhanced[emotion] * (1 - config.weight) + avgScore * config.weight;
+         if (totalWeight > 0) {
+            const normalizedScore = weightedScore / totalWeight;
+            enhanced[emotion] = enhanced[emotion] * (1 - config.blendWeight) + normalizedScore * config.blendWeight;
          }
       }
 
@@ -452,6 +520,7 @@ class EmotionDetectionService {
       }
       this.emaEmotions = null;
       this.currentStableEmotion = null;
+      this.stableEmotionSince = 0;
       this.lastEmotionData = null;
    }
 
@@ -462,6 +531,7 @@ class EmotionDetectionService {
    clearEmotionHistory(): void {
       this.emaEmotions = null;
       this.currentStableEmotion = null;
+      this.stableEmotionSince = 0;
    }
 
    private normalize(expressions: Record<string, number>): Record<string, number> {
@@ -489,11 +559,7 @@ class EmotionDetectionService {
       return result;
    }
 
-   drawFaceDetection(
-      canvas: HTMLCanvasElement,
-      _videoElement: HTMLVideoElement,
-      result: FaceDetectionResult,
-   ): void {
+   drawFaceDetection(canvas: HTMLCanvasElement, _videoElement: HTMLVideoElement, result: FaceDetectionResult): void {
       const ctx = canvas.getContext('2d');
       if (!ctx || !result.detected || !result.facePosition || !result.emotion) {
          return;
@@ -568,26 +634,26 @@ class EmotionDetectionService {
 
    private getEmotionColor(emotion: string): string {
       const colors: Record<string, string> = {
-         'Happy': '#10b981',
-         "Sad": '#3b82f6',
-         'Angry': '#ef4444',
-         'Fearful': '#8b5cf6',
-         'Disgusted': '#f59e0b',
-         'Surprised': '#ec4899',
-         'Neutral': '#6b7280',
+         Happy: '#10b981',
+         Sad: '#3b82f6',
+         Angry: '#ef4444',
+         Fearful: '#8b5cf6',
+         Disgusted: '#f59e0b',
+         Surprised: '#ec4899',
+         Neutral: '#6b7280',
       };
       return colors[emotion] || '#6b7280';
    }
 
    getEmotionIcon(emotion: string): string {
       const icons: Record<string, string> = {
-         'Happy': '😊',
-         "Sad": '😢',
-         'Angry': '😠',
-         'Fearful': '😨',
-         'Disgusted': '🤢',
-         'Surprised': '😲',
-         'Neutral': '😐',
+         Happy: '😊',
+         Sad: '😢',
+         Angry: '😠',
+         Fearful: '😨',
+         Disgusted: '🤢',
+         Surprised: '😲',
+         Neutral: '😐',
       };
       return icons[emotion] || '😐';
    }

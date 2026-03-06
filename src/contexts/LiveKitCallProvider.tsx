@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveKitCallManager } from '@/hooks/useLiveKitCallManager';
 import { LiveKitIncomingCallModal } from '@/components/features/call/LiveKitIncomingCallModal';
+import { CallErrorPopup } from '@/components/features/call/CallErrorPopup';
 import type { User } from '@/types';
 
 interface IncomingCall {
@@ -15,6 +16,10 @@ interface LiveKitCallContextValue {
    // Incoming call state
    incomingCall: IncomingCall | null;
    hasIncomingCall: boolean;
+
+   // Call error state
+   callError: string | null;
+   clearCallError: () => void;
 
    // Call actions
    initiateCall: (conversationId: string, type: 'audio' | 'video') => Promise<string | null>;
@@ -39,7 +44,8 @@ export const useLiveKitCall = () => {
 
 const CallNavigator = ({ callManager }: { callManager: LiveKitCallContextValue }) => {
    const navigate = useNavigate();
-   const { incomingCall, hasIncomingCall, acceptIncomingCall, rejectIncomingCall } = callManager;
+   const { incomingCall, hasIncomingCall, acceptIncomingCall, rejectIncomingCall, callError, clearCallError } =
+      callManager;
 
    const handleAccept = async () => {
       if (!incomingCall) return;
@@ -81,6 +87,12 @@ const CallNavigator = ({ callManager }: { callManager: LiveKitCallContextValue }
                callType={incomingCall.type}
                onAccept={handleAccept}
                onReject={handleReject}
+            />
+         )}
+         {callError && (
+            <CallErrorPopup
+               message={callError}
+               onClose={clearCallError}
             />
          )}
       </>

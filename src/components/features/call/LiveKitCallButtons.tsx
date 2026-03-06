@@ -52,12 +52,9 @@ export const LiveKitCallButtons = ({
             }
 
             navigate(`/call/livekit?${params.toString()}`);
-         } else {
-            alert('Không thể bắt đầu cuộc gọi');
          }
-      } catch (error) {
+      } catch (error: unknown) {
          console.error('Failed to start call:', error);
-         alert('Không thể bắt đầu cuộc gọi');
       } finally {
          setIsInitiating(false);
       }

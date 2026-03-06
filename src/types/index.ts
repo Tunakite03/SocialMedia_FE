@@ -82,6 +82,8 @@ export interface Message {
    attachments: MessageAttachment[];
    isRead: boolean;
    readAt?: string;
+   isEdited?: boolean;
+   editedAt?: string;
    sentiment?: SentimentType;
    sentimentConfidence?: number;
    sentimentScores?: SentimentScores;

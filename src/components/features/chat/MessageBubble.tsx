@@ -214,6 +214,7 @@ const MessageBubble = ({
                         showConfidence={false}
                      />
                      <span>{formatTime(message.createdAt)}</span>
+                     {message.isEdited && <span className='italic text-muted-foreground'>(edited)</span>}
 
                      {/* Read receipts for own messages */}
                      {isOwn && (

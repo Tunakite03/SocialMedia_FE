@@ -16,6 +16,10 @@ interface UseLiveKitCallManagerReturn {
    incomingCall: IncomingCall | null;
    hasIncomingCall: boolean;
 
+   // Call error state
+   callError: string | null;
+   clearCallError: () => void;
+
    // Call actions
    initiateCall: (conversationId: string, type: 'audio' | 'video') => Promise<string | null>;
    acceptIncomingCall: () => Promise<void>;
@@ -30,7 +34,9 @@ interface UseLiveKitCallManagerReturn {
 export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
    const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
    const [currentCallId, setCurrentCallId] = useState<string | null>(null);
+   const [callError, setCallError] = useState<string | null>(null);
    const incomingCallTimeoutRef = useRef<number | null>(null);
+   const outgoingCallTimeoutRef = useRef<number | null>(null);
    // Flag to prevent socket listener from clearing incomingCall while user is accepting
    const isAcceptingRef = useRef<boolean>(false);
 
@@ -65,6 +71,15 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
             // Use call.id if available, fallback to callId
             const actualCallId = data.call?.id || data.callId;
 
+            // Auto-reject if already in a call
+            if (livekitService.isInCall() || livekitService.getCurrentCallId()) {
+               console.log('[LiveKitCallManager] Already in a call, auto-rejecting incoming call');
+               callService
+                  .rejectCall(actualCallId)
+                  .catch((err) => console.error('[LiveKitCallManager] Failed to auto-reject:', err));
+               return;
+            }
+
             setIncomingCall({
                callId: actualCallId,
                caller: data.caller,
@@ -86,10 +101,14 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
             // Use call.id if available, fallback to callId
             const actualCallId = data.call?.id || data.callId;
 
-            // Clear timeout
+            // Clear timeouts
             if (incomingCallTimeoutRef.current) {
                clearTimeout(incomingCallTimeoutRef.current);
                incomingCallTimeoutRef.current = null;
+            }
+            if (outgoingCallTimeoutRef.current) {
+               clearTimeout(outgoingCallTimeoutRef.current);
+               outgoingCallTimeoutRef.current = null;
             }
 
             // If we're currently accepting the call, don't clear incomingCall here
@@ -111,10 +130,14 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
             // Use call.id if available, fallback to callId
             const actualCallId = data.call?.id || data.callId;
 
-            // Clear timeout
+            // Clear timeouts
             if (incomingCallTimeoutRef.current) {
                clearTimeout(incomingCallTimeoutRef.current);
                incomingCallTimeoutRef.current = null;
+            }
+            if (outgoingCallTimeoutRef.current) {
+               clearTimeout(outgoingCallTimeoutRef.current);
+               outgoingCallTimeoutRef.current = null;
             }
 
             setIncomingCall(null);
@@ -127,11 +150,21 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
          };
 
          // ===== Handle call ended =====
-         const handleCallEnded = (data: { callId: string; call?: { id: string } }) => {
+         const handleCallEnded = (data: { callId: string; call?: { id: string }; reason?: string }) => {
             console.log('[LiveKitCallManager] Call ended:', data);
 
             // Use call.id if available, fallback to callId
             const actualCallId = data.call?.id || data.callId;
+
+            // Clear incoming call timeout
+            if (incomingCallTimeoutRef.current) {
+               clearTimeout(incomingCallTimeoutRef.current);
+               incomingCallTimeoutRef.current = null;
+            }
+            if (outgoingCallTimeoutRef.current) {
+               clearTimeout(outgoingCallTimeoutRef.current);
+               outgoingCallTimeoutRef.current = null;
+            }
 
             setCurrentCallId(null);
             setIncomingCall(null);
@@ -142,11 +175,32 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
             }
          };
 
+         // ===== Handle participant disconnected (other user left) =====
+         const handleParticipantDisconnected = (data: {
+            callId: string;
+            userId: string;
+            remainingParticipants: number;
+         }) => {
+            console.log('[LiveKitCallManager] Participant disconnected:', data);
+
+            // If call effectively ended (1:1 call, other person left)
+            if (data.remainingParticipants <= 1) {
+               setCurrentCallId(null);
+               setIncomingCall(null);
+
+               if (livekitService.getCurrentCallId() === data.callId) {
+                  livekitService.leaveCall();
+               }
+            }
+         };
+
          // Register socket listeners
          socketService.on('call:incoming', handleIncomingCall);
          socketService.on('call:accepted', handleCallAccepted);
          socketService.on('call:rejected', handleCallRejected);
          socketService.on('call:ended', handleCallEnded);
+         socketService.on('call:end', handleCallEnded);
+         socketService.on('call:participant_disconnected', handleParticipantDisconnected);
 
          console.log('[LiveKitCallManager] Listeners registered successfully');
 
@@ -156,10 +210,15 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
             socketService.off('call:accepted', handleCallAccepted);
             socketService.off('call:rejected', handleCallRejected);
             socketService.off('call:ended', handleCallEnded);
+            socketService.off('call:end', handleCallEnded);
+            socketService.off('call:participant_disconnected', handleParticipantDisconnected);
 
             // Clear timeout
             if (incomingCallTimeoutRef.current) {
                clearTimeout(incomingCallTimeoutRef.current);
+            }
+            if (outgoingCallTimeoutRef.current) {
+               clearTimeout(outgoingCallTimeoutRef.current);
             }
 
             console.log('[LiveKitCallManager] Listeners cleaned up');
@@ -180,29 +239,63 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
       };
    }, []);
 
-   const initiateCall = useCallback(async (conversationId: string, type: 'audio' | 'video'): Promise<string | null> => {
-      try {
-         console.log('[LiveKitCallManager] Initiating call:', { conversationId, type });
+   const initiateCall = useCallback(
+      async (conversationId: string, type: 'audio' | 'video'): Promise<string | null> => {
+         try {
+            // Prevent initiating a new call while already in one
+            if (currentCallId || livekitService.isInCall()) {
+               console.warn('[LiveKitCallManager] Already in a call, cannot initiate another');
+               setCallError('Bạn đang trong một cuộc gọi khác');
+               return null;
+            }
 
-         const response = await callService.initiateCall({
-            conversationId,
-            type: type.toUpperCase() as 'AUDIO' | 'VIDEO',
-         });
+            // Prevent initiating while receiving an incoming call
+            if (incomingCall) {
+               console.warn('[LiveKitCallManager] Have incoming call, cannot initiate');
+               setCallError('Bạn đang có cuộc gọi đến');
+               return null;
+            }
 
-         if (!response.data) {
-            throw new Error('Failed to initiate call');
+            console.log('[LiveKitCallManager] Initiating call:', { conversationId, type });
+
+            const response = await callService.initiateCall({
+               conversationId,
+               type: type.toUpperCase() as 'AUDIO' | 'VIDEO',
+            });
+
+            if (!response.data) {
+               setCallError('Không thể bắt đầu cuộc gọi');
+               return null;
+            }
+
+            const callId = response.data.call.id;
+            setCurrentCallId(callId);
+
+            // Auto-end if receiver doesn't answer within 30s
+            outgoingCallTimeoutRef.current = setTimeout(async () => {
+               console.log('[LiveKitCallManager] Outgoing call timeout, auto-ending');
+               try {
+                  await callService.endCall(callId);
+               } catch (err) {
+                  console.error('[LiveKitCallManager] Failed to auto-end call:', err);
+               }
+               setCurrentCallId(null);
+            }, 30000) as unknown as number;
+
+            console.log('[LiveKitCallManager] Call initiated:', callId);
+            return callId;
+         } catch (error: unknown) {
+            console.error('[LiveKitCallManager] Failed to initiate call:', error);
+            const apiMessage =
+               error && typeof error === 'object' && 'message' in error
+                  ? (error as { message: string }).message
+                  : undefined;
+            setCallError(apiMessage || 'Không thể bắt đầu cuộc gọi');
+            return null;
          }
-
-         const callId = response.data.call.id;
-         setCurrentCallId(callId);
-
-         console.log('[LiveKitCallManager] Call initiated:', callId);
-         return callId;
-      } catch (error) {
-         console.error('[LiveKitCallManager] Failed to initiate call:', error);
-         return null;
-      }
-   }, []);
+      },
+      [currentCallId, incomingCall],
+   );
 
    const acceptIncomingCall = useCallback(async () => {
       if (!incomingCall) {
@@ -267,6 +360,12 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
    }, [incomingCall]);
 
    const endCurrentCall = useCallback(async () => {
+      // Clear outgoing call timeout
+      if (outgoingCallTimeoutRef.current) {
+         clearTimeout(outgoingCallTimeoutRef.current);
+         outgoingCallTimeoutRef.current = null;
+      }
+
       if (!currentCallId) {
          console.warn('[LiveKitCallManager] No current call to end');
          return;
@@ -286,9 +385,15 @@ export const useLiveKitCallManager = (): UseLiveKitCallManagerReturn => {
       }
    }, [currentCallId]);
 
+   const clearCallError = useCallback(() => {
+      setCallError(null);
+   }, []);
+
    return {
       incomingCall,
       hasIncomingCall: incomingCall !== null,
+      callError,
+      clearCallError,
       initiateCall,
       acceptIncomingCall,
       rejectIncomingCall,

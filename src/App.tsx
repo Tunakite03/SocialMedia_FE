@@ -2,22 +2,22 @@ import { Suspense } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { useDataInitializer } from '@/hooks/useDataInitializer';
-import { useAuthStore } from '@/store';
+// import { useAuthStore } from '@/store';
 import ThemeInitializer from '@/components/theme/ThemeInitializer';
 import NotificationPopupManager from '@/components/features/NotificationPopupManager';
-import FloatingAssistantButton from '@/components/features/ai/FloatingAssistantButton';
+// import FloatingAssistantButton from '@/components/features/ai/FloatingAssistantButton';
 import './App.css';
 
 function App() {
    // Initialize fresh data on app start (replaces localStorage persistence)
    useDataInitializer();
-   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+   // const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
    return (
       <>
          <ThemeInitializer />
          <NotificationPopupManager />
-         {isAuthenticated && <FloatingAssistantButton />}
+         {/* {isAuthenticated && <FloatingAssistantButton />} */}
 
          <Suspense
             fallback={

@@ -148,10 +148,14 @@ export const useEmotionDetection = (
 
    /**
     * Auto-start detection when video element is ready
-    * Only runs when videoElement or enabled changes
+    * Re-runs when videoElement, enabled, or detecting state changes
     */
    useEffect(() => {
       if (!videoElement || !enabled) {
+         // Stop detection if disabled or video removed
+         if (isDetecting) {
+            stopDetection();
+         }
          return;
       }
 
@@ -161,7 +165,7 @@ export const useEmotionDetection = (
       }
 
       const handleVideoReady = () => {
-         if (videoElement.readyState >= 2 && !isDetecting) {
+         if (videoElement.readyState >= 2) {
             console.log('[useEmotionDetection] Video ready, starting detection...');
             startDetection();
          }
@@ -172,11 +176,13 @@ export const useEmotionDetection = (
          handleVideoReady();
       } else {
          videoElement.addEventListener('loadeddata', handleVideoReady);
+         videoElement.addEventListener('canplay', handleVideoReady);
          return () => {
             videoElement.removeEventListener('loadeddata', handleVideoReady);
+            videoElement.removeEventListener('canplay', handleVideoReady);
          };
       }
-   }, [videoElement, enabled]); // Only re-run when video or enabled changes
+   }, [videoElement, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
    /**
     * Cleanup on unmount

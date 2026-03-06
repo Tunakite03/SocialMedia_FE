@@ -38,7 +38,6 @@ class MessageService {
 
    // Conversation management
    async getConversations(limit = 20, offset = 0): Promise<ApiResponse<ConversationResponse>> {
-
       return apiService.get<ConversationResponse>(`${this.conversationsEndpoint}?limit=${limit}&offset=${offset}`);
    }
 
@@ -51,7 +50,7 @@ class MessageService {
    }
 
    async createGroupConversation(
-      data: CreateGroupConversationData
+      data: CreateGroupConversationData,
    ): Promise<ApiResponse<{ conversation: Conversation }>> {
       return apiService.post<{ conversation: Conversation }>(`${this.conversationsEndpoint}/group`, data);
    }
@@ -71,7 +70,7 @@ class MessageService {
    // Message management
    async getMessages(conversationId: string, limit = 50, offset = 0): Promise<ApiResponse<MessagesResponse>> {
       return apiService.get<MessagesResponse>(
-         `${this.conversationsEndpoint}/${conversationId}/messages?limit=${limit}&offset=${offset}`
+         `${this.conversationsEndpoint}/${conversationId}/messages?limit=${limit}&offset=${offset}`,
       );
    }
 
@@ -93,7 +92,7 @@ class MessageService {
             headers: {
                'Content-Type': 'multipart/form-data',
             },
-         }
+         },
       );
    }
 
@@ -103,21 +102,21 @@ class MessageService {
 
    async markConversationAsRead(
       conversationId: string,
-      lastMessageId?: string
+      lastMessageId?: string,
    ): Promise<ApiResponse<{ unreadCount: number; lastReadMessageId: string }>> {
       const body = lastMessageId ? { lastMessageId } : {};
       return apiService.post<{ unreadCount: number; lastReadMessageId: string }>(
          `${this.conversationsEndpoint}/${conversationId}/read`,
-         body
+         body,
       );
    }
 
    async deleteMessage(messageId: string): Promise<ApiResponse<null>> {
-      return apiService.delete<null>(`${this.messagesEndpoint}/${messageId}`);
+      return apiService.delete<null>(`${this.conversationsEndpoint}/messages/${messageId}`);
    }
 
    async editMessage(messageId: string, content: string): Promise<ApiResponse<{ message: Message }>> {
-      return apiService.put<{ message: Message }>(`${this.messagesEndpoint}/${messageId}`, { content });
+      return apiService.put<{ message: Message }>(`${this.conversationsEndpoint}/messages/${messageId}`, { content });
    }
 
    // Direct message helpers
@@ -125,7 +124,7 @@ class MessageService {
       receiverId: string,
       content: string,
       type: 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE' = 'TEXT',
-      replyToId?: string | null
+      replyToId?: string | null,
    ): Promise<ApiResponse<{ message: Message }>> {
       const conversationResponse = await this.getOrCreateDirectConversation(receiverId);
 
