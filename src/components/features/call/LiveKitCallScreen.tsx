@@ -39,7 +39,7 @@ const ConnectionBadge = ({ quality }: ConnectionBadgeProps) => {
          color: 'text-emerald-300',
          bg: 'bg-emerald-500/20',
          border: 'border-emerald-400/40',
-         label: 'Tuyệt vời',
+         label: 'Excellent',
          pulse: true,
       },
       good: {
@@ -47,7 +47,7 @@ const ConnectionBadge = ({ quality }: ConnectionBadgeProps) => {
          color: 'text-blue-300',
          bg: 'bg-blue-500/20',
          border: 'border-blue-400/40',
-         label: 'Tốt',
+         label: 'Good',
          pulse: false,
       },
       poor: {
@@ -55,7 +55,7 @@ const ConnectionBadge = ({ quality }: ConnectionBadgeProps) => {
          color: 'text-orange-300',
          bg: 'bg-orange-500/20',
          border: 'border-orange-400/40',
-         label: 'Kém',
+         label: 'Poor',
          pulse: false,
       },
       disconnected: {
@@ -63,7 +63,7 @@ const ConnectionBadge = ({ quality }: ConnectionBadgeProps) => {
          color: 'text-red-300',
          bg: 'bg-red-500/20',
          border: 'border-red-400/40',
-         label: 'Mất kết nối',
+         label: 'Disconnected',
          pulse: true,
       },
    };
@@ -135,7 +135,7 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
          if (receiverInfo?.id && callId) {
             socketService.sendEmotion(callId, receiverInfo.id, emotion.emotion, emotion.confidence);
          } else {
-            console.warn('[Emotion] ⚠️ Cannot send - missing info:', {
+            console.warn('[Emotion] Cannot send - missing info:', {
                hasReceiverId: !!receiverInfo?.id,
                hasCallId: !!callId,
                receiverInfo,
@@ -146,6 +146,7 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
 
    const durationIntervalRef = useRef<number | null>(null);
    const controlsTimeoutRef = useRef<number | null>(null);
+   const emotionTimeoutRef = useRef<number | null>(null);
 
    // Get receiver info from participants
    useEffect(() => {
@@ -159,25 +160,6 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
             id: receiver?.id || firstParticipant.identity,
             identity: firstParticipant.identity,
          });
-
-         // TEST: Set a fake emotion to verify rendering
-         setTimeout(() => {
-            console.log('[Emotion] 🧪 TEST: Setting fake emotion');
-            setRemoteEmotion({
-               emotion: 'Happy',
-               confidence: 95,
-               allEmotions: {
-                  neutral: 95,
-                  happy: 0,
-                  sad: 0,
-                  angry: 0,
-                  fearful: 0,
-                  disgusted: 0,
-                  surprised: 5,
-               },
-               timestamp: Date.now(),
-            });
-         }, 1000);
       }
    }, [participants, receiver, receiverInfo]);
 
@@ -217,8 +199,6 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
             };
 
             const normalizedEmotion = normalizeEmotion(data.emotion);
-
-            console.log('[Emotion] ✅ CallId matched! Setting remote emotion:', normalizedEmotion);
             const newEmotionData = {
                emotion: normalizedEmotion,
                confidence: data.confidence,
@@ -234,18 +214,30 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
                timestamp: Date.now(),
             };
             setRemoteEmotion(newEmotionData);
-            console.log('[Emotion] 🎭 State updated with:', newEmotionData);
+            console.log('[Emotion]State updated with:', newEmotionData);
+
+            // Clear any existing timeout
+            if (emotionTimeoutRef.current) {
+               clearTimeout(emotionTimeoutRef.current);
+            }
+
+            // Set timeout to clear emotion if no new emotion received (remote turned off video)
+            emotionTimeoutRef.current = setTimeout(() => {
+               console.log('[Emotion] No emotion received for 3s, clearing remote emotion');
+               setRemoteEmotion(null);
+            }, 3000) as any as number;
          } else {
-            console.log('[Emotion] ❌ CallId mismatch! Ignoring emotion.');
+            console.log('[Emotion]CallId mismatch! Ignoring emotion.');
          }
       };
 
       socketService.on('call:emotion', handleRemoteEmotion);
-      console.log('[Emotion] Listener registered for call:emotion event');
 
       return () => {
-         console.log('[Emotion] Cleaning up listener for callId:', callId);
          socketService.off('call:emotion', handleRemoteEmotion);
+         if (emotionTimeoutRef.current) {
+            clearTimeout(emotionTimeoutRef.current);
+         }
       };
    }, [callId]);
 
@@ -413,6 +405,9 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
          }
          if (controlsTimeoutRef.current) {
             clearTimeout(controlsTimeoutRef.current);
+         }
+         if (emotionTimeoutRef.current) {
+            clearTimeout(emotionTimeoutRef.current);
          }
          // Only disconnect if we actually connected
          if (!isConnectingRef.current) {
@@ -629,7 +624,7 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
                         {connectionStatus === 'connecting' && (
                            <div className='flex items-center gap-2 text-amber-300'>
                               <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                              <span className='text-sm font-medium'>Đang kết nối...</span>
+                              <span className='text-sm font-medium'>Connecting...</span>
                            </div>
                         )}
                         {connectionStatus === 'connected' && (
@@ -639,12 +634,12 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
                            </div>
                         )}
                         {connectionStatus === 'failed' && (
-                           <span className='text-sm font-medium text-red-300'>Kết nối thất bại</span>
+                           <span className='text-sm font-medium text-red-300'>Connection failed</span>
                         )}
                      </div>
                   </div>
                </div>
-               {/* Remote Emotion Display */}
+               {/* Remote Emotion Display - Show when remote participant has video enabled and sending emotions */}
                {participants.length > 0 && remoteEmotion && (
                   <EmotionDisplay
                      emotion={remoteEmotion}
@@ -708,12 +703,12 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
                      <div className='p-4 rounded-full bg-white/10 backdrop-blur-xl'>
                         <VideoOff className='w-8 h-8' />
                      </div>
-                     <p className='text-sm font-medium'>Camera đã tắt</p>
+                     <p className='text-sm font-medium'>Camera is off</p>
                   </div>
                )}
                {/* User label */}
                <div className='absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3'>
-                  <p className='text-white text-xs font-semibold truncate'>Bạn</p>
+                  <p className='text-white text-xs font-semibold truncate'>You</p>
                </div>
             </div>
 
@@ -731,8 +726,8 @@ export const LiveKitCallScreen = ({ callId, callType, receiver, onCallEnd }: Liv
                         <span className='absolute inset-0 rounded-full bg-blue-500/20 animate-ping' />
                      </div>
                      <div className='space-y-2'>
-                        <p className='text-xl font-semibold'>Đang đợi người khác tham gia...</p>
-                        <p className='text-sm text-gray-400'>Cuộc gọi sẽ bắt đầu khi họ kết nối</p>
+                        <p className='text-xl font-semibold'>Waiting for others to join...</p>
+                        <p className='text-sm text-gray-400'>The call will start when they connect</p>
                      </div>
                   </div>
                )}

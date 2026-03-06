@@ -101,7 +101,7 @@ export const useWebSpeechTranscription = ({
          currentSegmentIdRef.current = '';
          console.log('✅ [useWebSpeechTranscription] Recognition stopped and cleaned up');
       } else {
-         console.log('⚠️ [useWebSpeechTranscription] No recognition instance to stop');
+         console.log('[useWebSpeechTranscription] No recognition instance to stop');
       }
    }, []);
 
@@ -412,9 +412,11 @@ export const useWebSpeechTranscription = ({
                return;
             }
 
-            console.log(`🔄 [useWebSpeechTranscription] WILL AUTO-RESTART in 500ms... (attempt ${restartAttemptRef.current + 1})`);
+            console.log(
+               `🔄 [useWebSpeechTranscription] WILL AUTO-RESTART in 500ms... (attempt ${restartAttemptRef.current + 1})`,
+            );
             restartAttemptRef.current++;
-            
+
             restartTimeoutRef.current = setTimeout(() => {
                // Double check we still want to listen and not already starting
                if (isListeningRef.current && recognitionRef.current && !isStartingRef.current) {
@@ -453,7 +455,17 @@ export const useWebSpeechTranscription = ({
          onErrorRef.current?.(errorMsg);
          return false;
       }
-   }, [callId, userId, userName, userAvatar, language, isEnabled, isSupportedBrowser, enableTranscription, stopListening]);
+   }, [
+      callId,
+      userId,
+      userName,
+      userAvatar,
+      language,
+      isEnabled,
+      isSupportedBrowser,
+      enableTranscription,
+      stopListening,
+   ]);
 
    // Clear transcripts
    const clearTranscripts = useCallback(() => {
@@ -465,47 +477,50 @@ export const useWebSpeechTranscription = ({
     * @param speakerFilter - 'all' | 'local' | 'remote'
     * Mặc định 'remote' để phân tích cảm xúc của NGƯỜI ĐỐI DIỆN
     */
-   const getCallSentimentSummary = useCallback(async (speakerFilter: 'all' | 'local' | 'remote' = 'remote') => {
-      let filteredTranscripts = transcripts.filter(t => t.isFinal);
+   const getCallSentimentSummary = useCallback(
+      async (speakerFilter: 'all' | 'local' | 'remote' = 'remote') => {
+         let filteredTranscripts = transcripts.filter((t) => t.isFinal);
 
-      // Filter theo speaker
-      if (speakerFilter === 'remote') {
-         // Chỉ lấy transcript của người khác (không phải mình)
-         filteredTranscripts = filteredTranscripts.filter(t => t.speakerId !== userId);
-      } else if (speakerFilter === 'local') {
-         // Chỉ lấy transcript của mình
-         filteredTranscripts = filteredTranscripts.filter(t => t.speakerId === userId);
-      }
+         // Filter theo speaker
+         if (speakerFilter === 'remote') {
+            // Chỉ lấy transcript của người khác (không phải mình)
+            filteredTranscripts = filteredTranscripts.filter((t) => t.speakerId !== userId);
+         } else if (speakerFilter === 'local') {
+            // Chỉ lấy transcript của mình
+            filteredTranscripts = filteredTranscripts.filter((t) => t.speakerId === userId);
+         }
 
-      const texts = filteredTranscripts.map(t => t.transcript);
+         const texts = filteredTranscripts.map((t) => t.transcript);
 
-      if (texts.length === 0) {
-         console.log(`[useWebSpeechTranscription] Không có transcript nào cho speaker: ${speakerFilter}`);
-         return null;
-      }
+         if (texts.length === 0) {
+            console.log(`[useWebSpeechTranscription] Không có transcript nào cho speaker: ${speakerFilter}`);
+            return null;
+         }
 
-      try {
-         const { sentimentService } = await import('@/services/sentimentService');
-         const result = await sentimentService.analyzeCallOverall(texts);
-         
-         return {
-            ...result,
-            speakerAnalyzed: speakerFilter,
-            entriesCount: filteredTranscripts.length,
-            speakerNames: [...new Set(filteredTranscripts.map(t => t.speakerName))],
-         };
-      } catch (error) {
-         console.error('Error getting call sentiment summary:', error);
-         return null;
-      }
-   }, [transcripts, userId]);
+         try {
+            const { sentimentService } = await import('@/services/sentimentService');
+            const result = await sentimentService.analyzeCallOverall(texts);
+
+            return {
+               ...result,
+               speakerAnalyzed: speakerFilter,
+               entriesCount: filteredTranscripts.length,
+               speakerNames: [...new Set(filteredTranscripts.map((t) => t.speakerName))],
+            };
+         } catch (error) {
+            console.error('Error getting call sentiment summary:', error);
+            return null;
+         }
+      },
+      [transcripts, userId],
+   );
 
    /**
     * Lấy số lượng transcript theo speaker
     */
    const getTranscriptCounts = useCallback(() => {
-      const local = transcripts.filter(t => t.isFinal && t.speakerId === userId).length;
-      const remote = transcripts.filter(t => t.isFinal && t.speakerId !== userId).length;
+      const local = transcripts.filter((t) => t.isFinal && t.speakerId === userId).length;
+      const remote = transcripts.filter((t) => t.isFinal && t.speakerId !== userId).length;
       return { local, remote, total: local + remote };
    }, [transcripts, userId]);
 
@@ -513,7 +528,7 @@ export const useWebSpeechTranscription = ({
     * Lấy transcripts của người đối diện
     */
    const getRemoteTranscripts = useCallback(() => {
-      return transcripts.filter(t => t.isFinal && t.speakerId !== userId);
+      return transcripts.filter((t) => t.isFinal && t.speakerId !== userId);
    }, [transcripts, userId]);
 
    // Auto-enable transcription and start listening

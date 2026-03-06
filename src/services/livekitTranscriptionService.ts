@@ -53,7 +53,7 @@ class LiveKitTranscriptionService {
       console.log('[LiveKitTranscription] 🎙️ Microphone enabled:', room.localParticipant?.isMicrophoneEnabled);
       console.log('[LiveKitTranscription] 👥 Remote participants:', room.remoteParticipants.size);
       console.log(
-         '[LiveKitTranscription] ⚠️ IMPORTANT: Backend must send transcription via DataReceived with topic="transcription"',
+         '[LiveKitTranscription] IMPORTANT: Backend must send transcription via DataReceived with topic="transcription"',
       );
       return true;
    }
@@ -326,7 +326,7 @@ class LiveKitTranscriptionService {
       try {
          const { sentimentService } = await import('./sentimentService');
          const result = await sentimentService.analyzeCallOverall(texts);
-         
+
          return {
             ...result,
             speakerAnalyzed: speakerFilter,

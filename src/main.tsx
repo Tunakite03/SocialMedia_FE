@@ -1,13 +1,18 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import App from './App.tsx';
 import { SocketNotificationProvider } from '@/contexts/SocketNotificationProvider.tsx';
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 createRoot(document.getElementById('root')!).render(
    <StrictMode>
-      <SocketNotificationProvider>
-         <App />
-      </SocketNotificationProvider>
-   </StrictMode>
+      <GoogleOAuthProvider clientId={googleClientId}>
+         <SocketNotificationProvider>
+            <App />
+         </SocketNotificationProvider>
+      </GoogleOAuthProvider>
+   </StrictMode>,
 );

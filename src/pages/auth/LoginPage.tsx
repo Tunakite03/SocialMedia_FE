@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
+import { useGoogleLogin as useGoogleOAuth } from '@react-oauth/google';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, Github, LogIn, Stars, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store';
-import { useLogin } from '@/hooks';
+import { useLogin, useGoogleLogin } from '@/hooks';
 import animeCityImg from '@/assets/anime/anime-city-5e869e.png';
 import animeCharacterImg from '@/assets/anime/anime-character-4403e6.png';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,22 @@ const LoginPage = () => {
    const navigate = useNavigate();
    const { login } = useAuthStore();
    const { login: loginUser, loading: isLoading, error } = useLogin();
+   const { googleLogin, loading: googleLoading, error: googleError } = useGoogleLogin();
+
+   const handleGoogleLogin = useGoogleOAuth({
+      onSuccess: async (tokenResponse) => {
+         try {
+            const result = await googleLogin(tokenResponse.access_token);
+            login(result.user, result.accessToken, result.refreshToken);
+            navigate('/');
+         } catch (err) {
+            console.error('Google login error:', err);
+         }
+      },
+      onError: () => {
+         console.error('Google login failed');
+      },
+   });
 
    const {
       register,
@@ -111,6 +128,12 @@ const LoginPage = () => {
                         </div>
                      )}
 
+                     {googleError && (
+                        <div className='bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm font-anime anime-shake'>
+                           {googleError}
+                        </div>
+                     )}
+
                      <div className='space-y-4'>
                         <div className=''>
                            <Input
@@ -196,12 +219,11 @@ const LoginPage = () => {
                               variant='outline'
                               type='button'
                               className='flex-1 '
-                              onClick={() => {
-                                 /* TODO: social login */
-                              }}
+                              disabled={googleLoading}
+                              onClick={() => handleGoogleLogin()}
                            >
                               <LogIn className='w-4 h-4 mr-2' />
-                              Google
+                              {googleLoading ? 'Signing in...' : 'Google'}
                            </Button>
                         </div>
                      </div>

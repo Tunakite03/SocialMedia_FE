@@ -10,44 +10,44 @@ Otakomi is a comprehensive frontend application that provides real-time messagin
 
 ### Frontend Stack
 
--  **ReactJS** - Component-based UI framework
--  **TypeScript** - Type-safe development
--  **TailwindCSS** - Utility-first CSS framework with custom 60%-30%-10% color scheme
--  **Vite** - Fast build tool and development server
--  **Zustand** - Lightweight state management
--  **React Router** - Client-side routing
--  **Shadcn/ui** - Modern component library
+- **ReactJS** - Component-based UI framework
+- **TypeScript** - Type-safe development
+- **TailwindCSS** - Utility-first CSS framework with custom 60%-30%-10% color scheme
+- **Vite** - Fast build tool and development server
+- **Zustand** - Lightweight state management
+- **React Router** - Client-side routing
+- **Shadcn/ui** - Modern component library
 
 ### Real-time Communication
 
--  **Socket.IO Client** - Real-time bidirectional communication
--  **WebRTC** - Peer-to-peer video/audio calling
--  **Emotion Analysis** - Real-time emotion detection during calls
+- **Socket.IO Client** - Real-time bidirectional communication
+- **WebRTC** - Peer-to-peer video/audio calling
+- **Emotion Analysis** - Real-time emotion detection during calls
 
 ### Key Features
 
--  🔐 **Authentication** - Login/Register with JWT tokens
--  💬 **Real-time Chat** - Instant messaging with typing indicators
--  📞 **Voice/Video Calls** - WebRTC-powered communication
--  😊 **Emotion Analysis** - AI-powered emotion detection
--  📱 **Responsive Design** - Mobile-first approach
--  🎨 **Modern UI** - Clean, accessible interface
+- 🔐 **Authentication** - Login/Register with JWT tokens
+- 💬 **Real-time Chat** - Instant messaging with typing indicators
+- 📞 **Voice/Video Calls** - WebRTC-powered communication
+- 😊 **Emotion Analysis** - AI-powered emotion detection
+- 📱 **Responsive Design** - Mobile-first approach
+- 🎨 **Modern UI** - Clean, accessible interface
 
 ## 🎨 Design System
 
 The application follows a **60%-30%-10% color scheme**:
 
--  **60% Primary** - Light blue-gray backgrounds and main content areas
--  **30% Secondary** - Deep blue for navigation and supporting elements
--  **10% Accent** - Warm orange for highlights, CTAs, and important actions
+- **60% Primary** - Light blue-gray backgrounds and main content areas
+- **30% Secondary** - Deep blue for navigation and supporting elements
+- **10% Accent** - Warm orange for highlights, CTAs, and important actions
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
--  Node.js 18+
--  npm or yarn
--  Git
+- Node.js 18+
+- npm or yarn
+- Git
 
 ### Installation
 
@@ -112,10 +112,10 @@ src/
 
 ## 🛠️ Available Scripts
 
--  `npm run dev` - Start development server
--  `npm run build` - Build for production
--  `npm run preview` - Preview production build
--  `npm run lint` - Run ESLint
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
 ## 🔧 Configuration
 
@@ -160,35 +160,35 @@ VITE_ENABLE_FACE_DETECTION=true
 
 ### State Management
 
--  **Zustand stores** handle global application state
--  **Authentication state** persisted in localStorage
--  **Chat state** manages messages and typing indicators
--  **Call state** tracks ongoing calls and media streams
+- **Zustand stores** handle global application state
+- **Authentication state** persisted in localStorage
+- **Chat state** manages messages and typing indicators
+- **Call state** tracks ongoing calls and media streams
 
 ## 🔌 Integration Points
 
 ### Backend API
 
--  RESTful endpoints for CRUD operations
--  JWT authentication middleware
--  File upload handling
--  User management
+- RESTful endpoints for CRUD operations
+- JWT authentication middleware
+- File upload handling
+- User management
 
 ### Socket.IO Events
 
--  `user:connect/disconnect` - User presence
--  `message:new/read` - Chat messages
--  `call:offer/answer/ice-candidate` - WebRTC signaling
--  `notification:new` - Real-time notifications
+- `user:connect/disconnect` - User presence
+- `message:new/read` - Chat messages
+- `call:offer/answer/ice-candidate` - WebRTC signaling
+- `notification:new` - Real-time notifications
 
 ### WebRTC Signaling
 
--  Offer/Answer exchange through Socket.IO
--  ICE candidate sharing
--  Media stream management
--  Call state synchronization
+- Offer/Answer exchange through Socket.IO
+- ICE candidate sharing
+- Media stream management
+- Call state synchronization
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run tests (when implemented)
@@ -211,9 +211,9 @@ npm run preview
 
 The application is configured for deployment on:
 
--  **Netlify** (included `netlify.toml`)
--  **Vercel**
--  **Static hosting services**
+- **Netlify** (included `netlify.toml`)
+- **Vercel**
+- **Static hosting services**
 
 Build artifacts are generated in the `dist/` directory.
 
@@ -233,9 +233,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For support and questions:
 
--  Create an issue in the repository
--  Contact the development team
--  Check the documentation
+- Create an issue in the repository
+- Contact the development team
+- Check the documentation
 
 ---
 

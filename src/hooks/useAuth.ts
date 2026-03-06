@@ -25,7 +25,7 @@ export const useAuth = () => {
             throw new Error(errorMessage);
          }
       },
-      [authStore]
+      [authStore],
    );
 
    const register = useCallback(
@@ -45,7 +45,7 @@ export const useAuth = () => {
             throw new Error(errorMessage);
          }
       },
-      [authStore]
+      [authStore],
    );
 
    const logout = useCallback(async () => {
@@ -75,7 +75,7 @@ export const useAuth = () => {
             throw new Error(errorMessage);
          }
       },
-      [authStore]
+      [authStore],
    );
 
    const updateAvatar = useCallback(
@@ -93,7 +93,7 @@ export const useAuth = () => {
             throw new Error(errorMessage);
          }
       },
-      [authStore]
+      [authStore],
    );
 
    const verifyToken = useCallback(async () => {
@@ -184,6 +184,34 @@ export const useLogin = () => {
    };
 
    return { login, loading, error };
+};
+
+// Hook for Google OAuth login
+export const useGoogleLogin = () => {
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+   const authStore = useAuthStore();
+
+   const googleLogin = async (accessToken: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+         const response = await authService.googleLogin(accessToken);
+         if (response.success && response.data) {
+            authStore.login(response.data.user, response.data.accessToken, response.data.refreshToken);
+            return response.data;
+         }
+         throw new Error(response.error || 'Google login failed');
+      } catch (err: any) {
+         const errorMessage = err.error || err.message || 'Google login failed';
+         setError(errorMessage);
+         throw err;
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   return { googleLogin, loading, error };
 };
 
 // Hook for registration (backward compatibility)

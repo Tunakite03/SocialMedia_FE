@@ -93,7 +93,7 @@ function printSummary() {
    console.log('📊 Download Summary:');
    console.log(`   ✅ Completed: ${completed}/${FILES.length}`);
    if (failed > 0) {
-      console.log(`   ❌ Failed: ${failed}/${FILES.length}`);
+      console.log(`  Failed: ${failed}/${FILES.length}`);
    }
    console.log('═══════════════════════════════════════════\n');
 
@@ -101,7 +101,7 @@ function printSummary() {
       console.log('🎉 All models downloaded successfully!');
       console.log('You can now use emotion detection in your video calls.\n');
    } else {
-      console.log('⚠️  Some models failed to download.');
+      console.log(' Some models failed to download.');
       console.log('Please try running the script again or download manually.\n');
       process.exit(1);
    }

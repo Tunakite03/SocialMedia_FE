@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, ThumbsUp, Star, Laugh, Angry, Meh } from 'lucide-react';
-import { usePostReactionsStore } from '@/hooks';
+import {
+   Heart,
+   MessageCircle,
+   Bookmark,
+   MoreHorizontal,
+   ThumbsUp,
+   Star,
+   Laugh,
+   Angry,
+   Meh,
+   UserPlus,
+} from 'lucide-react';
+import { usePostReactionsStore, useFollow } from '@/hooks';
+import { useAuthStore } from '@/store/authStore';
 import type { Post } from '@/types';
 import PostMedia from './PostMedia';
 import SentimentBadge from './SentimentBadge';
@@ -13,6 +25,15 @@ interface PostCardProps {
 
 const PostCard = ({ post }: PostCardProps) => {
    const navigate = useNavigate();
+   const { user: currentUser } = useAuthStore();
+   const { followUser, unfollowUser, loading: followLoading } = useFollow();
+
+   // Check if current user is the author
+   const isOwnPost = currentUser?.id === post.author.id;
+
+   // Use isFollowing from API response, fallback to false
+   const [isFollowing, setIsFollowing] = useState(post.author.isFollowing || false);
+
    // Use Lucide SVG icons for nicer reaction visuals
    const reactionIcons: Record<string, ReactNode> = {
       LIKE: (
@@ -127,6 +148,25 @@ const PostCard = ({ post }: PostCardProps) => {
       setIsBookmarked(!isBookmarked);
    };
 
+   const handleFollowClick = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (followLoading) return;
+
+      try {
+         if (isFollowing) {
+            await unfollowUser(post.author.id);
+            setIsFollowing(false);
+         } else {
+            await followUser(post.author.id);
+            setIsFollowing(true);
+         }
+      } catch (error) {
+         console.error('Error handling follow:', error);
+      }
+   };
+
    const formatCount = (count: number) => {
       if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
       if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
@@ -161,6 +201,18 @@ const PostCard = ({ post }: PostCardProps) => {
                   <span className='font-anime font-semibold text-sm text-foreground'>{post.author.username}</span>
                   <span className='text-xs text-muted-foreground font-anime'>{formatRelativeTime(post.updatedAt)}</span>
                </div>
+
+               {/* Follow button - only show if not own post and not following */}
+               {!isOwnPost && !isFollowing && (
+                  <button
+                     onClick={handleFollowClick}
+                     disabled={followLoading}
+                     className='ml-2 p-1.5 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-all anime-hover-scale disabled:opacity-50 disabled:cursor-not-allowed'
+                     title='Follow'
+                  >
+                     <UserPlus size={12} />
+                  </button>
+               )}
             </div>
             <div className='flex items-center gap-2'>
                {post.sentiment && (

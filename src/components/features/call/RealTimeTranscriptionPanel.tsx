@@ -76,7 +76,7 @@ export const RealTimeTranscriptionPanel = ({
    // Start/stop transcription based on mic state
    useEffect(() => {
       if (!isSupportedBrowser) {
-         console.log('⚠️ [Transcription] Browser not supported');
+         console.log('[Transcription] Browser not supported');
          return;
       }
 
@@ -91,14 +91,14 @@ export const RealTimeTranscriptionPanel = ({
 
       // Mic is ON - only start if transcription is enabled
       if (!isEnabled) {
-         console.log('⚠️ [Transcription] Mic is ON but transcription not enabled yet');
+         console.log('[Transcription] Mic is ON but transcription not enabled yet');
          return;
       }
 
       // Mic is ON AND transcription is enabled - start listening
       console.log('🎤 [Transcription] MIC IS ON - Starting transcription');
       startListening();
-      
+
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [isAudioEnabled]); // Only trigger when mic state changes!
 
@@ -167,12 +167,10 @@ export const RealTimeTranscriptionPanel = ({
          // 1. First time: we have at least 4 transcripts total
          // 2. After first time: we have at least 4 NEW transcripts since last analysis
          const isFirstAnalysis = lastAnalyzedCount === 0;
-         const shouldAnalyze = isFirstAnalysis 
-            ? currentCount >= 4 
-            : (currentCount - lastAnalyzedCount) >= 4;
+         const shouldAnalyze = isFirstAnalysis ? currentCount >= 4 : currentCount - lastAnalyzedCount >= 4;
 
          if (!shouldAnalyze) {
-            const needed = isFirstAnalysis ? (4 - currentCount) : (4 - (currentCount - lastAnalyzedCount));
+            const needed = isFirstAnalysis ? 4 - currentCount : 4 - (currentCount - lastAnalyzedCount);
             console.log(`[RealTimeTranscription] Waiting for ${needed} more transcripts (filter: ${speakerFilter})`);
             setEnrichedTranscripts(transcripts as TranscriptEntry[]);
             return;
@@ -180,16 +178,14 @@ export const RealTimeTranscriptionPanel = ({
 
          // Get only the last 4 transcripts for analysis
          const last4Transcripts = filteredTranscripts.slice(-4);
-         
+
          console.log(
             `[RealTimeTranscription] Analyzing sentiment for 4 latest transcripts (filter: ${speakerFilter}):`,
-            last4Transcripts.map(t => t.transcript)
+            last4Transcripts.map((t) => t.transcript),
          );
 
          try {
-            const overall = await sentimentService.analyzeCallOverall(
-               last4Transcripts.map((t) => t.transcript),
-            );
+            const overall = await sentimentService.analyzeCallOverall(last4Transcripts.map((t) => t.transcript));
 
             console.log(
                `[RealTimeTranscription] Overall sentiment: ${overall.overallSentiment} (${(overall.averageConfidence * 100).toFixed(1)}%)`,
@@ -227,26 +223,26 @@ export const RealTimeTranscriptionPanel = ({
 
    // Summary is now computed directly in enrichWithSentiment() - no need for auto-update
 
-   // Auto-enable transcription when panel opens for the first time
+   // Auto-enable transcription when component mounts (independent of panel visibility)
    useEffect(() => {
-      if (isVisible && !isEnabled && isConnected) {
+      if (!isEnabled && isConnected) {
          const enabled = enableTranscription();
          if (enabled && isAudioEnabled) {
             setTimeout(() => startListening(), 500);
          }
       }
-   }, [isVisible, isEnabled, isConnected, isAudioEnabled, enableTranscription, startListening]);
+   }, [isEnabled, isConnected, isAudioEnabled, enableTranscription, startListening]);
 
-   // Start/stop listening based on audio state
+   // Start/stop listening based on audio state (independent of panel visibility)
    useEffect(() => {
-      if (!isVisible || !isEnabled) return;
+      if (!isEnabled) return;
 
       if (isAudioEnabled && !isListening) {
          startListening();
       } else if (!isAudioEnabled && isListening) {
          stopListening();
       }
-   }, [isVisible, isAudioEnabled, isEnabled, isListening, startListening, stopListening]);
+   }, [isAudioEnabled, isEnabled, isListening, startListening, stopListening]);
 
    const handleClear = () => {
       clearTranscripts();
@@ -265,13 +261,11 @@ export const RealTimeTranscriptionPanel = ({
 
    const handleRefreshSummary = async () => {
       if (!user || enrichedTranscripts.length === 0) return;
-      
+
       setIsLoadingSummary(true);
       try {
          // Get all final transcripts theo speaker filter
-         let filteredTranscripts = enrichedTranscripts.filter(
-            (t) => t.isFinal && t.transcript.trim().length >= 3,
-         );
+         let filteredTranscripts = enrichedTranscripts.filter((t) => t.isFinal && t.transcript.trim().length >= 3);
 
          // Apply speaker filter
          if (speakerFilter === 'remote') {
@@ -287,8 +281,11 @@ export const RealTimeTranscriptionPanel = ({
 
          // Analyze only the last 4 transcripts
          const last4Transcripts = filteredTranscripts.slice(-4);
-         
-         console.log(`[RealTimeTranscription] Refreshing sentiment for 4 latest transcripts (filter: ${speakerFilter}):`, last4Transcripts.map(t => t.transcript));
+
+         console.log(
+            `[RealTimeTranscription] Refreshing sentiment for 4 latest transcripts (filter: ${speakerFilter}):`,
+            last4Transcripts.map((t) => t.transcript),
+         );
 
          // Call API to re-analyze sentiment for last 4 transcripts
          const overall = await sentimentService.analyzeCallOverall(last4Transcripts.map((t) => t.transcript));
@@ -304,18 +301,20 @@ export const RealTimeTranscriptionPanel = ({
             speakerAnalyzed: speakerFilter,
          });
 
-         console.log(`[RealTimeTranscription] Summary refreshed: ${overall.overallSentiment} (${(overall.averageConfidence * 100).toFixed(1)}%)`);
+         console.log(
+            `[RealTimeTranscription] Summary refreshed: ${overall.overallSentiment} (${(overall.averageConfidence * 100).toFixed(1)}%)`,
+         );
       } catch (error) {
          console.error('Error refreshing summary:', error);
       }
       setIsLoadingSummary(false);
    };
 
-   if (!isVisible) return null;
-
    if (!isSupportedBrowser) {
       return (
-         <div className='fixed right-4 top-20 bottom-24 w-[420px] max-w-[90vw] bg-linear-to-br from-black/95 via-black/90 to-black/95 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl flex flex-col z-50 anime-slide-in-right'>
+         <div
+            className={`fixed right-4 top-20 bottom-24 w-[420px] max-w-[90vw] bg-linear-to-br from-black/95 via-black/90 to-black/95 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl flex flex-col z-50 anime-slide-in-right transition-all duration-300 ${!isVisible ? 'translate-x-full opacity-0 pointer-events-none' : ''}`}
+         >
             <div className='flex-1 flex items-center justify-center p-8'>
                <div className='text-center space-y-4'>
                   <div className='w-20 h-20 mx-auto rounded-full bg-red-500/20 backdrop-blur-xl border-2 border-red-500/40 flex items-center justify-center animate-pulse'>
@@ -332,7 +331,9 @@ export const RealTimeTranscriptionPanel = ({
    }
 
    return (
-         <div className='fixed right-4 top-20 bottom-24 w-[420px] max-w-[90vw] bg-linear-to-br from-black/95 via-black/90 to-black/95 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl flex flex-col z-50 anime-slide-in-right overflow-hidden'>
+      <div
+         className={`fixed right-4 top-20 bottom-24 w-[420px] max-w-[90vw] bg-linear-to-br from-black/95 via-black/90 to-black/95 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl flex flex-col z-50 anime-slide-in-right overflow-hidden transition-all duration-300 ${!isVisible ? 'translate-x-full opacity-0 pointer-events-none' : ''}`}
+      >
          {/* Compact Header - merged status & controls */}
          <div className='relative flex items-center justify-between p-3 bg-linear-to-r from-white/10 to-white/5 border-b border-white/20 backdrop-blur-xl'>
             <div className='flex items-center gap-3'>
@@ -353,7 +354,6 @@ export const RealTimeTranscriptionPanel = ({
                      </>
                   )}
                </div>
-
             </div>
 
             {/* Control Buttons */}
@@ -425,38 +425,82 @@ export const RealTimeTranscriptionPanel = ({
                         <div className='flex items-center justify-between'>
                            {(() => {
                               const dist = summary.sentimentDistribution as any;
-                              
+
                               // Find the dominant emotion
                               const emotionConfigs = {
-                                 ENJOYMENT: { emoji: '😊', label: 'Happy', color: 'bg-green-500', textColor: 'text-green-400', borderColor: 'border-green-400' },
-                                 SURPRISE: { emoji: '😮', label: 'Surprise', color: 'bg-blue-500', textColor: 'text-blue-400', borderColor: 'border-blue-400' },
-                                 FEAR: { emoji: '😨', label: 'Fear', color: 'bg-purple-500', textColor: 'text-purple-400', borderColor: 'border-purple-400' },
-                                 SADNESS: { emoji: '😢', label: 'Sadness', color: 'bg-indigo-500', textColor: 'text-indigo-400', borderColor: 'border-indigo-400' },
-                                 ANGER: { emoji: '😠', label: 'Anger', color: 'bg-red-500', textColor: 'text-red-400', borderColor: 'border-red-400' },
-                                 DISGUST: { emoji: '🤢', label: 'Disgust', color: 'bg-orange-500', textColor: 'text-orange-400', borderColor: 'border-orange-400' },
-                                 OTHER: { emoji: '😐', label: 'Other', color: 'bg-gray-500', textColor: 'text-gray-400', borderColor: 'border-gray-400' },
+                                 ENJOYMENT: {
+                                    emoji: '😊',
+                                    label: 'Happy',
+                                    color: 'bg-green-500',
+                                    textColor: 'text-green-400',
+                                    borderColor: 'border-green-400',
+                                 },
+                                 SURPRISE: {
+                                    emoji: '😮',
+                                    label: 'Surprise',
+                                    color: 'bg-blue-500',
+                                    textColor: 'text-blue-400',
+                                    borderColor: 'border-blue-400',
+                                 },
+                                 FEAR: {
+                                    emoji: '😨',
+                                    label: 'Fear',
+                                    color: 'bg-purple-500',
+                                    textColor: 'text-purple-400',
+                                    borderColor: 'border-purple-400',
+                                 },
+                                 SADNESS: {
+                                    emoji: '😢',
+                                    label: 'Sadness',
+                                    color: 'bg-indigo-500',
+                                    textColor: 'text-indigo-400',
+                                    borderColor: 'border-indigo-400',
+                                 },
+                                 ANGER: {
+                                    emoji: '😠',
+                                    label: 'Anger',
+                                    color: 'bg-red-500',
+                                    textColor: 'text-red-400',
+                                    borderColor: 'border-red-400',
+                                 },
+                                 DISGUST: {
+                                    emoji: '🤢',
+                                    label: 'Disgust',
+                                    color: 'bg-orange-500',
+                                    textColor: 'text-orange-400',
+                                    borderColor: 'border-orange-400',
+                                 },
+                                 OTHER: {
+                                    emoji: '😐',
+                                    label: 'Other',
+                                    color: 'bg-gray-500',
+                                    textColor: 'text-gray-400',
+                                    borderColor: 'border-gray-400',
+                                 },
                               } as const;
-                              
-                              const emotionEntries = Object.keys(emotionConfigs).map(type => ({
+
+                              const emotionEntries = Object.keys(emotionConfigs).map((type) => ({
                                  type: type as keyof typeof emotionConfigs,
-                                 value: dist?.[type] || 0
+                                 value: dist?.[type] || 0,
                               }));
-                              const dominantEmotion = emotionEntries.reduce((max, curr) => curr.value > max.value ? curr : max);
+                              const dominantEmotion = emotionEntries.reduce((max, curr) =>
+                                 curr.value > max.value ? curr : max,
+                              );
                               const config = emotionConfigs[dominantEmotion.type];
                               const percentage = Math.round(dominantEmotion.value * 100);
-                              
+
                               return (
                                  <>
-                                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${config.borderColor} ${config.color}/20 backdrop-blur-sm`}>
+                                    <div
+                                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${config.borderColor} ${config.color}/20 backdrop-blur-sm`}
+                                    >
                                        <span className='text-lg'>{config.emoji}</span>
                                        <span className={`text-sm font-semibold ${config.textColor}`}>
                                           {config.label}
                                        </span>
-                                       <span className='text-xs text-white/60 font-medium'>
-                                          {percentage}%
-                                       </span>
+                                       <span className='text-xs text-white/60 font-medium'>{percentage}%</span>
                                     </div>
-                                    
+
                                     {/* Toggle Details Button */}
                                     <Button
                                        onClick={() => setShowEmotionDetails(!showEmotionDetails)}
@@ -483,7 +527,7 @@ export const RealTimeTranscriptionPanel = ({
                               <div className='flex items-center gap-2'>
                                  {(() => {
                                     const dist = summary.sentimentDistribution as any;
-                                    
+
                                     return ['ENJOYMENT', 'SURPRISE', 'FEAR', 'SADNESS'].map((type) => {
                                        const config = {
                                           ENJOYMENT: { emoji: '😊', label: 'Happy', color: 'bg-green-500' },
@@ -523,7 +567,7 @@ export const RealTimeTranscriptionPanel = ({
                               <div className='flex items-center gap-2'>
                                  {(() => {
                                     const dist = summary.sentimentDistribution as any;
-                                    
+
                                     return ['ANGER', 'DISGUST', 'OTHER'].map((type) => {
                                        const config = {
                                           ANGER: { emoji: '😠', label: 'Anger', color: 'bg-red-500' },
@@ -649,6 +693,6 @@ export const RealTimeTranscriptionPanel = ({
                </div>
             </div>
          </div>
-         </div>
+      </div>
    );
 };

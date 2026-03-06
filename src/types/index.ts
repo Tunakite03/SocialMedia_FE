@@ -166,6 +166,7 @@ export interface Post {
       username: string;
       displayName: string;
       avatar: string | null;
+      isFollowing?: boolean;
    };
    authorId: string;
    mediaUrl?: string;

@@ -31,6 +31,10 @@ class AuthService {
       return apiService.post<LoginResponse>(`${this.endpoint}/login`, credentials);
    }
 
+   async googleLogin(accessToken: string): Promise<ApiResponse<LoginResponse>> {
+      return apiService.post<LoginResponse>(`${this.endpoint}/google`, { accessToken });
+   }
+
    async register(userData: RegisterApiData): Promise<ApiResponse<RegisterResponse>> {
       return apiService.post<RegisterResponse>(`${this.endpoint}/register`, userData);
    }
@@ -77,7 +81,7 @@ class AuthService {
       return apiService.post<{ accessToken: string; refreshToken: string }>(
          `${this.endpoint}/refresh`,
          { refreshToken },
-         { _skipRetry: true } as any
+         { _skipRetry: true } as any,
       );
    }
 }

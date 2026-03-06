@@ -3,8 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
+import { useGoogleLogin as useGoogleOAuth } from '@react-oauth/google';
 import { useAuthStore } from '@/store';
-import { useRegister } from '@/hooks';
+import { useRegister, useGoogleLogin } from '@/hooks';
 import { Input } from '@/components/ui/input';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import { Eye, EyeOff, Github, UserPlus, Heart, Stars, Sparkles } from 'lucide-react';
@@ -33,6 +34,22 @@ const RegisterPage = () => {
    const navigate = useNavigate();
    const { login } = useAuthStore();
    const { register: registerUser, loading: isLoading, error } = useRegister();
+   const { googleLogin, loading: googleLoading, error: googleError } = useGoogleLogin();
+
+   const handleGoogleSignup = useGoogleOAuth({
+      onSuccess: async (tokenResponse) => {
+         try {
+            const result = await googleLogin(tokenResponse.access_token);
+            login(result.user, result.accessToken, result.refreshToken);
+            navigate('/');
+         } catch (err) {
+            console.error('Google signup error:', err);
+         }
+      },
+      onError: () => {
+         console.error('Google signup failed');
+      },
+   });
 
    const {
       register,
@@ -129,6 +146,12 @@ const RegisterPage = () => {
                      {error && (
                         <div className='bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm font-anime anime-shake'>
                            {error}
+                        </div>
+                     )}
+
+                     {googleError && (
+                        <div className='bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm font-anime anime-shake'>
+                           {googleError}
                         </div>
                      )}
 
@@ -259,12 +282,11 @@ const RegisterPage = () => {
                               variant='outline'
                               type='button'
                               className='flex-1 anime-hover-lift'
-                              onClick={() => {
-                                 /* TODO: social signup */
-                              }}
+                              disabled={googleLoading}
+                              onClick={() => handleGoogleSignup()}
                            >
                               <UserPlus className='w-4 h-4 mr-2' />
-                              Google
+                              {googleLoading ? 'Signing up...' : 'Google'}
                            </Button>
                         </div>
                      </div>
