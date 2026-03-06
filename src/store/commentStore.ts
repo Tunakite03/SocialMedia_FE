@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { commentService } from '@/services';
 import type { Comment, CommentFormData } from '@/types';
 
+type ReactionType = 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW';
+
 interface CommentState {
    // State for comments by post ID
    commentsByPost: Record<string, Comment[]>;
@@ -17,6 +19,7 @@ interface CommentState {
    addCommentOptimistic: (postId: string, comment: Comment) => void;
    addReplyOptimistic: (postId: string, parentCommentId: string, reply: Comment) => void;
    createComment: (postId: string, commentData: CommentFormData) => Promise<Comment | null>;
+   addCommentReaction: (postId: string, commentId: string, type: ReactionType) => Promise<void>;
 
    // Real-time updates
    handleNewComment: (comment: Comment) => void;
@@ -181,6 +184,112 @@ export const useCommentStore = create<CommentState>()((set, get) => ({
       }
    },
 
+   // Add reaction to a comment
+   addCommentReaction: async (postId: string, commentId: string, type: ReactionType) => {
+      const state = get();
+      const comments = state.commentsByPost[postId] || [];
+
+      // Find the comment (could be top-level or a reply)
+      const findComment = (list: Comment[]): Comment | undefined => {
+         for (const c of list) {
+            if (c.id === commentId) return c;
+            if (c.replies) {
+               const found = findComment(c.replies);
+               if (found) return found;
+            }
+         }
+         return undefined;
+      };
+
+      const comment = findComment(comments);
+      if (!comment) return;
+
+      // Save previous state for rollback
+      const prevReaction = comment.userReaction;
+      const prevCount = comment._count.reactions;
+
+      // Optimistic update
+      const isSameReaction = prevReaction === type;
+      const optimisticReaction = isSameReaction ? null : type;
+      const optimisticCount = isSameReaction ? prevCount - 1 : prevReaction ? prevCount : prevCount + 1;
+
+      const updateComment = (c: Comment): Comment => {
+         if (c.id === commentId) {
+            return {
+               ...c,
+               userReaction: optimisticReaction,
+               _count: { ...c._count, reactions: optimisticCount },
+            };
+         }
+         if (c.replies) {
+            return { ...c, replies: c.replies.map(updateComment) };
+         }
+         return c;
+      };
+
+      set((s) => ({
+         commentsByPost: {
+            ...s.commentsByPost,
+            [postId]: (s.commentsByPost[postId] || []).map(updateComment),
+         },
+      }));
+
+      try {
+         const response = await commentService.addCommentReaction(commentId, { type });
+
+         if (response.success && response.data) {
+            const { action, counts } = response.data;
+            const totalCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
+            const serverReaction = action === 'removed' ? null : type;
+
+            const applyServer = (c: Comment): Comment => {
+               if (c.id === commentId) {
+                  return {
+                     ...c,
+                     userReaction: serverReaction,
+                     _count: { ...c._count, reactions: totalCount },
+                  };
+               }
+               if (c.replies) {
+                  return { ...c, replies: c.replies.map(applyServer) };
+               }
+               return c;
+            };
+
+            set((s) => ({
+               commentsByPost: {
+                  ...s.commentsByPost,
+                  [postId]: (s.commentsByPost[postId] || []).map(applyServer),
+               },
+            }));
+         }
+      } catch (error) {
+         // Rollback on failure
+         const rollback = (c: Comment): Comment => {
+            if (c.id === commentId) {
+               return {
+                  ...c,
+                  userReaction: prevReaction,
+                  _count: { ...c._count, reactions: prevCount },
+               };
+            }
+            if (c.replies) {
+               return { ...c, replies: c.replies.map(rollback) };
+            }
+            return c;
+         };
+
+         set((s) => ({
+            commentsByPost: {
+               ...s.commentsByPost,
+               [postId]: (s.commentsByPost[postId] || []).map(rollback),
+            },
+         }));
+
+         console.error('Error adding comment reaction:', error);
+      }
+   },
+
    // Handle real-time comment updates (from socket)
    handleNewComment: (comment: Comment) => {
       const { postId } = comment;
@@ -207,7 +316,7 @@ export const useCommentStore = create<CommentState>()((set, get) => ({
             // Check if it's a reply within a comment
             if (comment.replies) {
                const updatedReplies = comment.replies.map((reply) =>
-                  reply.id === updatedComment.id ? updatedComment : reply
+                  reply.id === updatedComment.id ? updatedComment : reply,
                );
                return { ...comment, replies: updatedReplies };
             }

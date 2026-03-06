@@ -20,6 +20,7 @@ export {
    usePostComments as usePostCommentsStore,
    useCreateComment as useCreateCommentStore,
    useCommentRealtime,
+   useCommentReactions,
 } from './useCommentsStore';
 
 // Notification hooks

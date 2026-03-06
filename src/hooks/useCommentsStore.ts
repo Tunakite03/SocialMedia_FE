@@ -1,5 +1,6 @@
 import { useCommentStore } from '@/store';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import type { Comment } from '@/types';
 
 // Hook for managing comments of a specific post
 export const usePostComments = (postId: string) => {
@@ -67,5 +68,35 @@ export const useCommentRealtime = () => {
    return {
       handleNewComment,
       handleCommentUpdate,
+   };
+};
+
+// Hook for comment reactions
+export const useCommentReactions = (postId: string, commentId: string) => {
+   const store = useCommentStore();
+   const comments = store.getComments(postId);
+
+   const findComment = (list: Comment[]): Comment | undefined => {
+      for (const c of list) {
+         if (c.id === commentId) return c;
+         if (c.replies) {
+            const found = findComment(c.replies);
+            if (found) return found;
+         }
+      }
+      return undefined;
+   };
+
+   const comment = findComment(comments);
+
+   const addReaction = useCallback(
+      (type: 'LIKE' | 'LOVE' | 'LAUGH' | 'ANGRY' | 'SAD' | 'WOW') => store.addCommentReaction(postId, commentId, type),
+      [postId, commentId, store],
+   );
+
+   return {
+      userReaction: comment?.userReaction ?? null,
+      reactionCount: comment?._count.reactions ?? 0,
+      addReaction,
    };
 };

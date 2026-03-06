@@ -1,6 +1,12 @@
 import { apiService } from './apiService';
 import type { Comment, CommentFormData, Reaction, ReactionFormData, ApiResponse } from '@/types';
 
+export interface CommentReactionResponse {
+   reaction: { type: string } | null;
+   action: 'added' | 'removed' | 'updated';
+   counts: Record<string, number>;
+}
+
 interface GetCommentsParams {
    postId: string;
    page?: number;
@@ -49,8 +55,11 @@ class CommentService {
       return apiService.get<Reaction[]>(`${this.endpoint}/${commentId}/reactions`);
    }
 
-   async addCommentReaction(commentId: string, reactionData: ReactionFormData): Promise<ApiResponse<null>> {
-      return apiService.post<null>(`${this.endpoint}/${commentId}/reactions`, reactionData);
+   async addCommentReaction(
+      commentId: string,
+      reactionData: ReactionFormData,
+   ): Promise<ApiResponse<CommentReactionResponse>> {
+      return apiService.post<CommentReactionResponse>(`${this.endpoint}/${commentId}/reactions`, reactionData);
    }
 }
 

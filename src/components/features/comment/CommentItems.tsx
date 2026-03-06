@@ -2,6 +2,7 @@ import type { Comment } from '@/types';
 import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CommentReplies from './CommentReplies';
+import CommentReactionButton from './CommentReactionButton';
 import SentimentBadge from './SentimentBadge';
 
 interface CommentItemProps {
@@ -70,7 +71,10 @@ const CommentItem = ({
 
             <div className='flex items-center gap-6 mt-3 text-xs'>
                <span>{formatTimeAgo(comment.createdAt)}</span>
-               <button className=' font-medium'>Like</button>
+               <CommentReactionButton
+                  postId={comment.postId}
+                  commentId={comment.id}
+               />
                <button
                   onClick={() => onReply(comment.id, comment.author.username)}
                   className=' font-medium'

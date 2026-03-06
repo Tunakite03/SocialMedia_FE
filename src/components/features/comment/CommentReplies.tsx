@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import CommentInput from './CommentInput';
+import CommentReactionButton from './CommentReactionButton';
 import SentimentBadge from './SentimentBadge';
 import type { Comment } from '@/types';
 
@@ -120,7 +121,10 @@ const CommentReplies = ({
 
                            <div className='flex items-center gap-3 mt-1 text-xs text-gray-500'>
                               <span>{formatTimeAgo(reply.createdAt)}</span>
-                              <button className='hover:text-gray-700'>Like</button>
+                              <CommentReactionButton
+                                 postId={comment.postId}
+                                 commentId={reply.id}
+                              />
                               <button
                                  onClick={() => {
                                     setShowReplyInput(!showReplyInput);
